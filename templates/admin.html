@@ -1,1 +1,33 @@
-{% extends 'base.html' %}{% set title='管理後台' %}{% block content %}<h1>管理後台</h1><section class="split section"><div class="card"><h2>使用者管理</h2><table class="table"><tr><th>姓名</th><th>Email</th><th>角色</th><th>狀態</th></tr>{% for u in users %}<tr><td>{{ u.name }}</td><td>{{ u.email }}</td><td>{{ u.role }}</td><td>{{ u.status }}</td></tr>{% endfor %}</table></div><div class="card"><h2>技能管理</h2><table class="table"><tr><th>標題</th><th>發布者</th><th>狀態</th></tr>{% for s in skills %}<tr><td>{{ s.title }}</td><td>{{ s.user.name }}</td><td>{{ s.status }}</td></tr>{% endfor %}</table></div></section>{% endblock %}
+{% extends 'base.html' %}{% set title='管理後台' %}{% block content %}<h1>管理後台</h1>
+<section class="split section">
+    <div class="card">
+        <h2>使用者管理</h2>
+        <table class="table">
+            <tr>
+                <th>姓名</th>
+                <th>Email</th>
+                <th>角色</th>
+                <th>狀態</th>
+            </tr>{% for u in users %}<tr>
+                <td>{{ u.name }}</td>
+                <td>{{ u.email }}</td>
+                <td>{{ u.role }}</td>
+                <td>{{ u.status }}</td>
+            </tr>{% endfor %}
+        </table>
+    </div>
+    <div class="card">
+        <h2>技能管理</h2>
+        <table class="table">
+            <tr>
+                <th>標題</th>
+                <th>發布者</th>
+                <th>狀態</th>
+            </tr>{% for s in skills %}<tr>
+                <td>{{ s.title }}</td>
+                <td>{{ s.user.name }}</td>
+                <td>{{ s.status }}</td>
+            </tr>{% endfor %}
+        </table>
+    </div>
+</section>{% endblock %}

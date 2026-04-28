@@ -1,1 +1,17 @@
-{% extends 'base.html' %}{% set title='互評' %}{% block content %}<section class="card section"><h2>交換互評</h2><form method="post" class="form-grid"><div class="field"><label>已完成媒合</label><select name="match_id">{% for m in completed %}<option value="{{ m.id }}">{{ m.skill.title }} / {{ m.requester.name }} ↔ {{ m.receiver.name }}</option>{% endfor %}</select></div><div class="field"><label>評分</label><select name="rating"><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></div><div class="field" style="grid-column:1/-1"><label>評論</label><textarea name="comment"></textarea></div><button class="btn">送出評價</button></form></section>{% endblock %}
+{% extends 'base.html' %}{% set title='互評' %}{% block content %}<section class="card section">
+    <h2>交換互評</h2>
+    <form method="post" class="form-grid">
+        <div class="field"><label>已完成媒合</label><select name="match_id">{% for m in completed %}<option
+                    value="{{ m.id }}">{{ m.skill.title }} / {{ m.requester.name }} ↔ {{ m.receiver.name }}</option>{%
+                endfor %}</select></div>
+        <div class="field"><label>評分</label><select name="rating">
+                <option>5</option>
+                <option>4</option>
+                <option>3</option>
+                <option>2</option>
+                <option>1</option>
+            </select></div>
+        <div class="field" style="grid-column:1/-1"><label>評論</label><textarea name="comment"></textarea></div><button
+            class="btn">送出評價</button>
+    </form>
+</section>{% endblock %}

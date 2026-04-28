@@ -1,1 +1,27 @@
-{% extends 'base.html' %}{% set title='技能列表' %}{% block content %}<section class="section card"><h2>技能列表</h2><form method="get" class="form-grid"><div class="field"><label>關鍵字</label><input name="keyword" value="{{ keyword }}" placeholder="英文、剪輯、設計"></div><div class="field"><label>分類</label><select name="category_id"><option value="">全部</option>{% for c in categories %}<option value="{{ c.id }}" {% if category_id and category_id|int==c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div><div class="field"><label>方式</label><select name="method"><option value="">全部</option><option value="online" {% if method=='online' %}selected{% endif %}>online</option><option value="offline" {% if method=='offline' %}selected{% endif %}>offline</option><option value="both" {% if method=='both' %}selected{% endif %}>both</option></select></div><div style="align-self:end"><button class="btn">搜尋</button></div></form></section><section class="grid grid-3 section">{% for skill in skills %}<div class="card"><h3>{{ skill.title }}</h3><p class="muted">{{ skill.description }}</p><div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span class="tag tag-yellow">{{ skill.method }}</span></div><p class="kpi">發佈者：{{ skill.user.name }}｜時間：{{ skill.available_time or '未填' }}</p>{% if current_user.is_authenticated and current_user.id != skill.user_id %}<a class="btn" href="{{ url_for('match_center', skill_id=skill.id) }}">送出媒合</a>{% endif %}</div>{% else %}<div class="empty">找不到符合條件的技能。</div>{% endfor %}</section>{% endblock %}
+{% extends 'base.html' %}{% set title='技能列表' %}{% block content %}<section class="section card">
+    <h2>技能列表</h2>
+    <form method="get" class="form-grid">
+        <div class="field"><label>關鍵字</label><input name="keyword" value="{{ keyword }}" placeholder="英文、剪輯、設計"></div>
+        <div class="field"><label>分類</label><select name="category_id">
+                <option value="">全部</option>{% for c in categories %}<option value="{{ c.id }}" {% if category_id and
+                    category_id|int==c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+            </select></div>
+        <div class="field"><label>方式</label><select name="method">
+                <option value="">全部</option>
+                <option value="online" {% if method=='online' %}selected{% endif %}>online</option>
+                <option value="offline" {% if method=='offline' %}selected{% endif %}>offline</option>
+                <option value="both" {% if method=='both' %}selected{% endif %}>both</option>
+            </select></div>
+        <div style="align-self:end"><button class="btn">搜尋</button></div>
+    </form>
+</section>
+<section class="grid grid-3 section">{% for skill in skills %}<div class="card">
+        <h3>{{ skill.title }}</h3>
+        <p class="muted">{{ skill.description }}</p>
+        <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
+                class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
+                class="tag tag-yellow">{{ skill.method }}</span></div>
+        <p class="kpi">發佈者：{{ skill.user.name }}｜時間：{{ skill.available_time or '未填' }}</p>{% if
+        current_user.is_authenticated and current_user.id != skill.user_id %}<a class="btn"
+            href="{{ url_for('match_center', skill_id=skill.id) }}">送出媒合</a>{% endif %}
+    </div>{% else %}<div class="empty">找不到符合條件的技能。</div>{% endfor %}</section>{% endblock %}

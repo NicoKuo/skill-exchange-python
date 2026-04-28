@@ -1,1 +1,84 @@
-{% extends 'base.html' %}{% set title='首頁' %}{% block content %}<section class="hero"><div><h1>🎓 校園技能交換平台</h1><p>保留原本網站版型，整合帳號、技能上架、探索、媒合、聊天、評價、通知、排行榜與管理後台。</p><div class="actions"><a class="btn btn-muted" href="{{ url_for('skills') }}">🔍 開始探索技能</a>{% if current_user.is_authenticated %}<a class="btn" href="{{ url_for('dashboard') }}">📊 前往我的儀表板</a>{% else %}<a class="btn" href="{{ url_for('register') }}">✨ 立即註冊</a><a class="btn btn-muted" href="{{ url_for('login') }}">🔐 登入示範帳號</a>{% endif %}</div></div><div class="hero-box"><h3>✨ 展示重點</h3><div class="pill-list"><span class="tag">📈 技能推薦</span><span class="tag">🏆 熱門排行榜</span><span class="tag">🎯 匹配成功率</span><span class="tag">🔔 交換提醒</span><span class="tag">⭐ 評價與徽章</span><span class="tag">⚙️ 管理後台</span></div><p class="kpi">示範帳號：admin@fju.edu.tw / 123456、student1@fju.edu.tw / 123456</p></div></section><section class="section stats"><div class="stat"><div class="num">{{ stats.users }}</div><div>👥 學生用戶</div></div><div class="stat"><div class="num">{{ stats.skills }}</div><div>🎨 開放技能</div></div><div class="stat"><div class="num">{{ stats.matches }}</div><div>🤝 媒合案件</div></div><div class="stat"><div class="num">{{ stats.reviews }}</div><div>⭐ 評價數</div></div></section><section class="section"><h2>🚀 平台功能總覽</h2><div class="grid grid-3"><div class="card"><h3>👤 帳號與個人檔案</h3><p>註冊登入、編輯個人介紹、查看經驗值與徽章。</p></div><div class="card"><h3>🔍 技能探索與上架</h3><p>瀏覽熱門技能、依類別與授課方式篩選。</p></div><div class="card"><h3>⚡ 雙向媒合</h3><p>顯示匹配成功率，快速送出媒合邀請。</p></div><div class="card"><h3>💬 交換聊天室</h3><p>配對後聊天討論時間地點。</p></div><div class="card"><h3>🏅 信譽系統</h3><p>歷史紀錄、評分評論、平均星等與排行榜。</p></div><div class="card"><h3>🛠️ 管理後台</h3><p>查看使用者與技能資料，方便展示。</p></div></div></section><section class="section split"><div class="card"><h2>🔥 熱門技能</h2>{% for skill in popular_skills %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb"><h3>📚 {{ skill.title }}</h3><p class="muted">{{ skill.description[:90] }}</p><div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span class="tag tag-yellow">📍 {{ skill.method }}</span></div><p class="kpi">👤 發佈者：{{ skill.user.name }}</p></div>{% else %}<div class="empty">目前還沒有技能資料。</div>{% endfor %}</div><div class="card"><h2>🏆 交換排行榜</h2>{% for member in top_users %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb"><strong>#{{ loop.index }} 🏅 {{ member.name }}</strong><div class="muted">{{ member.bio or '尚未填寫自我介紹' }}</div><div class="kpi">完成交換 {{ user_completed_matches(member.id) }} 次｜平均評價 {{ user_average_rating(member.id) }}★</div></div>{% endfor %}</div></section>{% endblock %}
+{% extends 'base.html' %}{% set title='首頁' %}{% block content %}<section class="hero">
+    <div>
+        <h1>🎓 校園技能交換平台</h1>
+        <p>保留原本網站版型，整合帳號、技能上架、探索、媒合、聊天、評價、通知、排行榜與管理後台。</p>
+        <div class="actions"><a class="btn btn-muted" href="{{ url_for('skills') }}">🔍 開始探索技能</a>{% if
+            current_user.is_authenticated %}<a class="btn" href="{{ url_for('dashboard') }}">📊 前往我的儀表板</a>{% else %}<a
+                class="btn" href="{{ url_for('register') }}">✨ 立即註冊</a><a class="btn btn-muted"
+                href="{{ url_for('login') }}">🔐 登入示範帳號</a>{% endif %}</div>
+    </div>
+    <div class="hero-box">
+        <h3>✨ 展示重點</h3>
+        <div class="pill-list"><span class="tag">📈 技能推薦</span><span class="tag">🏆 熱門排行榜</span><span class="tag">🎯
+                匹配成功率</span><span class="tag">🔔 交換提醒</span><span class="tag">⭐ 評價與徽章</span><span class="tag">⚙️
+                管理後台</span></div>
+        <p class="kpi">示範帳號：admin@fju.edu.tw / 123456、student1@fju.edu.tw / 123456</p>
+    </div>
+</section>
+<section class="section stats">
+    <div class="stat">
+        <div class="num">{{ stats.users }}</div>
+        <div>👥 學生用戶</div>
+    </div>
+    <div class="stat">
+        <div class="num">{{ stats.skills }}</div>
+        <div>🎨 開放技能</div>
+    </div>
+    <div class="stat">
+        <div class="num">{{ stats.matches }}</div>
+        <div>🤝 媒合案件</div>
+    </div>
+    <div class="stat">
+        <div class="num">{{ stats.reviews }}</div>
+        <div>⭐ 評價數</div>
+    </div>
+</section>
+<section class="section">
+    <h2>🚀 平台功能總覽</h2>
+    <div class="grid grid-3">
+        <div class="card">
+            <h3>👤 帳號與個人檔案</h3>
+            <p>註冊登入、編輯個人介紹、查看經驗值與徽章。</p>
+        </div>
+        <div class="card">
+            <h3>🔍 技能探索與上架</h3>
+            <p>瀏覽熱門技能、依類別與授課方式篩選。</p>
+        </div>
+        <div class="card">
+            <h3>⚡ 雙向媒合</h3>
+            <p>顯示匹配成功率，快速送出媒合邀請。</p>
+        </div>
+        <div class="card">
+            <h3>💬 交換聊天室</h3>
+            <p>配對後聊天討論時間地點。</p>
+        </div>
+        <div class="card">
+            <h3>🏅 信譽系統</h3>
+            <p>歷史紀錄、評分評論、平均星等與排行榜。</p>
+        </div>
+        <div class="card">
+            <h3>🛠️ 管理後台</h3>
+            <p>查看使用者與技能資料，方便展示。</p>
+        </div>
+    </div>
+</section>
+<section class="section split">
+    <div class="card">
+        <h2>🔥 熱門技能</h2>{% for skill in popular_skills %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
+            <h3>📚 {{ skill.title }}</h3>
+            <p class="muted">{{ skill.description[:90] }}</p>
+            <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
+                    class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
+                    class="tag tag-yellow">📍 {{ skill.method }}</span></div>
+            <p class="kpi">👤 發佈者：{{ skill.user.name }}</p>
+        </div>{% else %}<div class="empty">目前還沒有技能資料。</div>{% endfor %}
+    </div>
+    <div class="card">
+        <h2>🏆 交換排行榜</h2>{% for member in top_users %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
+            <strong>#{{ loop.index }} 🏅 {{ member.name }}</strong>
+            <div class="muted">{{ member.bio or '尚未填寫自我介紹' }}</div>
+            <div class="kpi">完成交換 {{ user_completed_matches(member.id) }} 次｜平均評價 {{ user_average_rating(member.id) }}★
+            </div>
+        </div>{% endfor %}
+    </div>
+</section>{% endblock %}

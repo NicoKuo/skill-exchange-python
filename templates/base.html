@@ -5,12 +5,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title or '技能交換平台' }}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Icons+Round" />
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
     <header class="topbar">
-        <div class="container nav"><a class="brand" href="{{ url_for('index') }}">🎓 SkillSwap</a>
+        <div class="container nav"><a class="brand" href="{{ url_for('index') }}"><span class="material-icons-round icon-brand">school</span> SkillSwap</a>
             <nav class="nav-links"><a href="{{ url_for('index') }}">首頁</a><a href="{{ url_for('skills') }}">技能列表</a>{%
                 if current_user.is_authenticated %}<a href="{{ url_for('dashboard') }}">會員中心</a><a
                     href="{{ url_for('add_skill') }}">上架技能</a><a href="{{ url_for('match_center') }}">媒合</a><a

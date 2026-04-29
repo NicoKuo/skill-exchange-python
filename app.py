@@ -60,7 +60,7 @@ def create_app():
     # Set the template and static folders explicitly
     app = Flask(
         __name__,
-        template_folder='html template',
+        template_folder='templates',
         static_folder='static'
     )
 

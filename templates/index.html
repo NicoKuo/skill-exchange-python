@@ -41,8 +41,8 @@
             📝 <strong>登入後查看你的活躍聊天室</strong>
         </p>
         <div class="actions" style="text-align: center;">
-            <a class="btn" href="{{ url_for('auth.login') }}">🔐 登入帳號</a>
-            <a class="btn btn-muted" href="{{ url_for('auth.register') }}">✨ 註冊帳號</a>
+            <a class="btn" href="{{ url_for('login') }}">🔐 登入帳號</a>
+            <a class="btn btn-muted" href="{{ url_for('register') }}">✨ 註冊帳號</a>
         </div>
     </div>
     {% elif active_chats|length == 0 %}
@@ -52,14 +52,14 @@
             <span style="font-size: 14px;">探索技能、發送媒合邀請後就能開始交流！</span>
         </p>
         <div class="actions" style="text-align: center;">
-            <a class="btn" href="{{ url_for('skills.index') }}">🔍 探索技能</a>
-            <a class="btn btn-muted" href="{{ url_for('matches.index') }}">📋 檢視媒合中心</a>
+            <a class="btn" href="{{ url_for('skills') }}">🔍 探索技能</a>
+            <a class="btn btn-muted" href="{{ url_for('match_center') }}">📋 檢視媒合中心</a>
         </div>
     </div>
     {% else %}
     <div class="grid grid-2" style="gap: 16px;">
         {% for chat in active_chats %}
-        <div class="card" style="padding: 16px; cursor: pointer; transition: all 0.3s ease;" onclick="location.href='{{ url_for('chat.chat', match_id=chat.match_id) }}'">
+        <div class="card" style="padding: 16px; cursor: pointer; transition: all 0.3s ease;" onclick="location.href='{{ url_for('chat', match_id=chat.match_id) }}'">
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <div style="flex: 1;">
                     <h3 style="margin: 0 0 8px 0;">👤 {{ chat.other_user.name }}</h3>

@@ -59,7 +59,7 @@
     {% else %}
     <div class="grid grid-2" style="gap: 16px;">
         {% for active_chat in active_chats %}
-        <div class="card" style="padding: 16px; cursor: pointer; transition: all 0.3s ease;" onclick="location.href='{{ url_for('chat.chat', match_id=active_chat.match_id) }}'">
+        <a class="card" href="{{ url_for('chat.chat', match_id=active_chat.match_id) }}" style="text-decoration:none;color:inherit;display:block;padding: 16px; cursor: pointer; transition: all 0.3s ease;">
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <div style="flex: 1;">
                     <h3 style="margin: 0 0 8px 0;">👤 {{ active_chat.other_user.name }}</h3>
@@ -90,7 +90,7 @@
                 </p>
             </div>
             {% endif %}
-        </div>
+        </a>
         {% endfor %}
     </div>
     {% endif %}

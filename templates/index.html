@@ -1,59 +1,57 @@
 {% extends 'base.html' %}{% set title='首頁' %}{% block content %}<section class="hero">
     <div>
-        <h1>🎓 校園技能交換平台</h1>
+        <h1><span class="material-icons-round icon-inline">school</span> 校園技能交換平台</h1>
         <p>保留原本網站版型，整合帳號、技能上架、探索、媒合、聊天、評價、通知、排行榜與管理後台。</p>
-        <div class="actions"><a class="btn btn-muted" href="{{ url_for('skills') }}">🔍 開始探索技能</a>{% if
-            current_user.is_authenticated %}<a class="btn" href="{{ url_for('dashboard') }}">📊 前往我的儀表板</a>{% else %}<a
-                class="btn" href="{{ url_for('register') }}">✨ 立即註冊</a><a class="btn btn-muted"
-                href="{{ url_for('login') }}">🔐 登入示範帳號</a>{% endif %}</div>
+        <div class="actions"><a class="btn btn-muted" href="{{ url_for('skills') }}"><span class="material-icons-round icon-inline">search</span> 開始探索技能</a>{% if
+            current_user.is_authenticated %}<a class="btn" href="{{ url_for('dashboard') }}"><span class="material-icons-round icon-inline">dashboard</span> 前往我的儀表板</a>{% else %}<a
+                class="btn" href="{{ url_for('register') }}"><span class="material-icons-round icon-inline">how_to_reg</span> 立即註冊</a><a class="btn btn-muted"
+                href="{{ url_for('login') }}"><span class="material-icons-round icon-inline">lock</span> 登入示範帳號</a>{% endif %}</div>
     </div>
     <div class="hero-box">
-        <h3>✨ 展示重點</h3>
-        <div class="pill-list"><span class="tag">📈 技能推薦</span><span class="tag">🏆 熱門排行榜</span><span class="tag">🎯
-                匹配成功率</span><span class="tag">🔔 交換提醒</span><span class="tag">⭐ 評價與徽章</span><span class="tag">⚙️
-                管理後台</span></div>
+        <h3><span class="material-icons-round icon-inline">insights</span> 展示重點</h3>
+        <div class="pill-list"><span class="tag"><span class="material-icons-round icon-label">trending_up</span> 技能推薦</span><span class="tag"><span class="material-icons-round icon-label">emoji_events</span> 熱門排行榜</span><span class="tag"><span class="material-icons-round icon-label">track_changes</span> 匹配成功率</span><span class="tag"><span class="material-icons-round icon-label">notifications</span> 交換提醒</span><span class="tag"><span class="material-icons-round icon-label">star</span> 評價與徽章</span><span class="tag"><span class="material-icons-round icon-label">admin_panel_settings</span> 管理後台</span></div>
         <p class="kpi">示範帳號：admin@fju.edu.tw / 123456、student1@fju.edu.tw / 123456</p>
     </div>
 </section>
 <section class="section stats">
     <div class="stat">
         <div class="num">{{ stats.users }}</div>
-        <div>👥 學生用戶</div>
+        <div><span class="material-icons-round icon-inline">groups</span> 學生用戶</div>
     </div>
     <div class="stat">
         <div class="num">{{ stats.skills }}</div>
-        <div>🎨 開放技能</div>
+        <div><span class="material-icons-round icon-inline">workspace_premium</span> 開放技能</div>
     </div>
     <div class="stat">
         <div class="num">{{ stats.matches }}</div>
-        <div>🤝 媒合案件</div>
+        <div><span class="material-icons-round icon-inline">handshake</span> 媒合案件</div>
     </div>
     <div class="stat">
         <div class="num">{{ stats.reviews }}</div>
-        <div>⭐ 評價數</div>
+        <div><span class="material-icons-round icon-inline">star</span> 評價數</div>
     </div>
 </section>
 <section class="section">
-    <h2>�️ 我的互動中心</h2>
+    <h2><span class="material-icons-round icon-inline">support_agent</span> 我的互動中心</h2>
     {% if not current_user.is_authenticated %}
     <div class="card">
         <p class="muted" style="text-align: center; padding: 24px;">
-            📝 <strong>登入後查看你的活躍聊天室</strong>
+            <span class="material-icons-round icon-inline">chat_bubble</span><strong>登入後查看你的活躍聊天室</strong>
         </p>
         <div class="actions" style="text-align: center;">
-            <a class="btn" href="{{ url_for('login') }}">🔐 登入帳號</a>
-            <a class="btn btn-muted" href="{{ url_for('register') }}">✨ 註冊帳號</a>
+            <a class="btn" href="{{ url_for('login') }}"><span class="material-icons-round icon-inline">lock</span> 登入帳號</a>
+            <a class="btn btn-muted" href="{{ url_for('register') }}"><span class="material-icons-round icon-inline">how_to_reg</span> 註冊帳號</a>
         </div>
     </div>
     {% elif active_chats|length == 0 %}
     <div class="card">
         <p class="muted" style="text-align: center; padding: 24px;">
-            💭 <strong>目前還沒有活躍的聊天室</strong><br>
+            <span class="material-icons-round icon-inline">forum</span><strong>目前還沒有活躍的聊天室</strong><br>
             <span style="font-size: 14px;">探索技能、發送媒合邀請後就能開始交流！</span>
         </p>
         <div class="actions" style="text-align: center;">
-            <a class="btn" href="{{ url_for('skills') }}">🔍 探索技能</a>
-            <a class="btn btn-muted" href="{{ url_for('match_center') }}">📋 檢視媒合中心</a>
+            <a class="btn" href="{{ url_for('skills') }}"><span class="material-icons-round icon-inline">search</span> 探索技能</a>
+            <a class="btn btn-muted" href="{{ url_for('match_center') }}"><span class="material-icons-round icon-inline">fact_check</span> 檢視媒合中心</a>
         </div>
     </div>
     {% else %}
@@ -62,14 +60,14 @@
         <div class="card" style="padding: 16px; cursor: pointer; transition: all 0.3s ease;" onclick="location.href='{{ url_for('chat.chat', match_id=active_chat.match_id) }}'">
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <div style="flex: 1;">
-                    <h3 style="margin: 0 0 8px 0;">👤 {{ active_chat.other_user.name }}</h3>
+                    <h3 style="margin: 0 0 8px 0;"><span class="material-icons-round icon-inline">person</span>{{ active_chat.other_user.name }}</h3>
                     <p class="muted" style="margin: 0 0 8px 0; font-size: 14px;">
-                        📚 {{ active_chat.skill.title }}
+                        <span class="material-icons-round icon-inline">menu_book</span> {{ active_chat.skill.title }}
                     </p>
                 </div>
                 {% if active_chat.unread_count > 0 %}
                 <span class="tag tag-red" style="margin-left: 8px; white-space: nowrap;">
-                    💬 {{ active_chat.unread_count }}
+                    <span class="material-icons-round icon-inline">chat_bubble</span> {{ active_chat.unread_count }}
                 </span>
                 {% endif %}
             </div>
@@ -80,7 +78,7 @@
                     {{ active_chat.last_message.content[:50] }}{% if active_chat.last_message.content|length > 50 %}...{% endif %}
                 </p>
                 <p class="muted" style="margin: 4px 0 0 0; font-size: 12px;">
-                    ⏰ {{ active_chat.last_message.created_at.strftime('%m/%d %H:%M') }}
+                    <span class="material-icons-round icon-inline">schedule</span> {{ active_chat.last_message.created_at.strftime('%m/%d %H:%M') }}
                 </p>
             </div>
             {% else %}
@@ -96,50 +94,50 @@
     {% endif %}
 </section>
 <section class="section">
-    <h2>�🚀 平台功能總覽</h2>
+    <h2><span class="material-icons-round icon-inline">rocket_launch</span> 平台功能總覽</h2>
     <div class="grid grid-3">
         <div class="card">
-            <h3>👤 帳號與個人檔案</h3>
+            <h3><span class="material-icons-round icon-inline">person</span> 帳號與個人檔案</h3>
             <p>註冊登入、編輯個人介紹、查看經驗值與徽章。</p>
         </div>
         <div class="card">
-            <h3>🔍 技能探索與上架</h3>
+            <h3><span class="material-icons-round icon-inline">search</span> 技能探索與上架</h3>
             <p>瀏覽熱門技能、依類別與授課方式篩選。</p>
         </div>
         <div class="card">
-            <h3>⚡ 雙向媒合</h3>
+            <h3><span class="material-icons-round icon-inline">bolt</span> 雙向媒合</h3>
             <p>顯示匹配成功率，快速送出媒合邀請。</p>
         </div>
         <div class="card">
-            <h3>💬 交換聊天室</h3>
+            <h3><span class="material-icons-round icon-inline">chat</span> 交換聊天室</h3>
             <p>配對後聊天討論時間地點。</p>
         </div>
         <div class="card">
-            <h3>🏅 信譽系統</h3>
+            <h3><span class="material-icons-round icon-inline">emoji_events</span> 信譽系統</h3>
             <p>歷史紀錄、評分評論、平均星等與排行榜。</p>
         </div>
         <div class="card">
-            <h3>🛠️ 管理後台</h3>
+            <h3><span class="material-icons-round icon-inline">admin_panel_settings</span> 管理後台</h3>
             <p>查看使用者與技能資料，方便展示。</p>
         </div>
     </div>
 </section>
 <section class="section split">
     <div class="card">
-        <h2>🔥 熱門技能</h2>{% for skill in popular_skills %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
-            <h3>📚 {{ skill.title }}</h3>
+        <h2><span class="material-icons-round icon-inline">whatshot</span> 熱門技能</h2>{% for skill in popular_skills %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
+            <h3><span class="material-icons-round icon-inline">menu_book</span> {{ skill.title }}</h3>
             <p class="muted">{{ skill.description[:90] }}</p>
             <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
                     class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
-                    class="tag tag-yellow">📍 {{ skill.method }}</span></div>
-            <p class="kpi">👤 發佈者：{{ skill.user.name }}</p>
+                    class="tag tag-yellow"><span class="material-icons-round icon-label">place</span> {{ skill.method }}</span></div>
+            <p class="kpi"><span class="material-icons-round icon-inline">person</span> 發佈者：{{ skill.user.name }}</p>
         </div>{% else %}<div class="empty">目前還沒有技能資料。</div>{% endfor %}
     </div>
     <div class="card">
-        <h2>🏆 交換排行榜</h2>{% for member in top_users %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
-            <strong>#{{ loop.index }} 🏅 {{ member.name }}</strong>
+        <h2><span class="material-icons-round icon-inline">leaderboard</span> 交換排行榜</h2>{% for member in top_users %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
+            <strong>#{{ loop.index }} <span class="material-icons-round icon-inline">emoji_events</span> {{ member.name }}</strong>
             <div class="muted">{{ member.bio or '尚未填寫自我介紹' }}</div>
-            <div class="kpi">完成交換 {{ user_completed_matches(member.id) }} 次｜平均評價 {{ user_average_rating(member.id) }}★
+            <div class="kpi">完成交換 {{ user_completed_matches(member.id) }} 次｜平均評價 {{ user_average_rating(member.id) }} <span class="material-icons-round icon-inline">star</span>
             </div>
         </div>{% endfor %}
     </div>

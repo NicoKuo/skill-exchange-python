@@ -1,3 +1,4 @@
+# routes/admin.py: Admin dashboard blueprint for managing users and skills
 from flask import Blueprint, render_template, abort
 from flask_login import login_required, current_user
 from functools import wraps

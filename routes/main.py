@@ -1,3 +1,4 @@
+# routes/main.py: Blueprint for main public routes (homepage)
 from flask import Blueprint, render_template
 
 from models import db, User, Skill, Match, Review

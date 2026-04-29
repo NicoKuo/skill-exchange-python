@@ -1,3 +1,4 @@
+# utils/helpers.py: utility helper functions used in templates and route logic
 from sqlalchemy import or_, func
 from models import db, Match, Review, Notification
 

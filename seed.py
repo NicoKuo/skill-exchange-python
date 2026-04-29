@@ -1,3 +1,4 @@
+# seed.py: populate local database with sample data for development/testing
 from app import app
 from models import db, User, SkillCategory, Skill, Match, Message, Review, Notification
 

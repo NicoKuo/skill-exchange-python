@@ -1,3 +1,4 @@
+# app.py: Flask application factory and blueprint registration (exposed as `app` for gunicorn)
 import os
 from dotenv import load_dotenv
 from flask import Flask, url_for as flask_url_for
@@ -57,12 +58,8 @@ def url_for_compat(endpoint, **kwargs):
 
 def create_app():
     """Create and configure the Flask application."""
-    # Set the template and static folders explicitly
-    app = Flask(
-        __name__,
-        template_folder='templates',
-        static_folder='static'
-    )
+    # Use Flask defaults for template and static folders
+    app = Flask(__name__)
 
     # Load configuration from Config class
     app.config.from_object(Config)

@@ -1,5 +1,5 @@
-# Shim: 保持向後相容，轉導到 utils/helpers.py
-from utils.helpers import (
+# Utils package
+from .helpers import (
     user_average_rating,
     user_completed_matches,
     user_points,
@@ -18,4 +18,3 @@ __all__ = [
     'add_notification',
     'skill_match_score',
 ]
-

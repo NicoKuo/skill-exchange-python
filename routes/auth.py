@@ -47,7 +47,7 @@ def login():
         if user and user.check_password(password) and user.status == "active":
             login_user(user)
             flash("登入成功。", "success")
-            return redirect(url_for("dashboard"))
+            return redirect(url_for("profile.dashboard"))
 
         flash("Email 或密碼錯誤。", "error")
 

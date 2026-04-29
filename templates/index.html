@@ -34,7 +34,69 @@
     </div>
 </section>
 <section class="section">
-    <h2>🚀 平台功能總覽</h2>
+    <h2>�️ 我的互動中心</h2>
+    {% if not current_user.is_authenticated %}
+    <div class="card">
+        <p class="muted" style="text-align: center; padding: 24px;">
+            📝 <strong>登入後查看你的活躍聊天室</strong>
+        </p>
+        <div class="actions" style="text-align: center;">
+            <a class="btn" href="{{ url_for('auth.login') }}">🔐 登入帳號</a>
+            <a class="btn btn-muted" href="{{ url_for('auth.register') }}">✨ 註冊帳號</a>
+        </div>
+    </div>
+    {% elif active_chats|length == 0 %}
+    <div class="card">
+        <p class="muted" style="text-align: center; padding: 24px;">
+            💭 <strong>目前還沒有活躍的聊天室</strong><br>
+            <span style="font-size: 14px;">探索技能、發送媒合邀請後就能開始交流！</span>
+        </p>
+        <div class="actions" style="text-align: center;">
+            <a class="btn" href="{{ url_for('skills.index') }}">🔍 探索技能</a>
+            <a class="btn btn-muted" href="{{ url_for('matches.index') }}">📋 檢視媒合中心</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="grid grid-2" style="gap: 16px;">
+        {% for chat in active_chats %}
+        <div class="card" style="padding: 16px; cursor: pointer; transition: all 0.3s ease;" onclick="location.href='{{ url_for('chat.chat', match_id=chat.match_id) }}'">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div style="flex: 1;">
+                    <h3 style="margin: 0 0 8px 0;">👤 {{ chat.other_user.name }}</h3>
+                    <p class="muted" style="margin: 0 0 8px 0; font-size: 14px;">
+                        📚 {{ chat.skill.title }}
+                    </p>
+                </div>
+                {% if chat.unread_count > 0 %}
+                <span class="tag tag-red" style="margin-left: 8px; white-space: nowrap;">
+                    💬 {{ chat.unread_count }}
+                </span>
+                {% endif %}
+            </div>
+            {% if chat.last_message %}
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+                <p class="muted" style="margin: 0; font-size: 13px;">
+                    <strong>{{ 'You: ' if chat.last_message.sender_id == current_user.id else chat.last_message.sender.name + ': ' }}</strong>
+                    {{ chat.last_message.content[:50] }}{% if chat.last_message.content|length > 50 %}...{% endif %}
+                </p>
+                <p class="muted" style="margin: 4px 0 0 0; font-size: 12px;">
+                    ⏰ {{ chat.last_message.created_at.strftime('%m/%d %H:%M') }}
+                </p>
+            </div>
+            {% else %}
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+                <p class="muted" style="margin: 0; font-size: 13px;">
+                    <em>還沒有訊息，點此開始聊天 ➜</em>
+                </p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</section>
+<section class="section">
+    <h2>�🚀 平台功能總覽</h2>
     <div class="grid grid-3">
         <div class="card">
             <h3>👤 帳號與個人檔案</h3>

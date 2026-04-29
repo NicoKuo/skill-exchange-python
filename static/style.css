@@ -88,6 +88,27 @@ h1, h2, h3, h4, h5 {
 }
 .brand span { color: var(--secondary); }
 
+.material-icons-round.icon-inline,
+.material-icons-round.icon-brand {
+  font-size: 1.05rem;
+  vertical-align: text-bottom;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.material-icons-round.icon-brand {
+  font-size: 1.3rem;
+  margin-right: 10px;
+}
+
+.material-icons-round.icon-label {
+  font-size: 0.95rem;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
 .nav-links {
   display: flex;
   gap: 2px;

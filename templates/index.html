@@ -58,29 +58,29 @@
     </div>
     {% else %}
     <div class="grid grid-2" style="gap: 16px;">
-        {% for chat in active_chats %}
-        <div class="card" style="padding: 16px; cursor: pointer; transition: all 0.3s ease;" onclick="location.href='{{ url_for('chat', match_id=chat.match_id) }}'">
+        {% for active_chat in active_chats %}
+        <div class="card" style="padding: 16px; cursor: pointer; transition: all 0.3s ease;" onclick="location.href='{{ url_for('chat.chat', match_id=active_chat.match_id) }}'">
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <div style="flex: 1;">
-                    <h3 style="margin: 0 0 8px 0;">👤 {{ chat.other_user.name }}</h3>
+                    <h3 style="margin: 0 0 8px 0;">👤 {{ active_chat.other_user.name }}</h3>
                     <p class="muted" style="margin: 0 0 8px 0; font-size: 14px;">
-                        📚 {{ chat.skill.title }}
+                        📚 {{ active_chat.skill.title }}
                     </p>
                 </div>
-                {% if chat.unread_count > 0 %}
+                {% if active_chat.unread_count > 0 %}
                 <span class="tag tag-red" style="margin-left: 8px; white-space: nowrap;">
-                    💬 {{ chat.unread_count }}
+                    💬 {{ active_chat.unread_count }}
                 </span>
                 {% endif %}
             </div>
-            {% if chat.last_message %}
+            {% if active_chat.last_message %}
             <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
                 <p class="muted" style="margin: 0; font-size: 13px;">
-                    <strong>{{ 'You: ' if chat.last_message.sender_id == current_user.id else chat.last_message.sender.name + ': ' }}</strong>
-                    {{ chat.last_message.content[:50] }}{% if chat.last_message.content|length > 50 %}...{% endif %}
+                    <strong>{{ 'You: ' if active_chat.last_message.sender_id == current_user.id else active_chat.last_message.sender.name + ': ' }}</strong>
+                    {{ active_chat.last_message.content[:50] }}{% if active_chat.last_message.content|length > 50 %}...{% endif %}
                 </p>
                 <p class="muted" style="margin: 4px 0 0 0; font-size: 12px;">
-                    ⏰ {{ chat.last_message.created_at.strftime('%m/%d %H:%M') }}
+                    ⏰ {{ active_chat.last_message.created_at.strftime('%m/%d %H:%M') }}
                 </p>
             </div>
             {% else %}

@@ -205,11 +205,16 @@ h1, h2, h3, h4, h5 {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   padding: 26px 28px;
+  margin-bottom: 24px;
   transition: transform 0.26s ease, box-shadow 0.26s ease;
 }
 .hero-box:hover, .card:hover, .stat:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
+}
+
+.card:last-child {
+  margin-bottom: 0;
 }
 
 .card-accent-top {
@@ -265,7 +270,7 @@ h1, h2, h3, h4, h5 {
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-4 { grid-template-columns: repeat(4, 1fr); }
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
 
 /* ─── Stat Cards ──────────────────────────── */
 .stat {

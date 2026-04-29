@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% set title='上架技能' %}{% block content %}<div class="card section">
     <h2>上架新技能</h2>
     <form method="post" class="form-grid">
-        <div class="field"><label>技能標題喔喔喔喔喔</label><input name="title" required></div>
+        <div class="field"><label>技能標題</label><input name="title" required></div>
         <div class="field"><label>分類</label><select name="category_id">{% for c in categories %}<option
                     value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
         <div class="field"><label>類型</label><select name="type">

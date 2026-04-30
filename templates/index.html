@@ -5,7 +5,7 @@
         <div class="actions"><a class="btn btn-muted" href="{{ url_for('skills') }}"><span class="material-icons-round icon-inline">search</span> 開始探索技能</a>{% if
             current_user.is_authenticated %}<a class="btn" href="{{ url_for('dashboard') }}"><span class="material-icons-round icon-inline">dashboard</span> 前往我的儀表板</a>{% else %}<a
                 class="btn" href="{{ url_for('register') }}"><span class="material-icons-round icon-inline">how_to_reg</span> 立即註冊</a><a class="btn btn-muted"
-                href="{{ url_for('login') }}"><span class="material-icons-round icon-inline">lock</span> 登入示範帳號</a>{% endif %}</div>
+                href="{{ url_for('login') }}"><span class="material-icons-round icon-inline">lock</span> 登入帳號</a>{% endif %}</div>
     </div>
 </section>
 <section class="section stats">

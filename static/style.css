@@ -260,6 +260,18 @@ h1, h2, h3, h4, h5 {
 /* ─── Sections ────────────────────────────── */
 .section { margin: 36px 0; }
 
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.78s ease-out, transform 0.78s ease-out;
+  will-change: opacity, transform;
+}
+
+.reveal-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .section-light {
   background: var(--surface);
   border: 1px solid var(--line);

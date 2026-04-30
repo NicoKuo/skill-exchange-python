@@ -33,27 +33,51 @@
         const revealTargets = document.querySelectorAll('main .hero, main .section, main .card, main .stat');
         const revealClass = 'reveal-on-scroll';
 
-        revealTargets.forEach(el => el.classList.add(revealClass));
+        const makeVisible = el => {
+          if (!el.classList.contains('visible')) {
+            el.classList.add('visible');
+          }
+        };
 
-        const observer = new IntersectionObserver((entries, obs) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('visible');
-              obs.unobserve(entry.target);
-            }
-          });
-        }, { threshold: 0.18 });
+        const checkInView = el => {
+          const rect = el.getBoundingClientRect();
+          return rect.top < window.innerHeight * 0.92 && rect.bottom > 0;
+        };
 
-        revealTargets.forEach(el => observer.observe(el));
-
-        window.addEventListener('load', function() {
-          revealTargets.forEach(el => {
-            const rect = el.getBoundingClientRect();
-            if (rect.top < window.innerHeight * 0.92) {
-              el.classList.add('visible');
-            }
-          });
+        revealTargets.forEach(el => {
+          el.classList.add(revealClass);
         });
+
+        if ('IntersectionObserver' in window) {
+          const observer = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                makeVisible(entry.target);
+                obs.unobserve(entry.target);
+              }
+            });
+          }, { threshold: 0.18 });
+
+          revealTargets.forEach(el => observer.observe(el));
+        } else {
+          revealTargets.forEach(el => {
+            if (checkInView(el)) {
+              makeVisible(el);
+            }
+          });
+        }
+
+        const updateVisible = () => {
+          revealTargets.forEach(el => {
+            if (checkInView(el)) {
+              makeVisible(el);
+            }
+          });
+        };
+
+        window.addEventListener('load', updateVisible);
+        window.addEventListener('scroll', updateVisible, { passive: true });
+        window.addEventListener('resize', updateVisible);
       });
     </script>
 </body>

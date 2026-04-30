@@ -274,13 +274,16 @@ h1, h2, h3, h4, h5 {
 .reveal-on-scroll {
   opacity: 0;
   transform: translateY(28px);
-  transition: opacity 0.78s ease-out, transform 0.78s ease-out;
+  visibility: hidden;
+  transition: opacity 0.78s ease-out, transform 0.78s ease-out, visibility 0s linear 0.78s;
   will-change: opacity, transform;
 }
 
 .reveal-on-scroll.visible {
   opacity: 1;
   transform: translateY(0);
+  visibility: visible;
+  transition-delay: 0s;
 }
 
 .section-light {

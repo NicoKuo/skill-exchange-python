@@ -32,7 +32,7 @@ def chat(match_id):
             )
             db.session.commit()
             add_notification(other_id, "message", "你收到一則新訊息。", m.id)
-            return redirect(url_for("chat", match_id=m.id))
+            return redirect(url_for(".chat", match_id=m.id))
 
     messages = Message.query.filter_by(match_id=m.id).order_by(Message.created_at.asc()).all()
 

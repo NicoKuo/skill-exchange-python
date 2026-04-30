@@ -43,6 +43,6 @@ def review():
         add_notification(reviewee_id, "review", "你收到新的評價。", m.id)
 
         flash("評價已送出。", "success")
-        return redirect(url_for("review"))
+        return redirect(url_for(".review"))
 
     return render_template("review.html", completed=completed)

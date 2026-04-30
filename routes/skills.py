@@ -67,6 +67,6 @@ def add_skill():
             db.session.add(skill)
             db.session.commit()
             flash("技能已上架。", "success")
-            return redirect(url_for("skills"))
+            return redirect(url_for(".skills"))
 
     return render_template("add_skill.html", categories=categories)

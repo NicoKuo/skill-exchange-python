@@ -34,7 +34,7 @@ def profile():
 
             db.session.commit()
             flash("個人資料已更新。", "success")
-            return redirect(url_for("profile"))
+            return redirect(url_for(".profile"))
 
     reviews = Review.query.filter_by(reviewee_id=current_user.id).order_by(Review.created_at.desc()).all()
     return render_template("profile.html", reviews=reviews)

@@ -28,7 +28,7 @@ def register():
             db.session.commit()
 
             flash("註冊成功，請登入。", "success")
-            return redirect(url_for("login"))
+            return redirect(url_for(".login"))
 
     return render_template("register.html")
 
@@ -59,4 +59,4 @@ def login():
 def logout():
     logout_user()
     flash("已登出。", "success")
-    return redirect(url_for("index"))
+    return redirect(url_for("main.index"))

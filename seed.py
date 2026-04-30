@@ -4,7 +4,20 @@ from models import db, User, SkillCategory, Skill, Match, Message, Review, Notif
 
 with app.app_context():
     db.drop_all(); db.create_all()
-    cats=[('語言','英文、日文、韓文等語言學習'),('設計','平面設計、UI設計、影片剪輯'),('程式設計','網頁、Python、Java、資料庫'),('音樂','吉他、鋼琴、唱歌'),('運動','排球、健身、跑步'),('生活技能','料理、攝影、簡報製作')]
+    cats=[
+        ('語言','英文、日文、韓文等語言學習'),
+        ('設計','平面設計、UI設計、影片剪輯'),
+        ('程式設計','網頁、Python、Java、資料庫'),
+        ('音樂','吉他、鋼琴、唱歌'),
+        ('運動','排球、健身、跑步'),
+        ('生活技能','料理、攝影、簡報製作'),
+        ('考試認證','托福、GRE、公職考試、多益'),
+        ('科學與數學','數學、物理、化學、生物'),
+        ('才藝','舞蹈、書法、美術、繪畫'),
+        ('溝通與表達','簡報技巧、談判技能、人際關係'),
+        ('職業發展','履歷撰寫、面試準備、職業規劃'),
+        ('其他興趣','電影賞析、閱讀、旅遊規劃')
+    ]
     cat_objs=[]
     for name,desc in cats:
         c=SkillCategory(name=name, description=desc); db.session.add(c); cat_objs.append(c)

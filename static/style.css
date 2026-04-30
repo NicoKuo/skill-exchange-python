@@ -22,6 +22,7 @@
   --radius-md: 12px;
   --radius-lg: 18px;
   --radius-xl: 24px;
+  --hero-image: url('/static/images/hero-bg.jpg'); /* 將此處檔名改成你放在 static/images 的圖片 */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -150,19 +151,74 @@ h1, h2, h3, h4, h5 {
 
 /* ─── Hero ────────────────────────────────── */
 .hero {
+  position: relative;
+  width: 100vw;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
   gap: 40px;
   align-items: center;
-  padding: 64px 0 56px;
+  padding: 100px 5vw 80px;
+  min-height: 560px;
+  background: linear-gradient(180deg, rgba(8,35,78,.88), rgba(8,35,78,.72)), var(--hero-image) center/cover no-repeat;
+  color: #fff;
+  overflow: hidden;
 }
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8,35,78,.62), rgba(8,35,78,.12));
+  pointer-events: none;
+}
+
+.hero > div {
+  position: relative;
+  z-index: 1;
+}
+
+.hero h1 {
+  font-size: clamp(3rem, 5vw, 5.2rem);
+  line-height: 1.03;
+  margin: 0 0 18px;
+  color: #fff;
+}
+
+.hero p {
+  font-size: 1.15rem;
+  color: rgba(255,255,255,.88);
+  max-width: 540px;
+  margin: 0 0 32px;
+  line-height: 1.9;
+}
+
+.hero .btn {
+  box-shadow: 0 12px 28px rgba(0,0,0,.24);
+}
+
+.hero .btn-muted {
+  background: rgba(255,255,255,.18);
+  color: #fff;
+  border-color: rgba(255,255,255,.28);
+}
+
+.hero .btn-muted:hover {
+  background: rgba(255,255,255,.24);
+  color: #fff;
+}
+
+.hero .actions { gap: 14px; }
 
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--secondary-light);
-  color: #0a7b65;
+  background: rgba(255,255,255,.16);
+  color: #fff;
   border-radius: 999px;
   padding: 6px 14px;
   font-size: 12.5px;
@@ -170,37 +226,6 @@ h1, h2, h3, h4, h5 {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   margin-bottom: 18px;
-}
-
-.hero h1 {
-  font-size: 50px;
-  line-height: 1.06;
-  margin: 0 0 18px;
-  color: var(--text);
-}
-.hero h1 em {
-  font-style: normal;
-  color: var(--primary);
-  position: relative;
-}
-.hero h1 em::after {
-  content: '';
-  display: block;
-  position: absolute;
-  bottom: 2px;
-  left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--secondary), var(--primary));
-  border-radius: 2px;
-  opacity: .45;
-}
-
-.hero p {
-  font-size: 17px;
-  color: var(--muted);
-  max-width: 520px;
-  margin: 0 0 28px;
-  line-height: 1.75;
 }
 
 /* ─── Cards ───────────────────────────────── */

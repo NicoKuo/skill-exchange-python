@@ -4,7 +4,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 
 from models import db, Match, Skill
-from utils import add_notification
+from utils import add_notification, user_pending_review_count
 
 matches_bp = Blueprint('matches', __name__)
 
@@ -12,10 +12,16 @@ matches_bp = Blueprint('matches', __name__)
 @matches_bp.route("/match", methods=["GET", "POST"], endpoint='match_center')
 @login_required
 def match_center():
+    pending_review_count = user_pending_review_count(current_user.id)
+
     if request.method == "POST":
         action = request.form.get("action")
 
         if action == "create":
+            if pending_review_count > 0:
+                flash("請先完成上一筆媒合的評價，再開始下一次交換。", "error")
+                return redirect(url_for("reviews.review"))
+
             skill = Skill.query.get_or_404(int(request.form.get("skill_id")))
 
             if skill.user_id == current_user.id:
@@ -56,6 +62,8 @@ def match_center():
             add_notification(other, "system", f"你的媒合狀態更新為：{action}", m.id)
 
             flash("媒合狀態已更新。", "success")
+            if action == "completed":
+                return redirect(url_for("reviews.review"))
             return redirect(url_for("matches.match_center"))
 
     selected_skill = Skill.query.get(request.args.get("skill_id")) if request.args.get("skill_id") else None
@@ -67,4 +75,9 @@ def match_center():
         )
     ).order_by(Match.updated_at.desc()).all()
 
-    return render_template("match.html", selected_skill=selected_skill, matches=matches)
+    return render_template(
+        "match.html",
+        selected_skill=selected_skill,
+        matches=matches,
+        pending_review_count=pending_review_count,
+    )

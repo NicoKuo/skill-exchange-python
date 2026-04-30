@@ -17,7 +17,7 @@
 </section>
 <section class="grid grid-3 section">{% for skill in skills %}<div class="card">
         <h3>{{ skill.title }}</h3>
-        <p class="muted">{{ skill.description }}</p>
+        <div class="muted">{{ render_skill_description(skill.description) }}</div>
         <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
                 class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
                 class="tag tag-yellow">{{ skill.method }}</span></div>

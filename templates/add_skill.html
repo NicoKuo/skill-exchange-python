@@ -1,6 +1,6 @@
 {% extends 'base.html' %}{% set title='上架技能' %}{% block content %}<div class="card section">
     <h2>上架新技能</h2>
-    <form method="post" class="form-grid">
+    <form method="post" class="form-grid" enctype="multipart/form-data">
         <div class="field"><label>技能標題</label><input name="title" required></div>
         <div class="field"><label>分類</label><select name="category_id">
                 <option value="">選擇分類</option>{% for c in categories %}<option
@@ -17,6 +17,7 @@
             </select></div>
         <div class="field"><label>地點</label><input name="location"></div>
         <div class="field"><label>可交換時間</label><input name="available_time"></div>
+        <div class="field" style="grid-column:1/-1"><label>附件</label><input type="file" name="attachment" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"><small class="muted">支援 pdf、doc、docx、png、jpg、jpeg，檔案上限 5MB。</small></div>
         <div class="field" style="grid-column:1/-1"><label>描述</label><textarea name="description" required></textarea>
         </div><button class="btn">送出</button>
     </form>

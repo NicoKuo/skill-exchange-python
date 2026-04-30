@@ -1,4 +1,6 @@
 # routes/chat.py: Blueprint for chat/message views tied to matches
+from datetime import datetime
+
 from flask import Blueprint, render_template, request, redirect, url_for, abort
 from flask_login import login_required, current_user
 
@@ -22,6 +24,12 @@ def chat(match_id):
         content = request.form.get("content", "").strip()
 
         if content:
+            last_message = Message.query.filter_by(match_id=m.id, sender_id=current_user.id).order_by(Message.created_at.desc()).first()
+            if last_message and last_message.content == content:
+                elapsed_seconds = (datetime.utcnow() - last_message.created_at).total_seconds()
+                if elapsed_seconds < 2:
+                    return redirect(url_for(".chat", match_id=m.id))
+
             db.session.add(
                 Message(
                     match_id=m.id,

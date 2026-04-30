@@ -70,8 +70,8 @@
             <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
                 <p class="muted" style="margin: 0; font-size: 13px;">
                     <strong>{{ 'You: ' if active_chat.last_message.sender_id == current_user.id else active_chat.last_message.sender.name + ': ' }}</strong>
-                    {{ active_chat.last_message.content[:50] }}{% if active_chat.last_message.content|length > 50 %}...{% endif %}
-                </p>
+                        {{ active_chat.last_message.content[:50] }}{% if active_chat.last_message.content|length > 50 %}...{% endif %}
+                    </p>
                 <p class="muted" style="margin: 4px 0 0 0; font-size: 12px;">
                     <span class="material-icons-round icon-inline">schedule</span> {{ format_taiwan_time(active_chat.last_message.created_at, '%m/%d %H:%M') }}
                 </p>
@@ -121,7 +121,7 @@
     <div class="card">
         <h2><span class="material-icons-round icon-inline">whatshot</span> 熱門技能</h2>{% for skill in popular_skills %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
             <h3><span class="material-icons-round icon-inline">menu_book</span> {{ skill.title }}</h3>
-            <p class="muted">{{ skill.description[:90] }}</p>
+            <div class="muted">{{ render_skill_description(skill.description, 90) }}</div>
             <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
                     class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
                     class="tag tag-yellow"><span class="material-icons-round icon-label">place</span> {{ skill.method }}</span></div>

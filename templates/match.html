@@ -2,14 +2,22 @@
     <h2>快速媒合：{{ selected_skill.title }}</h2>
     <p class="muted">發佈者：{{ selected_skill.user.name }}｜分類：{{ selected_skill.category.name if selected_skill.category
         else '未分類' }}｜方式：{{ selected_skill.method }}</p>
-    <p>{{ selected_skill.description }}</p>
+    <div>{{ render_skill_description(selected_skill.description) }}</div>
     <div class="pill-list"><span class="tag tag-green">成功率 {{ skill_match_score(selected_skill,current_user)
             }}%</span><span class="tag">{{ '我可以教' if selected_skill.type=='offer' else '我想學' }}</span></div>
+    {% if pending_review_count > 0 %}
+    <div class="card" style="margin-top: 16px; border: 1px solid #f59e0b; background: #fff7ed;">
+        <strong>你還有 {{ pending_review_count }} 筆完成媒合尚未評價</strong>
+        <p class="muted" style="margin: 8px 0 0;">請先到互評頁完成評論，再開始下一次媒合。</p>
+        <a class="btn" href="{{ url_for('review') }}" style="margin-top: 12px;">前往互評</a>
+    </div>
+    {% else %}
     <form method="post" class="form-grid"><input type="hidden" name="action" value="create"><input type="hidden"
             name="skill_id" value="{{ selected_skill.id }}">
         <div class="field" style="grid-column:1/-1"><label>邀請訊息</label><textarea name="message"
                 placeholder="我想和你交換技能，平日晚上都可以。"></textarea></div><button class="btn">送出媒合邀請</button>
     </form>
+    {% endif %}
 </div>{% endif %}<section class="card section">
     <h2>我的媒合紀錄</h2>
     <div class="table-wrap">

@@ -1,7 +1,7 @@
 # app.py: Flask application factory and blueprint registration (exposed as `app` for gunicorn)
 import os
 from dotenv import load_dotenv
-from flask import Flask, url_for as flask_url_for
+from flask import Flask, url_for as flask_url_for, flash, redirect, request
 from flask_login import LoginManager
 
 from config import Config
@@ -13,7 +13,9 @@ from utils import (
     user_badges,
     unread_notifications_count,
     skill_match_score,
-    format_taiwan_time
+    format_taiwan_time,
+    render_skill_description,
+    user_pending_review_count,
 )
 from routes import (
     main_bp,
@@ -66,6 +68,7 @@ def create_app():
 
     # Load configuration from Config class
     app.config.from_object(Config)
+    app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 
     # Initialize extensions
     db.init_app(app)
@@ -88,8 +91,15 @@ def create_app():
             unread_notifications_count=unread_notifications_count,
             skill_match_score=skill_match_score,
             format_taiwan_time=format_taiwan_time,
+            render_skill_description=render_skill_description,
+            user_pending_review_count=user_pending_review_count,
             url_for=url_for_compat  # Override url_for with compatibility wrapper
         )
+
+    @app.errorhandler(413)
+    def request_entity_too_large(error):
+        flash("檔案大小超過限制，請上傳 5MB 以下的檔案。", "error")
+        return redirect(request.referrer or flask_url_for("skills.add_skill"))
 
     # Register blueprints
     app.register_blueprint(main_bp)

@@ -27,7 +27,7 @@
     <h2>我的技能</h2>{% for skill in my_skills %}<div>
         <p><strong>{{ skill.title }}</strong></p>
         <p>分類：{{ skill.category.name if skill.category else '未分類' }}｜方式：{{ skill.method }}</p>
-        <p>{{ skill.description }}</p>
+        <div>{{ render_skill_description(skill.description) }}</div>
         <hr>
     </div>{% else %}<p>你目前還沒有上架任何技能。</p>{% endfor %}
 </div>

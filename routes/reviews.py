@@ -20,29 +20,48 @@ def review():
         )
     ).all()
 
+    # 標記已評分的媒合
+    reviewed_match_ids = set(
+        Review.query.filter_by(reviewer_id=current_user.id).with_entities(Review.match_id).all()
+    )
+    reviewed_match_ids = {r[0] for r in reviewed_match_ids}
+
+    # 分離已評分和未評分的媒合
+    pending_reviews = [m for m in completed if m.id not in reviewed_match_ids]
+    reviewed = [m for m in completed if m.id in reviewed_match_ids]
+
     if request.method == "POST":
         m = Match.query.get_or_404(int(request.form.get("match_id")))
 
         if current_user.id not in [m.requester_id, m.receiver_id]:
             abort(403)
 
-        reviewee_id = m.receiver_id if current_user.id == m.requester_id else m.requester_id
-        rating = max(1, min(5, int(request.form.get("rating", 5))))
+        # 檢查是否已評過
+        existing_review = Review.query.filter_by(
+            match_id=m.id,
+            reviewer_id=current_user.id
+        ).first()
 
-        db.session.add(
-            Review(
-                match_id=m.id,
-                reviewer_id=current_user.id,
-                reviewee_id=reviewee_id,
-                rating=rating,
-                comment=request.form.get("comment", "").strip()
+        if existing_review:
+            flash("你已對此媒合評分過了。", "error")
+        else:
+            reviewee_id = m.receiver_id if current_user.id == m.requester_id else m.requester_id
+            rating = max(1, min(5, int(request.form.get("rating", 5))))
+
+            db.session.add(
+                Review(
+                    match_id=m.id,
+                    reviewer_id=current_user.id,
+                    reviewee_id=reviewee_id,
+                    rating=rating,
+                    comment=request.form.get("comment", "").strip()
+                )
             )
-        )
 
-        db.session.commit()
-        add_notification(reviewee_id, "review", "你收到新的評價。", m.id)
+            db.session.commit()
+            add_notification(reviewee_id, "review", "你收到新的評價。", m.id)
 
-        flash("評價已送出。", "success")
-        return redirect(url_for(".review"))
+            flash("評價已送出。", "success")
+            return redirect(url_for(".review"))
 
-    return render_template("review.html", completed=completed)
+    return render_template("review.html", pending_reviews=pending_reviews, reviewed=reviewed)

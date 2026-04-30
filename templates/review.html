@@ -1,17 +1,1 @@
-{% extends 'base.html' %}{% set title='互評' %}{% block content %}<section class="card section">
-    <h2>交換互評</h2>
-    <form method="post" class="form-grid">
-        <div class="field"><label>已完成媒合</label><select name="match_id">{% for m in completed %}<option
-                    value="{{ m.id }}">{{ m.skill.title }} / {{ m.requester.name }} ↔ {{ m.receiver.name }}</option>{%
-                endfor %}</select></div>
-        <div class="field"><label>評分</label><select name="rating">
-                <option>5</option>
-                <option>4</option>
-                <option>3</option>
-                <option>2</option>
-                <option>1</option>
-            </select></div>
-        <div class="field" style="grid-column:1/-1"><label>評論</label><textarea name="comment"></textarea></div><button
-            class="btn">送出評價</button>
-    </form>
-</section>{% endblock %}
+﻿{% extends "base.html" %}{% set title="互評" %}{% block content %}<section class="card section"><h2>交換互評</h2>{% if pending_reviews %}<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:16px;margin-bottom:24px"><strong style="color:#856404">⚠️ 待評分媒合</strong><p style="margin:8px 0 0;color:#856404;font-size:14px">您有 <strong>{{ pending_reviews|length }}</strong> 筆完成的媒合尚未評分，現在評分將幫助建立好評紀錄。</p></div>{% endif %}{% if pending_reviews %}<div class="card" style="margin-bottom:24px;border:2px solid #0052cc"><h3 style="color:#0052cc;margin-top:0">待評分媒合</h3><form method="post" class="form-grid"><div class="field"><label>已完成媒合</label><select name="match_id" required><option value="">-- 選擇要評分的媒合 --</option>{% for m in pending_reviews %}<option value="{{ m.id }}">{{ m.skill.title }} / {{ m.requester.name }} ↔ {{ m.receiver.name }}</option>{% endfor %}</select></div><div class="field"><label>評分（星級）</label><select name="rating"><option value="5">⭐⭐⭐⭐⭐ 非常滿意（5分）</option><option value="4">⭐⭐⭐⭐ 滿意（4分）</option><option value="3">⭐⭐⭐ 普通（3分）</option><option value="2">⭐⭐ 不太滿意（2分）</option><option value="1">⭐ 不滿意（1分）</option></select></div><div class="field" style="grid-column:1/-1"><label>評論（選填）</label><textarea name="comment" placeholder="分享您的交換經驗..."></textarea></div><button class="btn btn-lg">送出評價</button></form></div>{% endif %}{% if reviewed %}<details style="margin-top:24px"><summary style="cursor:pointer;font-weight:600;color:#666;padding:12px;background:#f5f5f5;border-radius:8px">已評分媒合 ({{ reviewed|length }})</summary><div style="padding:16px;margin-top:8px">{% for m in reviewed %}<div style="padding:12px;border-bottom:1px solid #eee;font-size:14px"><strong>{{ m.skill.title }}</strong> / {{ m.requester.name }} ↔ {{ m.receiver.name }}<br/><span style="color:#666">已於 {{ m.updated_at.strftime("%Y-%m-%d") }} 評分</span></div>{% endfor %}</div></details>{% else %}{% if not pending_reviews %}<div class="empty">沒有待評分的媒合。</div>{% endif %}{% endif %}</section>{% endblock %}

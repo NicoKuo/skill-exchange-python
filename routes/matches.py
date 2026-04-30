@@ -41,7 +41,7 @@ def match_center():
                     add_notification(skill.user_id, "match_request", "你收到新的技能媒合邀請。", m.id)
                     flash("媒合邀請已送出。", "success")
 
-            return redirect(url_for("match_center"))
+            return redirect(url_for("matches.match_center"))
 
         if action in ["accepted", "rejected", "completed", "cancelled"]:
             m = Match.query.get_or_404(int(request.form.get("match_id")))
@@ -56,7 +56,7 @@ def match_center():
             add_notification(other, "system", f"你的媒合狀態更新為：{action}", m.id)
 
             flash("媒合狀態已更新。", "success")
-            return redirect(url_for("match_center"))
+            return redirect(url_for("matches.match_center"))
 
     selected_skill = Skill.query.get(request.args.get("skill_id")) if request.args.get("skill_id") else None
 

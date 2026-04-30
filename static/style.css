@@ -22,7 +22,7 @@
   --radius-md: 12px;
   --radius-lg: 18px;
   --radius-xl: 24px;
-  --hero-image: url('/static/images/hero-bg.jpg'); /* 將此處檔名改成你放在 static/images 的圖片 */
+  --hero-image: url('/static/images/0.png'); /* 將此處改成你放在 static/images 的圖片路徑，例如 url('/static/images/campus-hero.jpg') */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -163,7 +163,10 @@ h1, h2, h3, h4, h5 {
   align-items: center;
   padding: 100px 5vw 80px;
   min-height: 560px;
-  background: linear-gradient(180deg, rgba(8,35,78,.88), rgba(8,35,78,.72)), var(--hero-image) center/cover no-repeat;
+  background-image: linear-gradient(180deg, rgba(8,35,78,.88), rgba(8,35,78,.72)), var(--hero-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: #fff;
   overflow: hidden;
 }

@@ -1,16 +1,10 @@
 {% extends 'base.html' %}{% set title='首頁' %}{% block content %}<section class="hero">
     <div>
         <h1><span class="material-icons-round icon-inline">school</span> 校園技能交換平台</h1>
-        <p>保留原本網站版型，整合帳號、技能上架、探索、媒合、聊天、評價、通知、排行榜與管理後台。</p>
         <div class="actions"><a class="btn btn-muted" href="{{ url_for('skills') }}"><span class="material-icons-round icon-inline">search</span> 開始探索技能</a>{% if
             current_user.is_authenticated %}<a class="btn" href="{{ url_for('dashboard') }}"><span class="material-icons-round icon-inline">dashboard</span> 前往我的儀表板</a>{% else %}<a
                 class="btn" href="{{ url_for('register') }}"><span class="material-icons-round icon-inline">how_to_reg</span> 立即註冊</a><a class="btn btn-muted"
                 href="{{ url_for('login') }}"><span class="material-icons-round icon-inline">lock</span> 登入示範帳號</a>{% endif %}</div>
-    </div>
-    <div class="hero-box">
-        <h3><span class="material-icons-round icon-inline">insights</span> 展示重點</h3>
-        <div class="pill-list"><span class="tag"><span class="material-icons-round icon-label">trending_up</span> 技能推薦</span><span class="tag"><span class="material-icons-round icon-label">emoji_events</span> 熱門排行榜</span><span class="tag"><span class="material-icons-round icon-label">track_changes</span> 匹配成功率</span><span class="tag"><span class="material-icons-round icon-label">notifications</span> 交換提醒</span><span class="tag"><span class="material-icons-round icon-label">star</span> 評價與徽章</span><span class="tag"><span class="material-icons-round icon-label">admin_panel_settings</span> 管理後台</span></div>
-        <p class="kpi">示範帳號：admin@fju.edu.tw / 123456、student1@fju.edu.tw / 123456</p>
     </div>
 </section>
 <section class="section stats">

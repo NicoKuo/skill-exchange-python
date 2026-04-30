@@ -3,6 +3,7 @@ from flask import Blueprint, render_template
 from flask_login import current_user
 
 from models import db, User, Skill, Match, Message, Review
+from utils import user_completed_matches, user_average_rating, user_points
 
 main_bp = Blueprint('main', __name__)
 
@@ -17,7 +18,17 @@ def index():
     }
 
     popular_skills = Skill.query.filter_by(status="open").order_by(Skill.created_at.desc()).limit(6).all()
-    top_users = User.query.filter_by(role="student").limit(5).all()
+    student_users = User.query.filter_by(role="student").all()
+    top_users = sorted(
+        student_users,
+        key=lambda user: (
+            user_completed_matches(user.id),
+            user_average_rating(user.id),
+            user_points(user.id),
+            -user.id,
+        ),
+        reverse=True,
+    )[:5]
 
     # 取得已登入用戶的活躍聊天室（accepted 或 completed 的媒合）
     active_chats = []

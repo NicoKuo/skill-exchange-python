@@ -34,6 +34,17 @@ def chat(match_id):
             add_notification(other_id, "message", "你收到一則新訊息。", m.id)
             return redirect(url_for(".chat", match_id=m.id))
 
+    unread_messages = Message.query.filter_by(
+        match_id=m.id,
+        receiver_id=current_user.id,
+        is_read=False
+    ).all()
+
+    if unread_messages:
+        for message in unread_messages:
+            message.is_read = True
+        db.session.commit()
+
     messages = Message.query.filter_by(match_id=m.id).order_by(Message.created_at.asc()).all()
 
     return render_template("chat.html", match=m, messages=messages, other_id=other_id)

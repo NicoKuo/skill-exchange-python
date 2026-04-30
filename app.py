@@ -12,7 +12,8 @@ from utils import (
     user_points,
     user_badges,
     unread_notifications_count,
-    skill_match_score
+    skill_match_score,
+    format_taiwan_time
 )
 from routes import (
     main_bp,
@@ -40,6 +41,8 @@ ENDPOINT_ALIASES = {
     'add_skill': 'skills.add_skill',
     'match_center': 'matches.match_center',
     'chat': 'chat.chat',
+    'chat_room': 'chat.chat',
+    'chat.chat_room': 'chat.chat',
     'review': 'reviews.review',
     'notifications': 'notifications.notifications',
     'admin': 'admin.admin',
@@ -84,6 +87,7 @@ def create_app():
             user_badges=user_badges,
             unread_notifications_count=unread_notifications_count,
             skill_match_score=skill_match_score,
+            format_taiwan_time=format_taiwan_time,
             url_for=url_for_compat  # Override url_for with compatibility wrapper
         )
 

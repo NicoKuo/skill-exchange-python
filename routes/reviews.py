@@ -36,6 +36,10 @@ def review():
         if current_user.id not in [m.requester_id, m.receiver_id]:
             abort(403)
 
+        if m.status != "completed":
+            flash("只有完成的媒合才能評價。", "error")
+            return redirect(url_for(".review"))
+
         # 檢查是否已評過
         existing_review = Review.query.filter_by(
             match_id=m.id,

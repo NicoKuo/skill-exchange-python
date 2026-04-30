@@ -1,6 +1,12 @@
-# utils/helpers.py: utility helper functions used in templates and route logic
+"""Utility helper functions used in templates and route logic."""
+
+from datetime import datetime, timezone, timedelta
+
 from sqlalchemy import or_, func
 from models import db, Match, Review, Notification
+
+
+TAIWAN_TIMEZONE = timezone(timedelta(hours=8))
 
 def user_average_rating(user_id):
     avg = db.session.query(func.avg(Review.rating)).filter(Review.reviewee_id == user_id).scalar()
@@ -37,3 +43,15 @@ def skill_match_score(skill, user):
     if skill.location and user.bio and skill.location in user.bio: score += 10
     if skill.type == 'offer': score += 10
     return min(score, 95)
+
+
+def format_taiwan_time(value, format_string='%Y-%m-%d %H:%M'):
+    if not value:
+        return ''
+
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(TAIWAN_TIMEZONE).strftime(format_string)
+
+    return value

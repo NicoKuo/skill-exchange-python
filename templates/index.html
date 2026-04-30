@@ -73,7 +73,7 @@
                     {{ active_chat.last_message.content[:50] }}{% if active_chat.last_message.content|length > 50 %}...{% endif %}
                 </p>
                 <p class="muted" style="margin: 4px 0 0 0; font-size: 12px;">
-                    <span class="material-icons-round icon-inline">schedule</span> {{ active_chat.last_message.created_at.strftime('%m/%d %H:%M') }}
+                    <span class="material-icons-round icon-inline">schedule</span> {{ format_taiwan_time(active_chat.last_message.created_at, '%m/%d %H:%M') }}
                 </p>
             </div>
             {% else %}

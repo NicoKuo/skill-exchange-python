@@ -169,6 +169,7 @@ h1, h2, h3, h4, h5 {
   background-repeat: no-repeat;
   color: #fff;
   overflow: hidden;
+  transition: opacity 0.78s ease-out, transform 0.78s ease-out;
 }
 
 .hero::before {
@@ -215,6 +216,16 @@ h1, h2, h3, h4, h5 {
 }
 
 .hero .actions { gap: 14px; }
+
+.hero.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.hero.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 .hero-eyebrow {
   display: inline-flex;

@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 
-from models import db, Match, Skill
+from models import db, Match, Skill, Notification
 from utils import add_notification, user_pending_review_count
 
 matches_bp = Blueprint('matches', __name__)
@@ -55,15 +55,36 @@ def match_center():
             if current_user.id not in [m.requester_id, m.receiver_id]:
                 abort(403)
 
+            other = m.requester_id if m.receiver_id == current_user.id else m.receiver_id
+
+            # If marking completed, record an acknowledgement for this user and notify the other.
+            if action == 'completed':
+                # record ack for current user
+                add_notification(current_user.id, 'completion_ack', '你已標記此媒合為完成。', m.id)
+                # notify other party
+                add_notification(other, 'system', f"{current_user.name} 已標記媒合完成，請確認。", m.id)
+
+                # check if both parties have acked
+                acks = [n.user_id for n in Notification.query.filter_by(type='completion_ack', related_id=m.id).all()]
+                if m.requester_id in acks and m.receiver_id in acks:
+                    m.status = 'completed'
+                    db.session.commit()
+                    # notify both that review is now available
+                    add_notification(m.requester_id, 'review', '媒合已完成，請進行互評。', m.id)
+                    add_notification(m.receiver_id, 'review', '媒合已完成，請進行互評。', m.id)
+                    flash("媒合雙方已確認完成，現在可以互評。", "success")
+                    return redirect(url_for("reviews.review"))
+                else:
+                    flash("已記錄您的完成標記，等待對方也標記後即可互評。", "success")
+                    return redirect(url_for("matches.match_center"))
+
+            # other status transitions
             m.status = action
             db.session.commit()
 
-            other = m.requester_id if m.receiver_id == current_user.id else m.receiver_id
             add_notification(other, "system", f"你的媒合狀態更新為：{action}", m.id)
 
             flash("媒合狀態已更新。", "success")
-            if action == "completed":
-                return redirect(url_for("reviews.review"))
             return redirect(url_for("matches.match_center"))
 
     selected_skill = Skill.query.get(request.args.get("skill_id")) if request.args.get("skill_id") else None

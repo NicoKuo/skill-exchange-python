@@ -61,6 +61,18 @@ def skills():
 @skills_bp.route("/add-skill", methods=["GET", "POST"], endpoint='add_skill')
 @login_required
 def add_skill():
+    # ensure default categories exist
+    default_names = [
+        '學業課業', '語言學習', '科技與程式', '設計與創作', '藝術與音樂',
+        '運動與健康', '生活技能', '社交與溝通', '商業與行銷', '其他'
+    ]
+    existing = {c.name for c in SkillCategory.query.all()}
+    for name in default_names:
+        if name not in existing:
+            db.session.add(SkillCategory(name=name))
+    if not existing:
+        db.session.commit()
+
     categories = SkillCategory.query.all()
 
     if request.method == "POST":
@@ -80,11 +92,24 @@ def add_skill():
             attachment.save(os.path.join(attachment_dir, stored_name))
             attachment_marker = f"\n<!--attachment:{stored_name}|{original_name}-->"
 
+        # handle multiple category checkboxes
+        selected = request.form.getlist('categories')
+        primary_category = int(selected[0]) if selected else None
+        # append chosen category names as a prefix tag in description to preserve multi-select
+        category_names = []
+        if selected:
+            cats = SkillCategory.query.filter(SkillCategory.id.in_([int(x) for x in selected])).all()
+            category_names = [c.name for c in cats]
+
+        description_text = request.form.get("description", "").strip()
+        if category_names:
+            description_text = f"[分類] {', '.join(category_names)}\n" + description_text
+
         skill = Skill(
             user_id=current_user.id,
-            category_id=int(request.form.get("category_id") or 0) or None,
+            category_id=primary_category,
             title=request.form.get("title", "").strip(),
-            description=request.form.get("description", "").strip() + attachment_marker,
+            description=description_text + attachment_marker,
             type=request.form.get("type", "offer"),
             method=request.form.get("method", "online"),
             location=request.form.get("location", "").strip(),

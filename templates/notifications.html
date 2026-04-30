@@ -1,6 +1,22 @@
 {% extends 'base.html' %}{% set title='通知' %}{% block content %}<section class="card section">
-    <h2>通知中心</h2>{% for item in items %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb"><span class="tag">{{
-            item.type }}</span> {{ item.content }}<div class="kpi">{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}
-        </div>
-    </div>{% else %}<div class="empty">目前沒有通知。</div>{% endfor %}
-</section>{% endblock %}
+    <h2>通知中心</h2>
+    {% for item in items %}
+    <div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
+        <span class="tag">{{ item.type }}</span>
+        {% set href = None %}
+        {% if item.type == 'message' and item.related_id %}
+            {% set href = url_for('chat.chat', match_id=item.related_id) %}
+        {% elif item.type in ['match_request','system','review'] and item.related_id %}
+            {% set href = url_for('matches.match_center') + '#match-' + (item.related_id|string) %}
+        {% else %}
+            {% set href = url_for('matches.match_center') %}
+        {% endif %}
+
+        <a href="{{ href }}">{{ item.content }}</a>
+        <div class="kpi">{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+    </div>
+    {% else %}
+    <div class="empty">目前沒有通知。</div>
+    {% endfor %}
+</section>
+{% endblock %}

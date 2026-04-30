@@ -34,7 +34,7 @@
                 <td>{{ m.requester.name }} ↔ {{ m.receiver.name }}</td>
                 <td>{{ m.message }}</td>
                 <td><span class="tag">{{ m.status }}</span></td>
-                <td>
+                <tr id="match-{{ m.id }}">
                     <div class="actions"><a class="btn btn-muted" href="{{ url_for('chat', match_id=m.id) }}">聊天室</a>{%
                         if m.receiver_id==current_user.id and m.status=='pending' %}<form method="post"
                             class="inline-form"><input type="hidden" name="match_id" value="{{ m.id }}"><input

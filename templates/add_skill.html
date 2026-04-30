@@ -2,10 +2,14 @@
     <h2>上架新技能</h2>
     <form method="post" class="form-grid" enctype="multipart/form-data">
         <div class="field"><label>技能標題</label><input name="title" required></div>
-        <div class="field"><label>分類</label><select name="category_id">
-                <option value="">選擇分類</option>{% for c in categories %}<option
-                    value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
-            </select></div>
+        <div class="field"><label>分類（可多選）</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                {% for c in categories %}
+                <label style="display:inline-flex;align-items:center;"><input type="checkbox" name="categories" value="{{ c.id }}"> {{ c.name }}</label>
+                {% endfor %}
+            </div>
+            <small class="muted">可勾選多個分類，系統會以第一個勾選作為主要分類。</small>
+        </div>
         <div class="field"><label>類型</label><select name="type">
                 <option value="offer">我可以教</option>
                 <option value="learn">我想學</option>

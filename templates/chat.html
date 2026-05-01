@@ -1,6 +1,7 @@
-{% extends 'base.html' %}{% set title='聊天室' %}{% block content %}<section class="card section">
+{% extends 'base.html' %}{% set title='聊天室 - 技能交換溝通' %}{% block content %}<section class="card section" data-match-id="{{ match.id }}" data-user-id="{{ current_user.id }}" data-initial-count="{{ messages|length }}">
     <h2>聊天室：{{ match.skill.title }}</h2>
-    <div class="chat-box">{% for msg in messages %}<div
+    <p class="muted"><span class="material-icons-round icon-inline">access_time</span> 訊息會每 2 秒自動更新</p>
+    <div class="chat-box" id="chat-messages">{% for msg in messages %}<div
             class="bubble {% if msg.sender_id==current_user.id %}me{% endif %}"><strong>{{ msg.sender.name
                                 }}</strong><br>{{ msg.content }}<div class="kpi">{{ format_taiwan_time(msg.created_at, '%Y-%m-%d %H:%M') }}</div>
         </div>{% else %}<div class="empty">目前沒有訊息。</div>{% endfor %}</div>
@@ -10,11 +11,42 @@
     </form>
         <script>
             (function() {
+                const section = document.querySelector('section[data-match-id]');
+                const matchId = parseInt(section.dataset.matchId, 10);
+                const currentUserId = parseInt(section.dataset.userId, 10);
+                let lastMessageCount = parseInt(section.dataset.initialCount, 10);
+
                 const form = document.getElementById('chat-form');
                 const textarea = form.querySelector('textarea[name="content"]');
                 const button = form.querySelector('button[type="submit"], button.btn');
-
+                const chatBox = document.getElementById('chat-messages');
                 let submitting = false;
+
+                // 自動更新訊息（每 2 秒）
+                setInterval(function() {
+                    fetch(`/chat/${matchId}/messages`, { method: 'GET' })
+                        .then(res => res.json())
+                        .then(data => {
+                            const newCount = data.messages.length;
+                            if (newCount > lastMessageCount) {
+                                // 只添加新訊息
+                                const newMessages = data.messages.slice(lastMessageCount);
+                                newMessages.forEach(msg => {
+                                    const bubbleClass = msg.sender_id === currentUserId ? 'bubble me' : 'bubble';
+                                    const timeStr = new Date(msg.created_at).toLocaleString('zh-TW', {
+                                        year: 'numeric', month: '2-digit', day: '2-digit',
+                                        hour: '2-digit', minute: '2-digit', second: undefined
+                                    }).replace(/\//g, '-');
+                                    const bubbleHTML = `<div class="${bubbleClass}"><strong>${msg.sender_name}</strong><br>${msg.content}<div class="kpi">${timeStr}</div></div>`;
+                                    chatBox.innerHTML += bubbleHTML;
+                                });
+                                lastMessageCount = newCount;
+                                // 自動滾動到最下方
+                                chatBox.scrollTop = chatBox.scrollHeight;
+                            }
+                        })
+                        .catch(err => console.log('訊息更新失敗', err));
+                }, 2000);
 
                 form.addEventListener('submit', function(event) {
                     if (submitting) {

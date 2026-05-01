@@ -1,4 +1,4 @@
-{% extends 'base.html' %}{% set title='首頁' %}{% block content %}<section class="hero">
+{% extends 'base.html' %}{% set title='首頁 - 校園技能交換平台' %}{% block content %}<section class="hero">
     <div>
         <h1>校園技能交換平台</h1>
         <p>讓每一項技能，都有被需要的地方</p>
@@ -52,11 +52,11 @@
     {% else %}
     <div class="grid grid-2" style="gap: 16px;">
         {% for active_chat in active_chats %}
-        <div class="card" style="padding: 16px; cursor: pointer; transition: all 0.3s ease;" onclick="location.href='{{ url_for('chat.chat', match_id=active_chat.match_id) }}'">
+        <div class="card" style="padding: 16px; cursor: pointer; transition: all 0.3s ease; min-height: 180px; display: flex; flex-direction: column;" onclick="location.href='{{ url_for('chat.chat', match_id=active_chat.match_id) }}'">
             <div style="display: flex; justify-content: space-between; align-items: start;">
-                <div style="flex: 1;">
-                    <h3 style="margin: 0 0 8px 0;"><span class="material-icons-round icon-inline">person</span>{{ active_chat.other_user.name }}</h3>
-                    <p class="muted" style="margin: 0 0 8px 0; font-size: 14px;">
+                <div style="flex: 1; min-width: 0;">
+                    <h3 style="margin: 0 0 8px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><span class="material-icons-round icon-inline">person</span>{{ active_chat.other_user.name }}</h3>
+                    <p class="muted" style="margin: 0 0 8px 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         <span class="material-icons-round icon-inline">menu_book</span> {{ active_chat.skill.title }}
                     </p>
                 </div>
@@ -67,8 +67,8 @@
                 {% endif %}
             </div>
             {% if active_chat.last_message %}
-            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
-                <p class="muted" style="margin: 0; font-size: 13px;">
+            <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+                <p class="muted" style="margin: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     <strong>{{ 'You: ' if active_chat.last_message.sender_id == current_user.id else active_chat.last_message.sender.name + ': ' }}</strong>
                         {{ active_chat.last_message.content[:50] }}{% if active_chat.last_message.content|length > 50 %}...{% endif %}
                     </p>
@@ -77,7 +77,7 @@
                 </p>
             </div>
             {% else %}
-            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+            <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid #e5e7eb;">
                 <p class="muted" style="margin: 0; font-size: 13px;">
                     <em>還沒有訊息，點此開始聊天 ➜</em>
                 </p>

@@ -653,3 +653,43 @@ h1, h2, h3, h4, h5 {
   .section-light { padding: 22px 18px; }
   .hero-box, .card, .stat { padding: 20px; }
 }
+
+/* ─── Floating Chat Button ────────────────── */
+.floating-chat-btn {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 56px;
+  height: 56px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(0,52,204,.28);
+  z-index: 99;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 24px;
+}
+
+.floating-chat-btn:hover {
+  transform: scale(1.12) translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,52,204,.32);
+}
+
+.floating-chat-btn:active {
+  transform: scale(1.08);
+}
+
+/* 手機版浮動按鈕調整 */
+@media (max-width: 600px) {
+  .floating-chat-btn {
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+}

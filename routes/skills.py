@@ -1,3 +1,4 @@
+# 技能頁面 - 瀏覽與上架技能，支援多選類別和檔案附件
 # routes/skills.py: Blueprint for skill listing and creation routes
 import os
 from uuid import uuid4

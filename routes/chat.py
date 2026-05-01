@@ -1,6 +1,8 @@
+# 聊天室 - 處理媒合對象之間的即時訊息交流
 # routes/chat.py: Blueprint for chat/message views tied to matches
-from datetime import datetime
 
+from datetime import datetime
+from flask import jsonify
 from flask import Blueprint, render_template, request, redirect, url_for, abort
 from flask_login import login_required, current_user
 
@@ -56,3 +58,30 @@ def chat(match_id):
     messages = Message.query.filter_by(match_id=m.id).order_by(Message.created_at.asc()).all()
 
     return render_template("chat.html", match=m, messages=messages, other_id=other_id)
+
+
+@chat_bp.route("/chat/<int:match_id>/messages", methods=["GET"], endpoint='get_messages')
+@login_required
+def get_messages(match_id):
+    """API endpoint: 取得指定媒合的所有訊息（JSON 格式）"""
+    m = Match.query.get_or_404(match_id)
+
+    if current_user.id not in [m.requester_id, m.receiver_id]:
+        abort(403)
+
+    messages = Message.query.filter_by(match_id=m.id).order_by(Message.created_at.asc()).all()
+
+    return jsonify({
+        "match_id": m.id,
+        "messages": [
+            {
+                "id": msg.id,
+                "sender_id": msg.sender_id,
+                "sender_name": msg.sender.name,
+                "content": msg.content,
+                "created_at": msg.created_at.isoformat(),
+                "is_read": msg.is_read,
+            }
+            for msg in messages
+        ]
+    })

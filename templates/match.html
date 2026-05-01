@@ -1,4 +1,4 @@
-{% extends 'base.html' %}{% set title='媒合中心' %}{% block content %}{% if selected_skill %}<div class="card section">
+{% extends 'base.html' %}{% set title='媒合中心 - 管理技能交換配對' %}{% block content %}{% if selected_skill %}<div class="card section">
     <h2>快速媒合：{{ selected_skill.title }}</h2>
     <p class="muted">發佈者：{{ selected_skill.user.name }}｜分類：{{ selected_skill.category.name if selected_skill.category
         else '未分類' }}｜方式：{{ selected_skill.method }}</p>
@@ -21,31 +21,31 @@
 </div>{% endif %}<section class="card section">
     <h2>我的媒合紀錄</h2>
     <div class="table-wrap">
-        <table class="table">
+        <table class="table" style="min-width: 900px;">
             <tr>
-                <th>技能</th>
-                <th>雙方</th>
-                <th>訊息</th>
-                <th>狀態</th>
-                <th>操作</th>
-            </tr>{% for m in matches %}<tr>
-                <td>{{ m.skill.title }}<div class="kpi">{{ m.skill.method }}</div>
+                <th style="width: 140px;">技能</th>
+                <th style="width: 200px;">雙方</th>
+                <th style="width: 250px;">訊息</th>
+                <th style="width: 100px;">狀態</th>
+                <th style="width: 210px;">操作</th>
+            </tr>{% for m in matches %}<tr id="match-{{ m.id }}">
+                <td style="width: 140px;"><div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ m.skill.title }}</div><div class="kpi">{{ m.skill.method }}</div>
                 </td>
-                <td>{{ m.requester.name }} ↔ {{ m.receiver.name }}</td>
-                <td>{{ m.message }}</td>
-                <td><span class="tag">{{ m.status }}</span></td>
-                <tr id="match-{{ m.id }}">
-                    <div class="actions"><a class="btn btn-muted" href="{{ url_for('chat', match_id=m.id) }}">聊天室</a>{%
+                <td style="width: 200px;"><div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ m.requester.name }} ↔ {{ m.receiver.name }}</div></td>
+                <td style="width: 250px;"><div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ m.message }}</div></td>
+                <td style="width: 100px;"><span class="tag">{{ m.status }}</span></td>
+                <td style="width: 210px;">
+                    <div class="actions"><a class="btn btn-muted" href="{{ url_for('chat.chat', match_id=m.id) }}">聊天室</a>{%
                         if m.receiver_id==current_user.id and m.status=='pending' %}<form method="post"
-                            class="inline-form"><input type="hidden" name="match_id" value="{{ m.id }}"><input
-                                type="hidden" name="action" value="accepted"><button class="btn btn-success">接受</button>
+                            class="inline-form" style="display: inline;"><input type="hidden" name="match_id" value="{{ m.id }}"><input
+                                type="hidden" name="action" value="accepted"><button class="btn btn-success btn-sm">接受</button>
                         </form>
-                        <form method="post" class="inline-form"><input type="hidden" name="match_id"
+                        <form method="post" class="inline-form" style="display: inline;"><input type="hidden" name="match_id"
                                 value="{{ m.id }}"><input type="hidden" name="action" value="rejected"><button
-                                class="btn btn-danger">拒絕</button></form>{% endif %}{% if m.status=='accepted' %}<form
-                            method="post" class="inline-form"><input type="hidden" name="match_id"
+                                class="btn btn-danger btn-sm">拒絕</button></form>{% endif %}{% if m.status=='accepted' %}<form
+                            method="post" class="inline-form" style="display: inline;"><input type="hidden" name="match_id"
                                 value="{{ m.id }}"><input type="hidden" name="action" value="completed"><button
-                                class="btn">標記完成</button></form>{% endif %}
+                                class="btn btn-sm">標記完成</button></form>{% endif %}
                     </div>
                 </td>
             </tr>{% else %}<tr>

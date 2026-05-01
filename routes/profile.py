@@ -1,3 +1,4 @@
+# 個人檔案 - 查看與編輯使用者資訊
 # routes/profile.py: Blueprint for user profile and dashboard routes
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user

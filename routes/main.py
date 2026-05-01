@@ -1,3 +1,4 @@
+# 首頁 - 顯示平台概覽、熱門技能、排行榜、活躍聊天室
 # routes/main.py: Blueprint for main public routes (homepage)
 from flask import Blueprint, render_template
 from flask_login import current_user
@@ -17,7 +18,8 @@ def index():
         "reviews": Review.query.count(),
     }
 
-    popular_skills = Skill.query.filter_by(status="open").order_by(Skill.created_at.desc()).limit(6).all()
+    popular_skills = Skill.query.filter_by(status="open").order_by(Skill.created_at.desc()).limit(4).all()
+    # 限制排行榜 4 個
     student_users = User.query.filter_by(role="student").all()
     top_users = sorted(
         student_users,
@@ -28,9 +30,9 @@ def index():
             -user.id,
         ),
         reverse=True,
-    )[:5]
+    )[:4]
 
-    # 取得已登入用戶的活躍聊天室（accepted 或 completed 的媒合）
+    # 取得已登入用戶的活躍聊天室（accepted 或 completed 的媒合），限制 4 個
     active_chats = []
     if current_user.is_authenticated:
         matches = Match.query.filter(
@@ -38,7 +40,7 @@ def index():
                 db.and_(Match.requester_id == current_user.id, Match.status.in_(["accepted", "completed"])),
                 db.and_(Match.receiver_id == current_user.id, Match.status.in_(["accepted", "completed"]))
             )
-        ).order_by(Match.updated_at.desc()).limit(5).all()
+        ).order_by(Match.updated_at.desc()).limit(4).all()
 
         for match in matches:
             # 判斷對方是誰

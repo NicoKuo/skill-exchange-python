@@ -28,6 +28,11 @@
     <footer class="footer">
         <div class="container">技能交換平台 Python Flask 公開網站版</div>
     </footer>
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('match_center') }}" class="floating-chat-btn" id="floating-chat-btn" title="開啟媒合中心與聊天室列表">
+        <span class="material-icons-round">chat</span>
+    </a>
+    {% endif %}
     <script>
       document.addEventListener('DOMContentLoaded', function() {
         const revealTargets = document.querySelectorAll('main .hero, main .section, main .card, main .stat');

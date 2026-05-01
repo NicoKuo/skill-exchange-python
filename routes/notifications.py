@@ -1,3 +1,4 @@
+# 通知中心 - 查看與管理平台通知
 # routes/notifications.py: Blueprint to view and mark notifications as read
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user

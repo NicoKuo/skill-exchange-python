@@ -7,6 +7,9 @@
             <a class="btn" href="{{ url_for('admin.users') }}">會員管理</a>
             <a class="btn btn-muted" href="{{ url_for('admin.skills') }}">技能管理</a>
             <a class="btn btn-muted" href="{{ url_for('admin.matches') }}">媒合管理</a>
+            {% if current_user.role == 'super_admin' %}
+            <a class="btn btn-muted" href="{{ url_for('admin.managers') }}">管理者管理</a>
+            {% endif %}
         </div>
     </div>
 </section>

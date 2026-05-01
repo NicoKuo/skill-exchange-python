@@ -25,6 +25,10 @@ def match_center():
 
             skill = Skill.query.get_or_404(int(request.form.get("skill_id")))
 
+            if not skill.is_active or skill.status != "open":
+                flash("這個技能已下架，無法再送出媒合。", "error")
+                return redirect(url_for("skills.skills"))
+
             if skill.user_id == current_user.id:
                 flash("不能媒合自己的技能。", "error")
             else:
@@ -88,7 +92,12 @@ def match_center():
             flash("媒合狀態已更新。", "success")
             return redirect(url_for("matches.match_center"))
 
-    selected_skill = Skill.query.get(request.args.get("skill_id")) if request.args.get("skill_id") else None
+    selected_skill = None
+    if request.args.get("skill_id"):
+        selected_skill = Skill.query.get_or_404(int(request.args.get("skill_id")))
+        if not selected_skill.is_active or selected_skill.status != 'open':
+            flash("這個技能已下架，無法進行媒合。", "error")
+            return redirect(url_for("skills.skills"))
 
     matches = Match.query.filter(
         or_(

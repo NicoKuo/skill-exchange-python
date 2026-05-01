@@ -3,7 +3,7 @@
 import os
 from uuid import uuid4
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory, abort
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from werkzeug.utils import secure_filename
@@ -12,6 +12,15 @@ from models import db, Skill, SkillCategory
 
 skills_bp = Blueprint('skills', __name__)
 ALLOWED_ATTACHMENT_EXTENSIONS = {'pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'}
+
+
+def file_size(file_storage):
+    stream = file_storage.stream
+    current_position = stream.tell()
+    stream.seek(0, os.SEEK_END)
+    size = stream.tell()
+    stream.seek(current_position)
+    return size
 
 
 def allowed_attachment(filename):
@@ -30,7 +39,7 @@ def skills():
     category_id = request.args.get("category_id", "").strip()
     method = request.args.get("method", "").strip()
 
-    query = Skill.query.filter_by(status="open")
+    query = Skill.query.filter_by(status="open", is_active=True)
 
     if keyword:
         query = query.filter(
@@ -85,6 +94,10 @@ def add_skill():
                 flash("只支援 pdf、doc、docx、png、jpg、jpeg 檔案。", "error")
                 return render_template("add_skill.html", categories=categories)
 
+            if file_size(attachment) > current_app.config.get('SKILL_ATTACHMENT_MAX_SIZE', 5 * 1024 * 1024):
+                flash("技能附件不能超過 5MB。", "error")
+                return render_template("add_skill.html", categories=categories)
+
             attachment_dir = os.path.join(current_app.instance_path, 'skill_attachments')
             os.makedirs(attachment_dir, exist_ok=True)
 
@@ -115,7 +128,8 @@ def add_skill():
             method=request.form.get("method", "online"),
             location=request.form.get("location", "").strip(),
             available_time=request.form.get("available_time", "").strip(),
-            status="open"
+            status="open",
+            is_active=True
         )
 
         if not skill.title or not skill.description:
@@ -127,3 +141,22 @@ def add_skill():
             return redirect(url_for(".skills"))
 
     return render_template("add_skill.html", categories=categories)
+
+
+@skills_bp.route("/skills/<int:skill_id>/deactivate", methods=["POST"], endpoint='deactivate_skill')
+@login_required
+def deactivate_skill(skill_id):
+    skill = Skill.query.get_or_404(skill_id)
+
+    if skill.user_id != current_user.id:
+        abort(403)
+
+    if not skill.is_active:
+        flash("這個技能已經下架。", "warning")
+        return redirect(request.referrer or url_for("profile.dashboard"))
+
+    skill.is_active = False
+    skill.status = 'closed'
+    db.session.commit()
+    flash("技能已下架。", "success")
+    return redirect(request.referrer or url_for("profile.dashboard"))

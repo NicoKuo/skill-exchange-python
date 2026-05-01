@@ -85,6 +85,13 @@ h1, h2, h3, h4, h5 {
   gap: 16px;
 }
 
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
 .brand {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
@@ -93,6 +100,27 @@ h1, h2, h3, h4, h5 {
   letter-spacing: -0.03em;
 }
 .brand span { color: #fff; }
+
+.admin-entry-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.14);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(255,255,255,.2);
+  white-space: nowrap;
+  transition: background .2s ease, transform .2s ease;
+}
+
+.admin-entry-link:hover {
+  background: rgba(255,255,255,.22);
+  transform: translateY(-1px);
+}
 
 .material-icons-round.icon-inline,
 .material-icons-round.icon-brand {

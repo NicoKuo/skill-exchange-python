@@ -126,7 +126,7 @@
                     class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
                     class="tag tag-yellow"><span class="material-icons-round icon-label">place</span> {{ skill.method }}</span></div>
             <p class="kpi"><span class="material-icons-round icon-inline">person</span> 發佈者：{{ skill.user.name }}</p>
-        </div>{% else %}<div class="empty">目前還沒有技能資料。</div>{% endfor %}
+        </div>{% else %}<div class="empty">目前尚無熱門技能資料。</div>{% endfor %}
     </div>
     <div class="card">
         <h2><span class="material-icons-round icon-inline">leaderboard</span> 交換排行榜</h2>{% for member in top_users %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
@@ -134,6 +134,6 @@
             <div class="muted">{{ member.bio or '尚未填寫自我介紹' }}</div>
             <div class="kpi">完成交換 {{ user_completed_matches(member.id) }} 次｜平均評價 {{ user_average_rating(member.id) }} <span class="material-icons-round icon-inline">star</span>
             </div>
-        </div>{% endfor %}
+        </div>{% else %}<div class="empty">目前尚無排行榜資料。</div>{% endfor %}
     </div>
 </section>{% endblock %}

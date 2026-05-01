@@ -26,8 +26,17 @@
 <div class="card">
     <h2>我的技能</h2>{% for skill in my_skills %}<div>
         <p><strong>{{ skill.title }}</strong></p>
-        <p>分類：{{ skill.category.name if skill.category else '未分類' }}｜方式：{{ skill.method }}</p>
+        <p>分類：{{ skill.category.name if skill.category else '未分類' }}｜方式：{{ skill.method }}｜狀態：{% if skill.is_active %}啟用中{% else %}已下架{% endif %}</p>
         <div>{{ render_skill_description(skill.description) }}</div>
+        <div class="actions" style="margin-top: 10px;">
+            {% if skill.is_active %}
+            <form method="post" action="{{ url_for('skills.deactivate_skill', skill_id=skill.id) }}" class="inline-form">
+                <button class="btn btn-muted btn-sm" type="submit">下架技能</button>
+            </form>
+            {% else %}
+            <span class="tag tag-gray">已下架</span>
+            {% endif %}
+        </div>
         <hr>
     </div>{% else %}<p>你目前還沒有上架任何技能。</p>{% endfor %}
 </div>

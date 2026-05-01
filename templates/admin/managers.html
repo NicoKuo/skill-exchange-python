@@ -1,0 +1,36 @@
+{# 管理後台管理者管理 - 只有 super_admin 可新增與刪除管理者 #}
+{% extends 'base.html' %}{% set title='管理者管理' %}{% block content %}<section class="card section">
+    <h1>管理者管理</h1>
+    <p class="muted">只有最高管理者 super_admin 可以新增或刪除一般管理者。</p>
+    <form method="post" class="form-grid" style="margin-bottom: 24px;">
+        <div class="field"><label>姓名</label><input name="name" required></div>
+        <div class="field"><label>Email</label><input name="email" type="email" required></div>
+        <div class="field"><label>密碼</label><input name="password" type="password" minlength="6" required></div>
+        <div style="align-self:end;"><button class="btn" type="submit">新增管理者</button></div>
+    </form>
+    <div class="table-wrap">
+        <table class="table" style="min-width: 860px;">
+            <tr>
+                <th>姓名</th>
+                <th>Email</th>
+                <th>角色</th>
+                <th>狀態</th>
+                <th>操作</th>
+            </tr>{% for manager in managers %}<tr>
+                <td>{{ manager.name }}</td>
+                <td>{{ manager.email }}</td>
+                <td><span class="tag{% if manager.role == 'super_admin' %} tag-red{% endif %}">{{ manager.role }}</span></td>
+                <td>{{ manager.status }}</td>
+                <td>
+                    {% if manager.role == 'admin' and manager.id != current_user.id %}
+                    <form method="post" action="{{ url_for('admin.delete_manager', user_id=manager.id) }}" onsubmit="return confirm('確定要刪除這位管理者嗎？');">
+                        <button class="btn btn-danger btn-sm" type="submit">刪除</button>
+                    </form>
+                    {% else %}
+                    <span class="tag tag-gray">不可刪除</span>
+                    {% endif %}
+                </td>
+            </tr>{% else %}<tr><td colspan="5" class="empty">目前沒有管理者資料。</td></tr>{% endfor %}
+        </table>
+    </div>
+</section>{% endblock %}

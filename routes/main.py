@@ -1,6 +1,6 @@
 # 首頁 - 顯示平台概覽、熱門技能、排行榜、活躍聊天室
 # routes/main.py: Blueprint for main public routes (homepage)
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import current_user
 
 from models import db, User, Skill, Match, Message, Review
@@ -13,12 +13,12 @@ main_bp = Blueprint('main', __name__)
 def index():
     stats = {
         "users": User.query.count(),
-        "skills": Skill.query.filter_by(status="open").count(),
+        "skills": Skill.query.filter_by(status="open", is_active=True).count(),
         "matches": Match.query.filter(Match.status.in_(["accepted", "completed", "pending"])).count(),
         "reviews": Review.query.count(),
     }
 
-    popular_skills = Skill.query.filter_by(status="open").order_by(Skill.created_at.desc()).limit(4).all()
+    popular_skills = Skill.query.filter_by(status="open", is_active=True).order_by(Skill.created_at.desc()).limit(4).all()
     # 限制排行榜 4 個
     student_users = User.query.filter_by(role="user").all()
     top_users = sorted(
@@ -68,10 +68,23 @@ def index():
                 "updated_at": match.updated_at
             })
 
+
     return render_template(
         "index.html",
         stats=stats,
         popular_skills=popular_skills,
         top_users=top_users,
-        active_chats=active_chats
+        active_chats=active_chats,
     )
+
+
+@main_bp.route("/admin-entry", endpoint='admin_entry')
+def admin_entry():
+    if not current_user.is_authenticated:
+        return redirect(url_for("login"))
+
+    if current_user.role in ["admin", "super_admin"]:
+        return redirect(url_for("admin.dashboard"))
+
+    flash("你沒有權限進入管理後台。", "error")
+    return redirect(url_for("main.index"))

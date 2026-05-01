@@ -3,11 +3,13 @@
     <p class="muted"><span class="material-icons-round icon-inline">access_time</span> 訊息會每 2 秒自動更新</p>
     <div class="chat-box" id="chat-messages">{% for msg in messages %}<div
             class="bubble {% if msg.sender_id==current_user.id %}me{% endif %}"><strong>{{ msg.sender.name
-                                }}</strong><br>{{ msg.content }}<div class="kpi">{{ format_taiwan_time(msg.created_at, '%Y-%m-%d %H:%M') }}</div>
+                                }}</strong><br>{% if msg.content %}<div>{{ msg.content }}</div>{% endif %}{% if msg.file_url %}{% if msg.file_type == 'image' %}<div style="margin-top:10px;"><img src="{{ msg.file_url }}" alt="{{ msg.file_name }}" style="max-width:100%;border-radius:12px;"></div>{% else %}<div style="margin-top:10px;"><a class="btn btn-sm btn-muted" href="{{ msg.file_url }}" download>{{ msg.file_name }}</a></div>{% endif %}{% endif %}<div class="kpi">{{ format_taiwan_time(msg.created_at, '%Y-%m-%d %H:%M') }}</div>
         </div>{% else %}<div class="empty">目前沒有訊息。</div>{% endfor %}</div>
-        <form method="post" class="form-grid" style="margin-top:18px" id="chat-form">
-        <div class="field" style="grid-column:1/-1"><label>輸入訊息</label><textarea name="content" required></textarea>
-        </div><button class="btn">送出</button>
+        <form method="post" class="form-grid" style="margin-top:18px" id="chat-form" enctype="multipart/form-data">
+        <div class="field" style="grid-column:1/-1"><label>輸入訊息</label><textarea name="content" placeholder="可輸入文字，或只上傳圖片/檔案"></textarea>
+        </div>
+        <div class="field" style="grid-column:1/-1"><label>附件</label><input type="file" name="attachment" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.docx,.pptx,.xlsx,.zip"><small class="muted">支援 jpg、jpeg、png、gif、webp、pdf、docx、pptx、xlsx、zip，檔案上限 10MB。</small></div>
+        <button class="btn" type="submit">送出</button>
     </form>
         <script>
             (function() {
@@ -22,6 +24,32 @@
                 const chatBox = document.getElementById('chat-messages');
                 let submitting = false;
 
+                const escapeHtml = (value) => {
+                    const span = document.createElement('span');
+                    span.textContent = value ?? '';
+                    return span.innerHTML;
+                };
+
+                const formatMessage = (msg) => {
+                    const bubbleClass = msg.sender_id === currentUserId ? 'bubble me' : 'bubble';
+                    const timeStr = new Date(msg.created_at).toLocaleString('zh-TW', {
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit'
+                    }).replace(/\//g, '-');
+
+                    const textHtml = msg.content ? `<div>${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>` : '';
+                    let fileHtml = '';
+                    if (msg.file_url) {
+                        if (msg.file_type === 'image') {
+                            fileHtml = `<div style="margin-top:10px;"><img src="${msg.file_url}" alt="${escapeHtml(msg.file_name || '圖片附件')}" style="max-width:100%;border-radius:12px;"></div>`;
+                        } else {
+                            fileHtml = `<div style="margin-top:10px;"><a class="btn btn-sm btn-muted" href="${msg.file_url}" download>${escapeHtml(msg.file_name || '下載附件')}</a></div>`;
+                        }
+                    }
+
+                    return `<div class="${bubbleClass}"><strong>${escapeHtml(msg.sender_name)}</strong><br>${textHtml}${fileHtml}<div class="kpi">${timeStr}</div></div>`;
+                };
+
                 // 自動更新訊息（每 2 秒）
                 setInterval(function() {
                     fetch(`/chat/${matchId}/messages`, { method: 'GET' })
@@ -32,13 +60,7 @@
                                 // 只添加新訊息
                                 const newMessages = data.messages.slice(lastMessageCount);
                                 newMessages.forEach(msg => {
-                                    const bubbleClass = msg.sender_id === currentUserId ? 'bubble me' : 'bubble';
-                                    const timeStr = new Date(msg.created_at).toLocaleString('zh-TW', {
-                                        year: 'numeric', month: '2-digit', day: '2-digit',
-                                        hour: '2-digit', minute: '2-digit', second: undefined
-                                    }).replace(/\//g, '-');
-                                    const bubbleHTML = `<div class="${bubbleClass}"><strong>${msg.sender_name}</strong><br>${msg.content}<div class="kpi">${timeStr}</div></div>`;
-                                    chatBox.innerHTML += bubbleHTML;
+                                    chatBox.innerHTML += formatMessage(msg);
                                 });
                                 lastMessageCount = newCount;
                                 // 自動滾動到最下方

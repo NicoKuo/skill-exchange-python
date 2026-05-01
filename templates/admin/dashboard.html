@@ -1,0 +1,19 @@
+{# 管理後台首頁 - 顯示會員、技能、媒合與聊天室統計 #}
+{% extends 'base.html' %}{% set title='管理後台' %}{% block content %}<section class="section">
+    <div class="card">
+        <h1>管理後台</h1>
+        <p class="muted">這裡可以查看平台整體狀態，並進入會員、技能與媒合管理頁面。</p>
+        <div class="actions">
+            <a class="btn" href="{{ url_for('admin.users') }}">會員管理</a>
+            <a class="btn btn-muted" href="{{ url_for('admin.skills') }}">技能管理</a>
+            <a class="btn btn-muted" href="{{ url_for('admin.matches') }}">媒合管理</a>
+        </div>
+    </div>
+</section>
+<section class="stats section">
+    <div class="stat"><div class="num">{{ stats.users }}</div><div>會員數</div></div>
+    <div class="stat"><div class="num">{{ stats.skills }}</div><div>技能數</div></div>
+    <div class="stat"><div class="num">{{ stats.matches }}</div><div>媒合數</div></div>
+    <div class="stat"><div class="num">{{ stats.chats }}</div><div>聊天室數</div></div>
+</section>
+{% endblock %}

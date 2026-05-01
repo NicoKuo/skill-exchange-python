@@ -22,8 +22,8 @@ with app.app_context():
     for name,desc in cats:
         c=SkillCategory(name=name, description=desc); db.session.add(c); cat_objs.append(c)
     admin=User(name='管理員', email='admin@fju.edu.tw', role='admin', bio='系統管理者')
-    s1=User(name='學生甲', email='student1@fju.edu.tw', role='student', bio='我會剪片，也想學英文口說')
-    s2=User(name='學生乙', email='student2@fju.edu.tw', role='student', bio='我會英文會話，也想學設計')
+    s1=User(name='學生甲', email='student1@fju.edu.tw', role='user', bio='我會剪片，也想學英文口說')
+    s2=User(name='學生乙', email='student2@fju.edu.tw', role='user', bio='我會英文會話，也想學設計')
     for u in [admin,s1,s2]: u.set_password('123456'); db.session.add(u)
     db.session.commit()
     skills=[

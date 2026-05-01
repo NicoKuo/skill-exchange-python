@@ -1,0 +1,21 @@
+{# 管理後台媒合管理 - 檢視所有媒合紀錄 #}
+{% extends 'base.html' %}{% set title='媒合管理' %}{% block content %}<section class="card section">
+    <h1>媒合管理</h1>
+    <div class="table-wrap">
+        <table class="table" style="min-width: 980px;">
+            <tr>
+                <th style="width: 180px;">技能</th>
+                <th style="width: 180px;">雙方</th>
+                <th style="width: 260px;">訊息</th>
+                <th style="width: 120px;">狀態</th>
+                <th style="width: 180px;">更新時間</th>
+            </tr>{% for match in matches %}<tr>
+                <td>{{ match.skill.title if match.skill else '已刪除技能' }}</td>
+                <td>{{ match.requester.name }} ↔ {{ match.receiver.name }}</td>
+                <td>{{ match.message }}</td>
+                <td><span class="tag">{{ match.status }}</span></td>
+                <td>{{ format_taiwan_time(match.updated_at, '%Y-%m-%d %H:%M') }}</td>
+            </tr>{% else %}<tr><td colspan="5" class="empty">目前沒有媒合紀錄。</td></tr>{% endfor %}
+        </table>
+    </div>
+</section>{% endblock %}

@@ -1,0 +1,34 @@
+{# 管理後台技能管理 - 可查看、下架與刪除技能 #}
+{% extends 'base.html' %}{% set title='技能管理' %}{% block content %}<section class="card section">
+    <h1>技能管理</h1>
+    <div class="table-wrap">
+        <table class="table" style="min-width: 980px;">
+            <tr>
+                <th style="width: 180px;">技能</th>
+                <th style="width: 160px;">發布者</th>
+                <th style="width: 120px;">分類</th>
+                <th style="width: 100px;">狀態</th>
+                <th style="width: 160px;">方式</th>
+                <th style="width: 220px;">操作</th>
+            </tr>{% for skill in skills %}<tr>
+                <td>{{ skill.title }}</td>
+                <td>{{ skill.user.name }}</td>
+                <td>{{ skill.category.name if skill.category else '未分類' }}</td>
+                <td><span class="tag{% if skill.status != 'open' %} tag-gray{% endif %}">{{ skill.status }}</span></td>
+                <td>{{ skill.method }}</td>
+                <td>
+                    <div class="actions">
+                        <form method="post" action="{{ url_for('admin.skill_action', skill_id=skill.id) }}" class="inline-form">
+                            <input type="hidden" name="action" value="take_down">
+                            <button class="btn btn-sm" type="submit">下架</button>
+                        </form>
+                        <form method="post" action="{{ url_for('admin.skill_action', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要刪除這筆技能嗎？');">
+                            <input type="hidden" name="action" value="delete">
+                            <button class="btn btn-danger btn-sm" type="submit">刪除</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>{% else %}<tr><td colspan="6" class="empty">目前沒有技能資料。</td></tr>{% endfor %}
+        </table>
+    </div>
+</section>{% endblock %}

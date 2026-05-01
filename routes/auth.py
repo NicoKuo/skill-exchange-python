@@ -23,7 +23,7 @@ def register():
         elif User.query.filter_by(email=email).first():
             flash("這個 Email 已被註冊。", "error")
         else:
-            user = User(name=name, email=email, role="student", bio="")
+            user = User(name=name, email=email, role="user", bio="")
             user.set_password(password)
             db.session.add(user)
             db.session.commit()

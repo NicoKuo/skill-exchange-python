@@ -18,7 +18,7 @@
                     href="{{ url_for('notifications') }}">通知{% if unread_notifications_count(current_user.id)>0 %}({{
                     unread_notifications_count(current_user.id) }}){% endif %}</a><a
                     href="{{ url_for('profile') }}">個人檔案</a>{% if current_user.role=='admin' %}<a
-                    href="{{ url_for('admin') }}">後台</a>{% endif %}<a href="{{ url_for('logout') }}">登出</a>{% else %}<a
+                    href="{{ url_for('admin.dashboard') }}">後台</a>{% endif %}<a href="{{ url_for('logout') }}">登出</a>{% else %}<a
                     href="{{ url_for('login') }}">登入</a><a href="{{ url_for('register') }}">註冊</a>{% endif
                 %}</nav>
         </div>

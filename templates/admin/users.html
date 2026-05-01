@@ -1,0 +1,21 @@
+{# 管理後台會員管理 - 檢視所有會員資料 #}
+{% extends 'base.html' %}{% set title='會員管理' %}{% block content %}<section class="card section">
+    <h1>會員管理</h1>
+    <div class="table-wrap">
+        <table class="table">
+            <tr>
+                <th>姓名</th>
+                <th>Email</th>
+                <th>角色</th>
+                <th>狀態</th>
+                <th>加入時間</th>
+            </tr>{% for user in users %}<tr>
+                <td>{{ user.name }}</td>
+                <td>{{ user.email }}</td>
+                <td><span class="tag{% if user.role == 'admin' %} tag-red{% endif %}">{{ user.role }}</span></td>
+                <td>{{ user.status }}</td>
+                <td>{{ format_taiwan_time(user.created_at, '%Y-%m-%d %H:%M') }}</td>
+            </tr>{% else %}<tr><td colspan="5" class="empty">目前沒有會員資料。</td></tr>{% endfor %}
+        </table>
+    </div>
+</section>{% endblock %}

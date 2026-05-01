@@ -47,7 +47,7 @@ ENDPOINT_ALIASES = {
     'chat.chat_room': 'chat.chat',
     'review': 'reviews.review',
     'notifications': 'notifications.notifications',
-    'admin': 'admin.admin',
+    'admin': 'admin.dashboard',
 }
 
 

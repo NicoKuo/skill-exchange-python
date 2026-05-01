@@ -12,7 +12,7 @@ main_bp = Blueprint('main', __name__)
 @main_bp.route("/", endpoint='index')
 def index():
     stats = {
-        "users": User.query.filter_by(role="student").count(),
+        "users": User.query.count(),
         "skills": Skill.query.filter_by(status="open").count(),
         "matches": Match.query.filter(Match.status.in_(["accepted", "completed", "pending"])).count(),
         "reviews": Review.query.count(),
@@ -20,7 +20,7 @@ def index():
 
     popular_skills = Skill.query.filter_by(status="open").order_by(Skill.created_at.desc()).limit(4).all()
     # 限制排行榜 4 個
-    student_users = User.query.filter_by(role="student").all()
+    student_users = User.query.filter_by(role="user").all()
     top_users = sorted(
         student_users,
         key=lambda user: (

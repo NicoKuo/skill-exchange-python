@@ -65,23 +65,23 @@
     <div class="card">
         <h2>信譽與遊戲化</h2>
 
-        <div class="stats" style="margin-bottom:16px">
-            <div class="stat">
+        <div class="stats" style="grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px">
+            <div class="stat" style="margin-bottom:0">
                 <div class="num">{{ user_average_rating(current_user.id) }}</div>
-                <div>⭐ 平均評分</div>
+                <p>⭐ 平均評分</p>
             </div>
-            <div class="stat">
+            <div class="stat" style="margin-bottom:0">
                 <div class="num">{{ user_completed_matches(current_user.id) }}</div>
-                <div>🤝 完成交換</div>
+                <p>🤝 完成交換</p>
             </div>
-            <div class="stat">
+            <div class="stat" style="margin-bottom:0">
                 <div class="num">{{ user_points(current_user.id) }}</div>
-                <div>✨ 經驗值</div>
+                <p>✨ 經驗值</p>
             </div>
         </div>
 
-        <h3 style="font-size:14px;margin:12px 0 8px">成就徽章</h3>
-        <div class="pill-list">
+        <h3 style="font-size:14px; font-weight:600; margin:0 0 10px">成就徽章</h3>
+        <div class="pill-list" style="margin-bottom:20px">
             {% for badge in user_badges(current_user.id) %}
                 <span class="tag tag-yellow">{{ badge }}</span>
             {% else %}
@@ -89,12 +89,24 @@
             {% endfor %}
         </div>
 
-        <h3 style="font-size:14px;margin:16px 0 8px">解鎖條件</h3>
-        <div style="font-size:13px;color:#666;line-height:2">
-            <div>🏅 <strong>新會員</strong>：註冊即獲得</div>
-            <div>🥉 <strong>交換新手</strong>：完成 1 次媒合</div>
-            <div>🥈 <strong>交換達人</strong>：完成 3 次媒合</div>
-            <div>🥇 <strong>高評價成員</strong>：平均評分 4.5 以上</div>
+        <h3 style="font-size:14px; font-weight:600; margin:0 0 10px">解鎖條件</h3>
+        <div style="display:flex; flex-direction:column; gap:8px">
+            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
+                <span class="tag tag-yellow" style="min-width:80px; justify-content:center">新會員</span>
+                <span class="muted">註冊即獲得</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
+                <span class="tag tag-yellow" style="min-width:80px; justify-content:center">交換新手</span>
+                <span class="muted">完成 1 次媒合</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
+                <span class="tag tag-yellow" style="min-width:80px; justify-content:center">交換達人</span>
+                <span class="muted">完成 3 次媒合</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
+                <span class="tag tag-yellow" style="min-width:80px; justify-content:center">高評價成員</span>
+                <span class="muted">平均評分 4.5 以上</span>
+            </div>
         </div>
     </div>
 
@@ -138,7 +150,7 @@
         </tr>
         {% else %}
         <tr>
-            <td colspan="4">目前尚無評價紀錄</td>
+            <td colspan="4" class="empty">目前尚無評價紀錄</td>
         </tr>
         {% endfor %}
     </table>

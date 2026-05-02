@@ -1,16 +1,12 @@
 """Utility helper functions used in templates and route logic."""
 
 from datetime import datetime, timezone, timedelta
-import re
 
-from flask import url_for
-from markupsafe import Markup, escape
 from sqlalchemy import or_, func
 from models import db, Match, Review, Notification
 
 
 TAIWAN_TIMEZONE = timezone(timedelta(hours=8))
-ATTACHMENT_MARKER_RE = re.compile(r'(?s)^(.*?)(?:\n)?<!--attachment:([^|]+)\|([^>]+)-->$')
 
 def user_average_rating(user_id):
     avg = db.session.query(func.avg(Review.rating)).filter(Review.reviewee_id == user_id).scalar()
@@ -25,23 +21,8 @@ def user_completed_matches(user_id):
 def user_points(user_id):
     return user_completed_matches(user_id) * 20 + Review.query.filter_by(reviewee_id=user_id).count() * 5
 
-
-def user_pending_review_count(user_id):
-    completed_ids = {
-        match.id
-        for match in Match.query.filter(
-            Match.status == 'completed',
-            or_(Match.requester_id == user_id, Match.receiver_id == user_id)
-        ).all()
-    }
-    reviewed_ids = {
-        row[0]
-        for row in Review.query.filter_by(reviewer_id=user_id).with_entities(Review.match_id).all()
-    }
-    return len(completed_ids - reviewed_ids)
-
 def user_badges(user_id):
-    badges=[]
+    badges=['新會員']
     completed=user_completed_matches(user_id)
     rating=user_average_rating(user_id)
     if completed >= 1: badges.append('交換新手')
@@ -62,40 +43,6 @@ def skill_match_score(skill, user):
     if skill.location and user.bio and skill.location in user.bio: score += 10
     if skill.type == 'offer': score += 10
     return min(score, 95)
-
-
-def split_skill_description(description):
-    if not description:
-        return '', None
-
-    match = ATTACHMENT_MARKER_RE.match(description)
-    if not match:
-        return description, None
-
-    return match.group(1).strip(), {
-        'stored_name': match.group(2),
-        'display_name': match.group(3),
-    }
-
-
-def render_skill_description(description, truncate=None):
-    text, attachment = split_skill_description(description)
-
-    if truncate and len(text) > truncate:
-        text = text[:truncate].rstrip() + '...'
-
-    html = escape(text).replace('\n', Markup('<br>'))
-
-    if attachment:
-        attachment_url = url_for('skills.skill_attachment', filename=attachment['stored_name'])
-        html += Markup(
-            '<div class="skill-attachment">'
-            '<span class="tag tag-yellow">附件</span> '
-            f'<a href="{escape(attachment_url)}" target="_blank" rel="noopener">{escape(attachment["display_name"])}</a>'
-            '</div>'
-        )
-
-    return Markup(html)
 
 
 def format_taiwan_time(value, format_string='%Y-%m-%d %H:%M'):

@@ -1,159 +1,38 @@
-{% extends 'base.html' %}
-{% set title='個人檔案' %}
-
-{% block content %}
-
-<div class="split section">
-
+{% extends 'base.html' %}{% set title='個人檔案' %}{% block content %}<div class="split section">
     <div class="card">
         <h2>編輯個人檔案</h2>
-
-        <div class="profile-preview">
-            {% if current_user.avatar %}
-                <img src="{{ current_user.avatar }}" class="avatar-lg" alt="頭像">
-            {% else %}
-                <div class="avatar-placeholder">
-                    {{ current_user.name[0] }}
-                </div>
-            {% endif %}
-            <div>
-                <h3>{{ current_user.name }}</h3>
-                <p>{{ current_user.email }}</p>
-            </div>
-        </div>
-
         <form method="post" class="form-grid">
-            <div class="field">
-                <label>姓名</label>
-                <input name="name" value="{{ current_user.name }}" required>
-            </div>
-
-            <div class="field">
-                <label>Email</label>
-                <input value="{{ current_user.email }}" disabled>
-            </div>
-
-            <div class="field" style="grid-column:1/-1">
-                <label>自我介紹</label>
-                <textarea name="bio">{{ current_user.bio or '' }}</textarea>
-            </div>
-
-            <div class="field">
-                <label>頭像圖片網址</label>
-                <input name="avatar" value="{{ current_user.avatar or '' }}" placeholder="貼上圖片網址">
-            </div>
-
-            <div class="field">
-                <label>作品集網址</label>
-                <input name="portfolio_url" value="{{ current_user.portfolio_url or '' }}" placeholder="GitHub、作品網站、Notion 等">
-            </div>
-
-            <div class="field" style="grid-column:1/-1">
-                <label>作品集介紹</label>
-                <textarea name="portfolio_intro" placeholder="簡單介紹你的作品、專長或學習成果">{{ current_user.portfolio_intro or '' }}</textarea>
-            </div>
-
-            <div class="field">
-                <label>新密碼</label>
-                <input type="password" name="new_password">
-            </div>
-
-            <button class="btn">儲存修改</button>
+            <div class="field"><label>姓名</label><input name="name" value="{{ current_user.name }}" required></div>
+            <div class="field"><label>Email</label><input value="{{ current_user.email }}" disabled></div>
+            <div class="field" style="grid-column:1/-1"><label>自我介紹</label><textarea
+                    name="bio">{{ current_user.bio or '' }}</textarea></div>
+            <div class="field"><label>頭像圖片網址</label><input name="avatar" value="{{ current_user.avatar or '' }}"></div>
+            <div class="field"><label>新密碼</label><input type="password" name="new_password"></div><button
+                class="btn">儲存修改</button>
         </form>
     </div>
-
     <div class="card">
         <h2>信譽與遊戲化</h2>
-
-        <div class="stats" style="grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px">
-            <div class="stat" style="margin-bottom:0">
-                <div class="num">{{ user_average_rating(current_user.id) }}</div>
-                <p>⭐ 平均評分</p>
-            </div>
-            <div class="stat" style="margin-bottom:0">
-                <div class="num">{{ user_completed_matches(current_user.id) }}</div>
-                <p>🤝 完成交換</p>
-            </div>
-            <div class="stat" style="margin-bottom:0">
-                <div class="num">{{ user_points(current_user.id) }}</div>
-                <p>✨ 經驗值</p>
-            </div>
-        </div>
-
-        <h3 style="font-size:14px; font-weight:600; margin:0 0 10px">成就徽章</h3>
-        <div class="pill-list" style="margin-bottom:20px">
-            {% for badge in user_badges(current_user.id) %}
-                <span class="tag tag-yellow">{{ badge }}</span>
-            {% else %}
-                <span class="tag tag-gray">尚未取得徽章</span>
-            {% endfor %}
-        </div>
-
-        <h3 style="font-size:14px; font-weight:600; margin:0 0 10px">解鎖條件</h3>
-        <div style="display:flex; flex-direction:column; gap:8px">
-            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag tag-yellow" style="min-width:80px; justify-content:center">新會員</span>
-                <span class="muted">註冊即獲得</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag tag-yellow" style="min-width:80px; justify-content:center">交換新手</span>
-                <span class="muted">完成 1 次媒合</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag tag-yellow" style="min-width:80px; justify-content:center">交換達人</span>
-                <span class="muted">完成 3 次媒合</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag tag-yellow" style="min-width:80px; justify-content:center">高評價成員</span>
-                <span class="muted">平均評分 4.5 以上</span>
-            </div>
-        </div>
+        <p>平均評分：★ {{ user_average_rating(current_user.id) }}</p>
+        <p>完成交換：{{ user_completed_matches(current_user.id) }} 次</p>
+        <p>經驗值：{{ user_points(current_user.id) }}</p>
+        <div class="pill-list">{% for badge in user_badges(current_user.id) %}<span class="tag tag-yellow">{{ badge
+                }}</span>{% else %}<span class="tag tag-gray">尚未取得徽章</span>{% endfor %}</div>
     </div>
-
 </div>
-
-<section class="card">
-    <h2>我的作品集</h2>
-
-    {% if current_user.portfolio_intro %}
-        <p>{{ current_user.portfolio_intro }}</p>
-    {% else %}
-        <p class="muted">尚未填寫作品集介紹。</p>
-    {% endif %}
-
-    {% if current_user.portfolio_url %}
-        <a href="{{ current_user.portfolio_url }}" target="_blank" class="btn">
-            查看作品集
-        </a>
-    {% else %}
-        <span class="tag tag-gray">尚未新增作品集連結</span>
-    {% endif %}
-</section>
-
 <section class="card">
     <h2>歷史評價紀錄</h2>
-
     <table class="table">
         <tr>
             <th>技能</th>
             <th>評價者</th>
             <th>分數</th>
             <th>評論</th>
-        </tr>
-
-        {% for review in reviews %}
-        <tr>
+        </tr>{% for review in reviews %}<tr>
             <td>{{ review.match.skill.title }}</td>
             <td>{{ review.reviewer.name }}</td>
             <td>{{ review.rating }}/5</td>
             <td>{{ review.comment }}</td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="4" class="empty">目前尚無評價紀錄</td>
-        </tr>
-        {% endfor %}
+        </tr>{% endfor %}
     </table>
-</section>
-
-{% endblock %}
+</section>{% endblock %}

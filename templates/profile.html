@@ -1,38 +1,212 @@
-{% extends 'base.html' %}{% set title='個人檔案' %}{% block content %}<div class="split section">
-    <div class="card">
-        <h2>編輯個人檔案</h2>
-        <form method="post" class="form-grid">
-            <div class="field"><label>姓名</label><input name="name" value="{{ current_user.name }}" required></div>
-            <div class="field"><label>Email</label><input value="{{ current_user.email }}" disabled></div>
-            <div class="field" style="grid-column:1/-1"><label>自我介紹</label><textarea
-                    name="bio">{{ current_user.bio or '' }}</textarea></div>
-            <div class="field"><label>頭像圖片網址</label><input name="avatar" value="{{ current_user.avatar or '' }}"></div>
-            <div class="field"><label>新密碼</label><input type="password" name="new_password"></div><button
-                class="btn">儲存修改</button>
-        </form>
+{% extends "base.html" %}
+{% block title %}個人資料{% endblock %}
+{% block content %}
+
+<div style="max-width: 760px; margin: 0 auto; padding: 2rem 1rem;">
+
+  {# ── 頁首：頭像 + 姓名 ──────────────────────────────────── #}
+  <div style="display:flex; align-items:center; gap:1.25rem; margin-bottom:2rem;">
+    {% if current_user.avatar %}
+      <img src="{{ current_user.avatar }}" alt="avatar"
+           style="width:64px;height:64px;border-radius:50%;object-fit:cover;
+                  border:0.5px solid var(--color-border-secondary);">
+    {% else %}
+      <div style="width:64px;height:64px;border-radius:50%;
+                  background:var(--color-background-info);
+                  display:flex;align-items:center;justify-content:center;
+                  font-size:24px;font-weight:500;color:var(--color-text-info);">
+        {{ current_user.name[0] | upper }}
+      </div>
+    {% endif %}
+    <div>
+      <p style="font-size:20px;font-weight:500;margin:0;color:var(--color-text-primary);">
+        {{ current_user.name }}
+      </p>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin:4px 0 0;">
+        {{ current_user.email }}
+      </p>
     </div>
-    <div class="card">
-        <h2>信譽與遊戲化</h2>
-        <p>平均評分：★ {{ user_average_rating(current_user.id) }}</p>
-        <p>完成交換：{{ user_completed_matches(current_user.id) }} 次</p>
-        <p>經驗值：{{ user_points(current_user.id) }}</p>
-        <div class="pill-list">{% for badge in user_badges(current_user.id) %}<span class="tag tag-yellow">{{ badge
-                }}</span>{% else %}<span class="tag tag-gray">尚未取得徽章</span>{% endfor %}</div>
+  </div>
+
+  {# ── 區塊 1：技能統計數據 ───────────────────────────────── #}
+  <section style="margin-bottom:2rem;">
+    <h2 style="font-size:15px;font-weight:500;color:var(--color-text-secondary);
+               margin:0 0 0.75rem;text-transform:none;letter-spacing:0;">
+      技能統計
+    </h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+
+      {% set cards = [
+        ("完成媒合", stats.completed_matches, "次"),
+        ("平均評分", stats.avg_rating, "/ 5"),
+        ("累積積分", stats.points, "pts"),
+        ("上架技能", stats.skills_offered, "項"),
+        ("想學技能", stats.skills_wanted, "項"),
+        ("收到評價", stats.total_reviews, "則"),
+      ] %}
+
+      {% for label, value, unit in cards %}
+      <div style="background:var(--color-background-secondary);
+                  border-radius:var(--border-radius-md);
+                  padding:0.85rem 1rem;">
+        <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 4px;">
+          {{ label }}
+        </p>
+        <p style="font-size:22px;font-weight:500;color:var(--color-text-primary);
+                  margin:0;line-height:1.2;">
+          {{ value }}
+          <span style="font-size:12px;color:var(--color-text-tertiary);font-weight:400;">
+            {{ unit }}
+          </span>
+        </p>
+      </div>
+      {% endfor %}
+
     </div>
+  </section>
+
+  {# ── 區塊 2：成就徽章 ───────────────────────────────────── #}
+  <section style="margin-bottom:2rem;">
+    <h2 style="font-size:15px;font-weight:500;color:var(--color-text-secondary);
+               margin:0 0 0.75rem;">
+      成就徽章
+    </h2>
+
+    {% if badges %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
+      {% for b in badges %}
+
+      {# 顏色對應階層 #}
+      {% if b.tier == "gold" %}
+        {% set bg   = "#FAEEDA" %}
+        {% set text = "#633806" %}
+        {% set sub  = "#854F0B" %}
+        {% set pill_bg   = "#FAC775" %}
+        {% set pill_text = "#412402" %}
+        {% set pill_label = "金" %}
+      {% elif b.tier == "silver" %}
+        {% set bg   = "#F1EFE8" %}
+        {% set text = "#2C2C2A" %}
+        {% set sub  = "#5F5E5A" %}
+        {% set pill_bg   = "#B4B2A9" %}
+        {% set pill_text = "#2C2C2A" %}
+        {% set pill_label = "銀" %}
+      {% else %}
+        {% set bg   = "#FAECE7" %}
+        {% set text = "#4A1B0C" %}
+        {% set sub  = "#993C1D" %}
+        {% set pill_bg   = "#F0997B" %}
+        {% set pill_text = "#4A1B0C" %}
+        {% set pill_label = "銅" %}
+      {% endif %}
+
+      <div style="background:{{ bg }};border-radius:var(--border-radius-lg);
+                  padding:0.9rem 1rem;display:flex;align-items:flex-start;gap:12px;">
+        <div style="font-size:28px;line-height:1;flex-shrink:0;">{{ b.icon }}</div>
+        <div style="min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+            <p style="font-size:14px;font-weight:500;color:{{ text }};margin:0;
+                      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              {{ b.name }}
+            </p>
+            <span style="font-size:11px;padding:1px 7px;border-radius:99px;
+                         background:{{ pill_bg }};color:{{ pill_text }};
+                         flex-shrink:0;white-space:nowrap;">
+              {{ pill_label }}
+            </span>
+          </div>
+          <p style="font-size:12px;color:{{ sub }};margin:0;line-height:1.4;">
+            {{ b.desc }}
+          </p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <p style="font-size:14px;color:var(--color-text-tertiary);
+              margin:0;padding:1rem 0;">
+      還沒有徽章——完成媒合或上架技能即可解鎖！
+    </p>
+    {% endif %}
+  </section>
+
+  {# ── 區塊 3：評價 ───────────────────────────────────────── #}
+  <section style="margin-bottom:2rem;">
+    <h2 style="font-size:15px;font-weight:500;color:var(--color-text-secondary);
+               margin:0 0 0.75rem;">
+      收到的評價（{{ reviews | length }}）
+    </h2>
+
+    {% if reviews %}
+      {% for r in reviews %}
+      <div style="background:var(--color-background-primary);
+                  border:0.5px solid var(--color-border-tertiary);
+                  border-radius:var(--border-radius-lg);
+                  padding:0.9rem 1rem;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span style="font-size:13px;font-weight:500;color:var(--color-text-primary);">
+            {{ r.reviewer.name }}
+          </span>
+          <span style="font-size:12px;color:var(--color-text-tertiary);">
+            {{ r.created_at.strftime('%Y-%m-%d') }}
+          </span>
+          <span style="margin-left:auto;font-size:13px;color:var(--color-text-warning);">
+            {% for _ in range(r.rating) %}★{% endfor %}{% for _ in range(5 - r.rating) %}☆{% endfor %}
+          </span>
+        </div>
+        {% if r.comment %}
+        <p style="font-size:13px;color:var(--color-text-secondary);margin:0;">
+          {{ r.comment }}
+        </p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+    <p style="font-size:14px;color:var(--color-text-tertiary);margin:0;padding:1rem 0;">
+      還沒有評價。
+    </p>
+    {% endif %}
+  </section>
+
+  {# ── 區塊 4：編輯表單 ───────────────────────────────────── #}
+  <section>
+    <h2 style="font-size:15px;font-weight:500;color:var(--color-text-secondary);
+               margin:0 0 0.75rem;">
+      編輯資料
+    </h2>
+    <div style="background:var(--color-background-primary);
+                border:0.5px solid var(--color-border-tertiary);
+                border-radius:var(--border-radius-lg);padding:1.25rem;">
+      <form method="POST">
+        <div style="margin-bottom:1rem;">
+          <label style="font-size:13px;color:var(--color-text-secondary);
+                        display:block;margin-bottom:4px;">姓名</label>
+          <input type="text" name="name" value="{{ current_user.name }}" required
+                 style="width:100%;box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="font-size:13px;color:var(--color-text-secondary);
+                        display:block;margin-bottom:4px;">自我介紹</label>
+          <textarea name="bio" rows="3"
+                    style="width:100%;box-sizing:border-box;resize:vertical;">{{ current_user.bio or '' }}</textarea>
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="font-size:13px;color:var(--color-text-secondary);
+                        display:block;margin-bottom:4px;">頭像網址（選填）</label>
+          <input type="url" name="avatar" value="{{ current_user.avatar or '' }}"
+                 style="width:100%;box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:1.25rem;">
+          <label style="font-size:13px;color:var(--color-text-secondary);
+                        display:block;margin-bottom:4px;">新密碼（留空則不更改）</label>
+          <input type="password" name="new_password" placeholder="至少 6 碼"
+                 style="width:100%;box-sizing:border-box;">
+        </div>
+        <button type="submit">儲存變更</button>
+      </form>
+    </div>
+  </section>
+
 </div>
-<section class="card">
-    <h2>歷史評價紀錄</h2>
-    <table class="table">
-        <tr>
-            <th>技能</th>
-            <th>評價者</th>
-            <th>分數</th>
-            <th>評論</th>
-        </tr>{% for review in reviews %}<tr>
-            <td>{{ review.match.skill.title }}</td>
-            <td>{{ review.reviewer.name }}</td>
-            <td>{{ review.rating }}/5</td>
-            <td>{{ review.comment }}</td>
-        </tr>{% endfor %}
-    </table>
-</section>{% endblock %}
+{% endblock %}

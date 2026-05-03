@@ -44,16 +44,6 @@
             </div>
 
             <div class="field">
-                <label>作品集網址</label>
-                <input name="portfolio_url" value="{{ current_user.portfolio_url or '' }}" placeholder="GitHub、作品網站、Notion 等">
-            </div>
-
-            <div class="field" style="grid-column:1/-1">
-                <label>作品集介紹</label>
-                <textarea name="portfolio_intro" placeholder="簡單介紹你的作品、專長或學習成果">{{ current_user.portfolio_intro or '' }}</textarea>
-            </div>
-
-            <div class="field">
                 <label>新密碼</label>
                 <input type="password" name="new_password">
             </div>
@@ -83,7 +73,15 @@
         <h3 style="font-size:14px; font-weight:600; margin:0 0 10px">成就徽章</h3>
         <div class="pill-list" style="margin-bottom:20px">
             {% for badge in user_badges(current_user.id) %}
-                <span class="tag tag-yellow">{{ badge }}</span>
+                {% if badge.tier == 'gold' %}
+                    <span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">🥇 {{ badge.name }}</span>
+                {% elif badge.tier == 'silver' %}
+                    <span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🥈 {{ badge.name }}</span>
+                {% elif badge.tier == 'bronze' %}
+                    <span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">🥉 {{ badge.name }}</span>
+                {% else %}
+                    <span class="tag tag-gray">🔩 {{ badge.name }}</span>
+                {% endif %}
             {% else %}
                 <span class="tag tag-gray">尚未取得徽章</span>
             {% endfor %}
@@ -92,43 +90,33 @@
         <h3 style="font-size:14px; font-weight:600; margin:0 0 10px">解鎖條件</h3>
         <div style="display:flex; flex-direction:column; gap:8px">
             <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag tag-yellow" style="min-width:80px; justify-content:center">新會員</span>
-                <span class="muted">註冊即獲得</span>
+                <span class="tag tag-gray">🔩</span>
+                <span><strong>新會員</strong> <span class="muted">— 註冊即獲得</span></span>
             </div>
             <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag tag-yellow" style="min-width:80px; justify-content:center">交換新手</span>
-                <span class="muted">完成 1 次媒合</span>
+                <span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">🥉</span>
+                <span><strong>交換新手</strong> <span class="muted">— 完成 1 次媒合</span></span>
             </div>
             <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag tag-yellow" style="min-width:80px; justify-content:center">交換達人</span>
-                <span class="muted">完成 3 次媒合</span>
+                <span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🥈</span>
+                <span><strong>交換達人</strong> <span class="muted">— 完成 3 次媒合</span></span>
             </div>
             <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag tag-yellow" style="min-width:80px; justify-content:center">高評價成員</span>
-                <span class="muted">平均評分 4.5 以上</span>
+                <span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🥈</span>
+                <span><strong>高評價成員</strong> <span class="muted">— 平均評分 4.5 以上</span></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
+                <span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">🥇</span>
+                <span><strong>交換大師</strong> <span class="muted">— 完成 10 次媒合</span></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
+                <span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">🥇</span>
+                <span><strong>完美評價</strong> <span class="muted">— 平均評分 4.9 以上</span></span>
             </div>
         </div>
     </div>
 
 </div>
-
-<section class="card">
-    <h2>我的作品集</h2>
-
-    {% if current_user.portfolio_intro %}
-        <p>{{ current_user.portfolio_intro }}</p>
-    {% else %}
-        <p class="muted">尚未填寫作品集介紹。</p>
-    {% endif %}
-
-    {% if current_user.portfolio_url %}
-        <a href="{{ current_user.portfolio_url }}" target="_blank" class="btn">
-            查看作品集
-        </a>
-    {% else %}
-        <span class="tag tag-gray">尚未新增作品集連結</span>
-    {% endif %}
-</section>
 
 <section class="card">
     <h2>歷史評價紀錄</h2>

@@ -1,16 +1,12 @@
 """Utility helper functions used in templates and route logic."""
 
 from datetime import datetime, timezone, timedelta
-import re
 
-from flask import url_for
-from markupsafe import Markup, escape
 from sqlalchemy import or_, func
 from models import db, Match, Review, Notification
 
 
 TAIWAN_TIMEZONE = timezone(timedelta(hours=8))
-ATTACHMENT_MARKER_RE = re.compile(r'(?s)^(.*?)(?:\n)?<!--attachment:([^|]+)\|([^>]+)-->$')
 
 def user_average_rating(user_id):
     avg = db.session.query(func.avg(Review.rating)).filter(Review.reviewee_id == user_id).scalar()
@@ -25,28 +21,34 @@ def user_completed_matches(user_id):
 def user_points(user_id):
     return user_completed_matches(user_id) * 20 + Review.query.filter_by(reviewee_id=user_id).count() * 5
 
-
-def user_pending_review_count(user_id):
-    completed_ids = {
-        match.id
-        for match in Match.query.filter(
-            Match.status == 'completed',
-            or_(Match.requester_id == user_id, Match.receiver_id == user_id)
-        ).all()
-    }
-    reviewed_ids = {
-        row[0]
-        for row in Review.query.filter_by(reviewer_id=user_id).with_entities(Review.match_id).all()
-    }
-    return len(completed_ids - reviewed_ids)
-
 def user_badges(user_id):
-    badges=[]
-    completed=user_completed_matches(user_id)
-    rating=user_average_rating(user_id)
-    if completed >= 1: badges.append('交換新手')
-    if completed >= 3: badges.append('交換達人')
-    if rating >= 4.5: badges.append('高評價成員')
+    badges = []
+    completed = user_completed_matches(user_id)
+    rating = user_average_rating(user_id)
+
+    # 鐵：所有人都有
+    badges.append({'name': '新會員', 'tier': 'iron'})
+
+    # 銅：完成 1 次媒合
+    if completed >= 1:
+        badges.append({'name': '交換新手', 'tier': 'bronze'})
+
+    # 銀：完成 3 次媒合
+    if completed >= 3:
+        badges.append({'name': '交換達人', 'tier': 'silver'})
+
+    # 金：完成 10 次媒合
+    if completed >= 10:
+        badges.append({'name': '交換大師', 'tier': 'gold'})
+
+    # 銀：評分 4.5 以上
+    if rating >= 4.5:
+        badges.append({'name': '高評價成員', 'tier': 'silver'})
+
+    # 金：評分 4.9 以上
+    if rating >= 4.9:
+        badges.append({'name': '完美評價', 'tier': 'gold'})
+
     return badges
 
 def unread_notifications_count(user_id):
@@ -63,48 +65,11 @@ def skill_match_score(skill, user):
     if skill.type == 'offer': score += 10
     return min(score, 95)
 
-
-def split_skill_description(description):
-    if not description:
-        return '', None
-
-    match = ATTACHMENT_MARKER_RE.match(description)
-    if not match:
-        return description, None
-
-    return match.group(1).strip(), {
-        'stored_name': match.group(2),
-        'display_name': match.group(3),
-    }
-
-
-def render_skill_description(description, truncate=None):
-    text, attachment = split_skill_description(description)
-
-    if truncate and len(text) > truncate:
-        text = text[:truncate].rstrip() + '...'
-
-    html = escape(text).replace('\n', Markup('<br>'))
-
-    if attachment:
-        attachment_url = url_for('skills.skill_attachment', filename=attachment['stored_name'])
-        html += Markup(
-            '<div class="skill-attachment">'
-            '<span class="tag tag-yellow">附件</span> '
-            f'<a href="{escape(attachment_url)}" target="_blank" rel="noopener">{escape(attachment["display_name"])}</a>'
-            '</div>'
-        )
-
-    return Markup(html)
-
-
 def format_taiwan_time(value, format_string='%Y-%m-%d %H:%M'):
     if not value:
         return ''
-
     if isinstance(value, datetime):
         if value.tzinfo is None:
             value = value.replace(tzinfo=timezone.utc)
         return value.astimezone(TAIWAN_TIMEZONE).strftime(format_string)
-
     return value

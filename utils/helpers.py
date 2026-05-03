@@ -3,7 +3,7 @@
 from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import or_, func
-from models import db, Match, Review, Notification
+from models import db, Match, Review, Notification, Skill, User
 
 
 TAIWAN_TIMEZONE = timezone(timedelta(hours=8))
@@ -23,31 +23,53 @@ def user_points(user_id):
 
 def user_badges(user_id):
     badges = []
-    completed = user_completed_matches(user_id)
-    rating = user_average_rating(user_id)
+    completed  = user_completed_matches(user_id)
+    rating     = user_average_rating(user_id)
+    reviews    = Review.query.filter_by(reviewee_id=user_id).count()
+    skills     = Skill.query.filter_by(user_id=user_id, status='open').count()
+    user       = User.query.get(user_id)
+    days       = (datetime.utcnow() - user.created_at).days if user else 0
 
-    # 鐵：所有人都有
-    badges.append({'name': '新會員', 'tier': 'iron'})
+    # ── 鐵：所有人 ────────────────────────────────────────────
+    badges.append({'name': '新會員',   'tier': 'iron', 'icon': '🔩'})
 
-    # 銅：完成 1 次媒合
+    # ── 忠誠類 ────────────────────────────────────────────────
+    if days >= 7:
+        badges.append({'name': '老朋友',   'tier': 'bronze', 'icon': '📅'})
+    if days >= 30:
+        badges.append({'name': '月老會員', 'tier': 'silver', 'icon': '🗓️'})
+    if days >= 180:
+        badges.append({'name': '半年元老', 'tier': 'gold',   'icon': '👑'})
+
+    # ── 技能類 ────────────────────────────────────────────────
+    if skills >= 1:
+        badges.append({'name': '技能先鋒', 'tier': 'bronze', 'icon': '🎯'})
+    if skills >= 3:
+        badges.append({'name': '多才多藝', 'tier': 'silver', 'icon': '🎨'})
+    if skills >= 6:
+        badges.append({'name': '技能大師', 'tier': 'gold',   'icon': '🏆'})
+
+    # ── 評價類 ────────────────────────────────────────────────
+    if reviews >= 1:
+        badges.append({'name': '初獲好評', 'tier': 'bronze', 'icon': '💬'})
+    if reviews >= 5:
+        badges.append({'name': '口碑累積', 'tier': 'silver', 'icon': '📣'})
+    if reviews >= 15:
+        badges.append({'name': '眾望所歸', 'tier': 'gold',   'icon': '🌟'})
+
+    # ── 媒合類 ────────────────────────────────────────────────
     if completed >= 1:
-        badges.append({'name': '交換新手', 'tier': 'bronze'})
-
-    # 銀：完成 3 次媒合
+        badges.append({'name': '交換新手', 'tier': 'bronze', 'icon': '🤝'})
     if completed >= 3:
-        badges.append({'name': '交換達人', 'tier': 'silver'})
-
-    # 金：完成 10 次媒合
+        badges.append({'name': '交換達人', 'tier': 'silver', 'icon': '🔗'})
     if completed >= 10:
-        badges.append({'name': '交換大師', 'tier': 'gold'})
+        badges.append({'name': '交換大師', 'tier': 'gold',   'icon': '🌐'})
 
-    # 銀：評分 4.5 以上
-    if rating >= 4.5:
-        badges.append({'name': '高評價成員', 'tier': 'silver'})
-
-    # 金：評分 4.9 以上
-    if rating >= 4.9:
-        badges.append({'name': '完美評價', 'tier': 'gold'})
+    # ── 評分類 ────────────────────────────────────────────────
+    if rating >= 4.5 and reviews >= 3:
+        badges.append({'name': '高評價成員', 'tier': 'silver', 'icon': '⭐'})
+    if rating >= 4.9 and reviews >= 5:
+        badges.append({'name': '完美評價',   'tier': 'gold',   'icon': '💎'})
 
     return badges
 

@@ -27,27 +27,22 @@
                 <label>姓名</label>
                 <input name="name" value="{{ current_user.name }}" required>
             </div>
-
             <div class="field">
                 <label>Email</label>
                 <input value="{{ current_user.email }}" disabled>
             </div>
-
             <div class="field" style="grid-column:1/-1">
                 <label>自我介紹</label>
                 <textarea name="bio">{{ current_user.bio or '' }}</textarea>
             </div>
-
             <div class="field">
                 <label>頭像圖片網址</label>
                 <input name="avatar" value="{{ current_user.avatar or '' }}" placeholder="貼上圖片網址">
             </div>
-
             <div class="field">
                 <label>新密碼</label>
                 <input type="password" name="new_password">
             </div>
-
             <button class="btn">儲存修改</button>
         </form>
     </div>
@@ -74,13 +69,13 @@
         <div class="pill-list" style="margin-bottom:20px">
             {% for badge in user_badges(current_user.id) %}
                 {% if badge.tier == 'gold' %}
-                    <span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">🥇 {{ badge.name }}</span>
+                    <span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">{{ badge.icon }} {{ badge.name }}</span>
                 {% elif badge.tier == 'silver' %}
-                    <span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🥈 {{ badge.name }}</span>
+                    <span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">{{ badge.icon }} {{ badge.name }}</span>
                 {% elif badge.tier == 'bronze' %}
-                    <span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">🥉 {{ badge.name }}</span>
+                    <span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">{{ badge.icon }} {{ badge.name }}</span>
                 {% else %}
-                    <span class="tag tag-gray">🔩 {{ badge.name }}</span>
+                    <span class="tag tag-gray">{{ badge.icon }} {{ badge.name }}</span>
                 {% endif %}
             {% else %}
                 <span class="tag tag-gray">尚未取得徽章</span>
@@ -88,31 +83,32 @@
         </div>
 
         <h3 style="font-size:14px; font-weight:600; margin:0 0 10px">解鎖條件</h3>
-        <div style="display:flex; flex-direction:column; gap:8px">
-            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag tag-gray">🔩</span>
-                <span><strong>新會員</strong> <span class="muted">— 註冊即獲得</span></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">🥉</span>
-                <span><strong>交換新手</strong> <span class="muted">— 完成 1 次媒合</span></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🥈</span>
-                <span><strong>交換達人</strong> <span class="muted">— 完成 3 次媒合</span></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🥈</span>
-                <span><strong>高評價成員</strong> <span class="muted">— 平均評分 4.5 以上</span></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">🥇</span>
-                <span><strong>交換大師</strong> <span class="muted">— 完成 10 次媒合</span></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px; font-size:13.5px">
-                <span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">🥇</span>
-                <span><strong>完美評價</strong> <span class="muted">— 平均評分 4.9 以上</span></span>
-            </div>
+        <div style="display:flex; flex-direction:column; gap:6px; font-size:13px">
+
+            <p style="margin:4px 0; font-weight:600; color:#888">— 忠誠類 —</p>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">📅</span><span><strong>老朋友</strong> <span class="muted">— 加入滿 7 天</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🗓️</span><span><strong>月老會員</strong> <span class="muted">— 加入滿 30 天</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">👑</span><span><strong>半年元老</strong> <span class="muted">— 加入滿 180 天</span></span></div>
+
+            <p style="margin:8px 0 4px; font-weight:600; color:#888">— 技能類 —</p>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">🎯</span><span><strong>技能先鋒</strong> <span class="muted">— 上架 1 個技能</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🎨</span><span><strong>多才多藝</strong> <span class="muted">— 上架 3 個技能</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">🏆</span><span><strong>技能大師</strong> <span class="muted">— 上架 6 個技能</span></span></div>
+
+            <p style="margin:8px 0 4px; font-weight:600; color:#888">— 評價類 —</p>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">💬</span><span><strong>初獲好評</strong> <span class="muted">— 收到 1 則評價</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">📣</span><span><strong>口碑累積</strong> <span class="muted">— 收到 5 則評價</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">🌟</span><span><strong>眾望所歸</strong> <span class="muted">— 收到 15 則評價</span></span></div>
+
+            <p style="margin:8px 0 4px; font-weight:600; color:#888">— 媒合類 —</p>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag tag-gray">🔩</span><span><strong>新會員</strong> <span class="muted">— 註冊即獲得</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">🤝</span><span><strong>交換新手</strong> <span class="muted">— 完成 1 次媒合</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🔗</span><span><strong>交換達人</strong> <span class="muted">— 完成 3 次媒合</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">🌐</span><span><strong>交換大師</strong> <span class="muted">— 完成 10 次媒合</span></span></div>
+
+            <p style="margin:8px 0 4px; font-weight:600; color:#888">— 評分類 —</p>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">⭐</span><span><strong>高評價成員</strong> <span class="muted">— 平均評分 4.5 以上且有 3 則評價</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">💎</span><span><strong>完美評價</strong> <span class="muted">— 平均評分 4.9 以上且有 5 則評價</span></span></div>
         </div>
     </div>
 
@@ -120,7 +116,6 @@
 
 <section class="card">
     <h2>歷史評價紀錄</h2>
-
     <table class="table">
         <tr>
             <th>技能</th>
@@ -128,7 +123,6 @@
             <th>分數</th>
             <th>評論</th>
         </tr>
-
         {% for review in reviews %}
         <tr>
             <td>{{ review.match.skill.title }}</td>

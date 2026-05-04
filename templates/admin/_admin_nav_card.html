@@ -6,7 +6,7 @@
         <a class="btn{% if current_page == 'dashboard' %} active{% endif %}" href="{{ url_for('admin.dashboard') }}">管理後台</a>
         <a class="btn btn-muted{% if current_page == 'users' %} active{% endif %}" href="{{ url_for('admin.users') }}">會員管理</a>
         <a class="btn btn-muted{% if current_page == 'skills' %} active{% endif %}" href="{{ url_for('admin.skills') }}">技能管理</a>
-        <a class="btn btn-muted{% if current_page == 'matches' %} active{% endif %}" href="{{ url_for('admin.matches') }}">媒合管理</a>
+        <a class="btn btn-muted{% if current_page == 'matches' %} active{% endif %}" href="{{ url_for('admin.matches') }}">媒合紀錄</a>
         {% if current_user.role == 'super_admin' %}
         <a class="btn btn-muted{% if current_page == 'managers' %} active{% endif %}" href="{{ url_for('admin.managers') }}">管理者管理</a>
         {% endif %}

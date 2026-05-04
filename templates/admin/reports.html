@@ -54,7 +54,12 @@
                     {% elif report.skill_id and report.skill %}
                     <strong>技能:</strong> {{ report.skill.title }}
                     {% elif report.match_id and report.match %}
-                    <strong>媒合:</strong> {{ report.match.user1.name }} ↔ {{ report.match.user2.name }}
+                    <strong>媒合:</strong>
+                    {{ report.match.requester.name if report.match.requester else '未知使用者' }}
+                    ↔
+                    {{ report.match.receiver.name if report.match.receiver else '未知使用者' }}
+                    {% elif report.match_id %}
+                    <strong>媒合:</strong> 無關聯媒合
                     {% else %}
                     -
                     {% endif %}

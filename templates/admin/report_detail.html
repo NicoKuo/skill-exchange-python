@@ -86,7 +86,11 @@
             </tr>
             <tr>
                 <td style="font-weight: 600;">參與者</td>
-                <td>{{ report.match.user1.name }} ↔ {{ report.match.user2.name }}</td>
+                <td>
+                    {{ report.match.requester.name if report.match.requester else '未知使用者' }}
+                    ↔
+                    {{ report.match.receiver.name if report.match.receiver else '未知使用者' }}
+                </td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">技能</td>

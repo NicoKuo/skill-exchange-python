@@ -98,7 +98,7 @@ def _recent_activities(limit=8):
 @admin_bp.route('/entry', endpoint='entry')
 def entry():
     if not current_user.is_authenticated:
-        return redirect(url_for('login'))
+        return redirect(url_for('auth.login'))
 
     if current_user.role in ['admin', 'super_admin']:
         return redirect(url_for('admin.dashboard'))

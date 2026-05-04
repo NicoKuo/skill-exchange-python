@@ -81,7 +81,7 @@ def index():
 @main_bp.route("/admin-entry", endpoint='admin_entry')
 def admin_entry():
     if not current_user.is_authenticated:
-        return redirect(url_for("login"))
+        return redirect(url_for("auth.login"))
 
     if current_user.role in ["admin", "super_admin"]:
         return redirect(url_for("admin.dashboard"))

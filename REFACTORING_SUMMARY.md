@@ -45,7 +45,7 @@ skill-exchange-python/
 ### 2. Endpoint 向後相容性
 - 實現 `url_for_compat()` 包裝函數，自動轉換舊 endpoint 名稱到 Blueprint 前綴格式
 - 在 `context_processor` 中覆蓋 Jinja2 模板中的 `url_for` 函數
-- 模板無需修改，所有 `url_for("index")`、`url_for("login")` 等呼叫繼續正常工作
+- 模板無需修改，所有 `url_for("index")`、`url_for("auth.login")` 等呼叫繼續正常工作
 
 ### 3. 應用程序初始化
 - 保留 `app = create_app()` 全局實例，確保 `gunicorn app:app` 命令不變

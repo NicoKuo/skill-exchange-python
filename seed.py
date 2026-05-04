@@ -22,7 +22,7 @@ with app.app_context():
     cat_objs=[]
     for name,desc in cats:
         c=SkillCategory(name=name, description=desc); db.session.add(c); cat_objs.append(c)
-    super_admin=User(name='系統管理者', email='admin.gmail.com', role='super_admin', bio='最高管理者')
+    super_admin=User(name='系統管理者', email='admin@gmail.com', role='super_admin', bio='最高管理者')
     super_admin.password_hash = generate_password_hash('123456')
     admin=User(name='管理員', email='admin@fju.edu.tw', role='admin', bio='系統管理者')
     s1=User(name='學生甲', email='student1@fju.edu.tw', role='user', bio='我會剪片，也想學英文口說')
@@ -53,4 +53,4 @@ with app.app_context():
         Notification(user_id=s2.id, type='system', content='歡迎登入 SkillSwap 展示版。'),
     ])
     db.session.commit()
-    print('資料庫已建立，示範帳號：admin@fju.edu.tw / 123456')
+    print('資料庫已建立，示範帳號：admin@gmail.com / 123456、admin@fju.edu.tw / 123456')

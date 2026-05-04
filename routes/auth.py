@@ -55,6 +55,8 @@ def login():
             except Exception:
                 db.session.rollback()
             flash("登入成功。", "success")
+            if user.role in {"admin", "super_admin"}:
+                return redirect(url_for("admin.dashboard"))
             return redirect(url_for("profile.dashboard"))
 
         flash("Email 或密碼錯誤。", "error")

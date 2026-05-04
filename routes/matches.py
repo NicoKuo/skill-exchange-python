@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 
-from models import db, Match, Skill, Notification
+from models import db, Match, Skill, Notification, ActivityLog
 from utils import add_notification, user_pending_review_count
 
 matches_bp = Blueprint('matches', __name__)
@@ -49,6 +49,12 @@ def match_center():
                     )
                     db.session.add(m)
                     db.session.commit()
+                    try:
+                        log = ActivityLog(user_id=current_user.id, action='create_match', detail=f'match_id={m.id}|skill_id={skill.id}|to={skill.user_id}', ip_address=request.remote_addr)
+                        db.session.add(log)
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
                     add_notification(skill.user_id, "match_request", "你收到新的技能媒合邀請。", m.id)
                     flash("媒合邀請已送出。", "success")
 

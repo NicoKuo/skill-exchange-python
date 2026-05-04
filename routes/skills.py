@@ -8,7 +8,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 
-from models import db, Skill, SkillCategory
+from models import db, Skill, SkillCategory, ActivityLog
 
 skills_bp = Blueprint('skills', __name__)
 ALLOWED_ATTACHMENT_EXTENSIONS = {'pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'}
@@ -137,6 +137,12 @@ def add_skill():
         else:
             db.session.add(skill)
             db.session.commit()
+            try:
+                log = ActivityLog(user_id=current_user.id, action='create_skill', detail=f'skill_id={skill.id}|title={skill.title}', ip_address=request.remote_addr)
+                db.session.add(log)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
             flash("技能已上架。", "success")
             return redirect(url_for(".skills"))
 

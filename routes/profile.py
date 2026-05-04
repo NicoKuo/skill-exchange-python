@@ -2,7 +2,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 
-from models import db, Skill, Review
+from models import db, Skill, Review, ActivityLog
 
 profile_bp = Blueprint('profile', __name__)
 
@@ -32,6 +32,12 @@ def profile():
             if new_password:
                 current_user.set_password(new_password)
             db.session.commit()
+            try:
+                log = ActivityLog(user_id=current_user.id, action='update_profile', detail='profile updated', ip_address=request.remote_addr)
+                db.session.add(log)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
             flash("個人資料已更新。", "success")
             return redirect(url_for(".profile"))
 

@@ -6,17 +6,9 @@ drop tables or reseed data.
 
 from __future__ import annotations
 
-import hashlib
 import os
-import secrets
 import sqlite3
 from pathlib import Path
-
-
-TARGET_EMAIL = 'admin.gmail.com'
-TARGET_NAME = '系統管理者'
-TARGET_PASSWORD = '123456'
-TARGET_ROLE = 'super_admin'
 DEFAULT_SQLITE_URLS = (
     'sqlite:///instance/skill_exchange_test5.db',
     'sqlite:///instance/skill_exchange.db',
@@ -61,13 +53,6 @@ def _resolve_database_url() -> str:
         return f'sqlite:///{root_candidates[0].resolve().as_posix()}'
 
     return DEFAULT_SQLITE_URLS[0]
-
-
-def _generate_password_hash(password: str) -> str:
-    salt = secrets.token_hex(8)
-    iterations = 600000
-    digest = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), iterations)
-    return f'pbkdf2:sha256:{iterations}${salt}${digest.hex()}'
 
 
 def _connect(database_url: str):
@@ -121,6 +106,9 @@ def _add_column_sql(dialect_name: str, table_name: str, column_name: str) -> str
     if column_name == 'role':
         return f"ALTER TABLE {table_name} ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'"
 
+    if column_name == 'status':
+        return f"ALTER TABLE {table_name} ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active'"
+
     if column_name == 'is_active':
         default_value = 'true' if dialect_name == 'postgresql' else '1'
         return f"ALTER TABLE {table_name} ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT {default_value}"
@@ -141,43 +129,6 @@ def _ensure_column(cursor, connection, table_name: str, column_name: str, dialec
     cursor.execute(_add_column_sql(dialect_name, table_name, column_name))
     connection.commit()
     return True
-
-
-def _upsert_super_admin(cursor, connection, dialect_name: str) -> None:
-    if dialect_name == 'sqlite':
-        cursor.execute('SELECT id, name, email, role, bio FROM users WHERE email = ?', (TARGET_EMAIL,))
-    else:
-        cursor.execute('SELECT id, name, email, role, bio FROM users WHERE email = %s', (TARGET_EMAIL,))
-
-    admin_row = cursor.fetchone()
-
-    if admin_row is None:
-        if dialect_name == 'sqlite':
-            cursor.execute(
-                'INSERT INTO users (name, email, password_hash, role, bio) VALUES (?, ?, ?, ?, ?)',
-                (TARGET_NAME, TARGET_EMAIL, _generate_password_hash(TARGET_PASSWORD), TARGET_ROLE, '最高管理者'),
-            )
-        else:
-            cursor.execute(
-                'INSERT INTO users (name, email, password_hash, role, bio) VALUES (%s, %s, %s, %s, %s)',
-                (TARGET_NAME, TARGET_EMAIL, _generate_password_hash(TARGET_PASSWORD), TARGET_ROLE, '最高管理者'),
-            )
-        connection.commit()
-        return
-
-    if dialect_name == 'sqlite':
-        cursor.execute(
-            "UPDATE users SET role = ?, name = COALESCE(NULLIF(name, ''), ?), bio = COALESCE(NULLIF(bio, ''), ?) WHERE email = ?",
-            (TARGET_ROLE, TARGET_NAME, '最高管理者', TARGET_EMAIL),
-        )
-    else:
-        cursor.execute(
-            "UPDATE users SET role = %s, name = COALESCE(NULLIF(name, ''), %s), bio = COALESCE(NULLIF(bio, ''), %s) WHERE email = %s",
-            (TARGET_ROLE, TARGET_NAME, '最高管理者', TARGET_EMAIL),
-        )
-    connection.commit()
-
-
 def run_migration(database_url: str | None = None) -> None:
     resolved_url = _normalize_database_url(database_url or _resolve_database_url())
     connection, dialect_name = _connect(resolved_url)
@@ -188,9 +139,13 @@ def run_migration(database_url: str | None = None) -> None:
 
         if 'users' in table_names:
             _ensure_column(cursor, connection, 'users', 'role', dialect_name)
+            _ensure_column(cursor, connection, 'users', 'status', dialect_name)
             cursor.execute("UPDATE users SET role = 'user' WHERE role IS NULL OR role = '' OR role = 'student'")
+            if dialect_name == 'sqlite':
+                cursor.execute("UPDATE users SET status = 'active' WHERE status IS NULL OR status = ''")
+            else:
+                cursor.execute("UPDATE users SET status = 'active' WHERE status IS NULL OR status = ''")
             connection.commit()
-            _upsert_super_admin(cursor, connection, dialect_name)
 
         if 'skills' in table_names:
             _ensure_column(cursor, connection, 'skills', 'is_active', dialect_name)
@@ -212,6 +167,8 @@ def run_migration(database_url: str | None = None) -> None:
             user_columns = _table_columns(cursor, 'users', dialect_name)
             if 'role' not in user_columns:
                 raise RuntimeError('users 資料表仍缺少 role 欄位')
+            if 'status' not in user_columns:
+                raise RuntimeError('users 資料表仍缺少 status 欄位')
 
         if 'skills' in verification_tables:
             skill_columns = _table_columns(cursor, 'skills', dialect_name)

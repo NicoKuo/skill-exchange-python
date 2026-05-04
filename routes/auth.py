@@ -3,7 +3,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 
-from models import db, User
+from models import db, User, ActivityLog
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -47,6 +47,13 @@ def login():
 
         if user and user.check_password(password) and user.status == "active":
             login_user(user)
+            # record activity
+            try:
+                log = ActivityLog(user_id=user.id, action='login', detail='user login', ip_address=request.remote_addr)
+                db.session.add(log)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
             flash("登入成功。", "success")
             return redirect(url_for("profile.dashboard"))
 

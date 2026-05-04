@@ -92,20 +92,11 @@ def ensure_sqlite_compatibility(app):
             user_columns = {column['name'] for column in inspector.get_columns('users')}
             if 'role' not in user_columns:
                 db.session.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'"))
+            if 'status' not in user_columns:
+                db.session.execute(text("ALTER TABLE users ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active'"))
 
             db.session.execute(text("UPDATE users SET role = 'user' WHERE role IS NULL OR role = '' OR role = 'student'"))
-
-            admin_user = User.query.filter_by(email='admin.gmail.com').first()
-            if not admin_user:
-                admin_user = User(name='系統管理者', email='admin.gmail.com', role='super_admin', bio='最高管理者')
-                admin_user.set_password('123456')
-                db.session.add(admin_user)
-            else:
-                admin_user.role = 'super_admin'
-                if not admin_user.name:
-                    admin_user.name = '系統管理者'
-                if not admin_user.bio:
-                    admin_user.bio = '最高管理者'
+            db.session.execute(text("UPDATE users SET status = 'active' WHERE status IS NULL OR status = ''"))
 
         db.session.commit()
 
@@ -129,6 +120,8 @@ def ensure_sqlite_compatibility(app):
             user_columns = {column['name'] for column in verification_inspector.get_columns('users')}
             if 'role' not in user_columns:
                 raise RuntimeError('users 資料表仍缺少 role 欄位')
+            if 'status' not in user_columns:
+                raise RuntimeError('users 資料表仍缺少 status 欄位')
 
 
 def create_app():

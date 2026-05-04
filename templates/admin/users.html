@@ -1,21 +1,91 @@
-{# 管理後台會員管理 - 檢視所有會員資料 #}
-{% extends 'base.html' %}{% set title='會員管理' %}{% block content %}<section class="card section">
+{% extends 'base.html' %}
+{% set title='會員管理' %}
+
+{% block content %}
+<section class="card section">
     <h1>會員管理</h1>
+    <p class="muted">可檢視所有使用者，並調整一般帳號的狀態。</p>
+
     <div class="table-wrap">
         <table class="table">
-            <tr>
-                <th>姓名</th>
-                <th>Email</th>
-                <th>角色</th>
-                <th>狀態</th>
-                <th>加入時間</th>
-            </tr>{% for user in users %}<tr>
-                <td>{{ user.name }}</td>
-                <td>{{ user.email }}</td>
-                <td><span class="tag{% if user.role == 'admin' %} tag-red{% endif %}">{{ user.role }}</span></td>
-                <td>{{ user.status }}</td>
-                <td>{{ format_taiwan_time(user.created_at, '%Y-%m-%d %H:%M') }}</td>
-            </tr>{% else %}<tr><td colspan="5" class="empty">目前沒有會員資料。</td></tr>{% endfor %}
+            <thead>
+                <tr>
+                    <th>姓名</th>
+                    <th>Email</th>
+                    <th>系所</th>
+                    <th>註冊日期</th>
+                    <th>交換完成次數</th>
+                    <th>帳號狀態</th>
+                    <th>角色</th>
+                    <th>操作按鈕</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                {% set completed_count = completed_counts.get(user.id, 0) %}
+                <tr>
+                    <td>
+                        <div class="fw-600">{{ user.name }}</div>
+                        {% if user.id == current_user.id %}
+                        <span class="tag tag-gray">目前登入者</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.department | default('—', true) }}</td>
+                    <td>{{ format_taiwan_time(user.created_at, '%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ completed_count }}</td>
+                    <td>
+                        {% if user.status == 'active' %}
+                        <span class="tag tag-green">active</span>
+                        {% elif user.status == 'suspended' %}
+                        <span class="tag tag-yellow">suspended</span>
+                        {% elif user.status == 'blocked' %}
+                        <span class="tag tag-red">blocked</span>
+                        {% else %}
+                        <span class="tag tag-gray">{{ user.status or 'unknown' }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.role == 'super_admin' %}
+                        <span class="tag tag-red">super_admin</span>
+                        {% elif user.role == 'admin' %}
+                        <span class="tag tag-teal">admin</span>
+                        {% else %}
+                        <span class="tag tag-gray">user</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.id in manageable_user_ids %}
+                        <div class="actions">
+                            {% if user.status != 'active' %}
+                            <form method="post" action="{{ url_for('admin.update_user_status', user_id=user.id) }}" style="display:inline">
+                                <input type="hidden" name="status" value="active">
+                                <button class="btn btn-sm btn-success" type="submit">啟用</button>
+                            </form>
+                            {% endif %}
+                            {% if user.status != 'suspended' %}
+                            <form method="post" action="{{ url_for('admin.update_user_status', user_id=user.id) }}" style="display:inline">
+                                <input type="hidden" name="status" value="suspended">
+                                <button class="btn btn-sm btn-muted" type="submit">停權</button>
+                            </form>
+                            {% endif %}
+                            {% if user.status != 'blocked' %}
+                            <form method="post" action="{{ url_for('admin.update_user_status', user_id=user.id) }}" style="display:inline">
+                                <input type="hidden" name="status" value="blocked">
+                                <button class="btn btn-sm btn-danger" type="submit">封鎖</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="tag tag-gray">無權限</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="empty">目前沒有會員資料。</td></tr>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
-</section>{% endblock %}
+</section>
+{% endblock %}

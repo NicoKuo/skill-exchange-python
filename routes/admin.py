@@ -1,11 +1,13 @@
 # 管理後台 - 會員、技能、媒合與管理者管理
+from collections import Counter
+from datetime import datetime
 from functools import wraps
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from werkzeug.security import generate_password_hash
 
-from models import db, Match, Skill, User
+from models import db, Match, Skill, User, ActivityLog
+from utils import format_taiwan_time
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -35,8 +37,62 @@ def _admin_counts():
         'users': User.query.count(),
         'skills': Skill.query.count(),
         'matches': Match.query.count(),
-        'chats': Match.query.filter(Match.status.in_(['accepted', 'completed'])).count(),
     }
+
+
+def _completed_exchange_counts():
+    counts = Counter()
+    completed_matches = Match.query.filter(Match.status == 'completed').with_entities(
+        Match.requester_id,
+        Match.receiver_id,
+    ).all()
+
+    for requester_id, receiver_id in completed_matches:
+        counts[requester_id] += 1
+        counts[receiver_id] += 1
+
+    return counts
+
+
+def _recent_activities(limit=8):
+    activities = []
+
+    for user in User.query.order_by(User.created_at.desc()).limit(limit).all():
+        activities.append({
+            'kind': '新會員',
+            'tag_class': 'tag-green',
+            'title': user.name,
+            'description': user.email,
+            'created_at': user.created_at,
+        })
+
+    for skill in Skill.query.order_by(Skill.created_at.desc()).limit(limit).all():
+        activities.append({
+            'kind': '新技能',
+            'tag_class': 'tag-teal',
+            'title': skill.title,
+            'description': f'{skill.user.name} 已上架技能',
+            'created_at': skill.created_at,
+        })
+
+    for match in Match.query.order_by(Match.created_at.desc()).limit(limit).all():
+        activities.append({
+            'kind': '交換申請',
+            'tag_class': 'tag-yellow',
+            'title': match.skill.title,
+            'description': f'{match.requester.name} → {match.receiver.name} · {match.status}',
+            'created_at': match.created_at,
+        })
+
+    activities.sort(
+        key=lambda item: item['created_at'] or datetime.min,
+        reverse=True,
+    )
+
+    for item in activities:
+        item['created_at_text'] = format_taiwan_time(item['created_at'], '%Y-%m-%d %H:%M')
+
+    return activities[:limit]
 
 
 @admin_bp.route('/entry', endpoint='entry')
@@ -55,7 +111,11 @@ def entry():
 @login_required
 @admin_required
 def dashboard():
-    return render_template('admin/dashboard.html', stats=_admin_counts())
+    return render_template(
+        'admin/dashboard.html',
+        stats=_admin_counts(),
+        recent_activities=_recent_activities(),
+    )
 
 
 @admin_bp.route('/users', endpoint='users')
@@ -63,7 +123,65 @@ def dashboard():
 @admin_required
 def users():
     users = User.query.order_by(User.created_at.desc()).all()
-    return render_template('admin/users.html', users=users, stats=_admin_counts())
+    completed_counts = _completed_exchange_counts()
+    manageable_user_ids = set()
+
+    for user in users:
+        if user.id == current_user.id or user.role == 'super_admin':
+            continue
+
+        if current_user.role == 'super_admin' and user.role in {'user', 'admin'}:
+            manageable_user_ids.add(user.id)
+        elif current_user.role == 'admin' and user.role == 'user':
+            manageable_user_ids.add(user.id)
+
+    return render_template(
+        'admin/users.html',
+        users=users,
+        stats=_admin_counts(),
+        completed_counts=completed_counts,
+        manageable_user_ids=manageable_user_ids,
+    )
+
+
+@admin_bp.route('/users/<int:user_id>/status', methods=['POST'], endpoint='update_user_status')
+@login_required
+@admin_required
+def update_user_status(user_id):
+    target_user = User.query.get_or_404(user_id)
+    new_status = request.form.get('status', '').strip()
+    allowed_statuses = {'active', 'suspended', 'blocked'}
+
+    if new_status not in allowed_statuses:
+        abort(400)
+
+    if target_user.id == current_user.id:
+        abort(403)
+
+    if target_user.role == 'super_admin':
+        abort(403)
+
+    if current_user.role == 'admin' and target_user.role != 'user':
+        abort(403)
+
+    if current_user.role == 'super_admin' and target_user.role not in {'user', 'admin'}:
+        abort(403)
+
+    if target_user.status == new_status:
+        flash('帳號狀態沒有變更。', 'warning')
+        return redirect(url_for('admin.users'))
+
+    target_user.status = new_status
+    db.session.commit()
+    # record admin action
+    try:
+        log = ActivityLog(user_id=current_user.id, action='admin_update_user_status', detail=f'target_user_id={target_user.id}|new_status={new_status}', ip_address=request.remote_addr)
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    flash('使用者狀態已更新。', 'success')
+    return redirect(url_for('admin.users'))
 
 
 @admin_bp.route('/skills', endpoint='skills')
@@ -124,7 +242,7 @@ def managers():
             flash('這個 Email 已存在。', 'error')
         else:
             manager = User(name=name, email=email, role='admin', bio='')
-            manager.password_hash = generate_password_hash(password)
+            manager.set_password(password)
             db.session.add(manager)
             db.session.commit()
             flash('已新增管理者。', 'success')
@@ -132,6 +250,27 @@ def managers():
 
     managers = User.query.filter(User.role.in_(['admin', 'super_admin'])).order_by(User.created_at.desc()).all()
     return render_template('admin/managers.html', managers=managers, stats=_admin_counts())
+
+
+@admin_bp.route('/activity', endpoint='activity')
+@login_required
+@admin_required
+def activity():
+    # show all activity logs
+    logs = ActivityLog.query.order_by(ActivityLog.created_at.desc()).limit(200).all()
+    # eager load users
+    user_ids = [l.user_id for l in logs]
+    users = {u.id: u for u in User.query.filter(User.id.in_(user_ids)).all()} if user_ids else {}
+    return render_template('admin/activity.html', logs=logs, users=users, stats=_admin_counts())
+
+
+@admin_bp.route('/users/<int:user_id>/activity', endpoint='user_activity')
+@login_required
+@admin_required
+def user_activity(user_id):
+    user = User.query.get_or_404(user_id)
+    logs = ActivityLog.query.filter_by(user_id=user.id).order_by(ActivityLog.created_at.desc()).all()
+    return render_template('admin/user_activity.html', user=user, logs=logs, stats=_admin_counts())
 
 
 @admin_bp.route('/managers/<int:user_id>/delete', methods=['POST'], endpoint='delete_manager')

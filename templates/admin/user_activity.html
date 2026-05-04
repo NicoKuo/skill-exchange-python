@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+  <h3 class="card-title">{{ user.name }} 的活動紀錄</h3>
+  <div class="card-body">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>時間</th>
+          <th>動作</th>
+          <th>詳細</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else '' }}</td>
+          <td>{{ log.action }}</td>
+          <td>{{ log.detail }}</td>
+          <td>{{ log.ip_address or '' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">目前沒有活動紀錄。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

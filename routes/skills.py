@@ -8,7 +8,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 
-from models import db, Skill, SkillCategory, ActivityLog
+from models import db, Skill, SkillCategory, ActivityLog, Report
 
 skills_bp = Blueprint('skills', __name__)
 ALLOWED_ATTACHMENT_EXTENSIONS = {'pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'}
@@ -166,3 +166,57 @@ def deactivate_skill(skill_id):
     db.session.commit()
     flash("技能已下架。", "success")
     return redirect(request.referrer or url_for("profile.dashboard"))
+
+
+@skills_bp.route("/skills/<int:skill_id>/report", methods=["POST"], endpoint='report_skill')
+@login_required
+def report_skill(skill_id):
+    """API endpoint: 檢舉技能"""
+    from flask import jsonify
+    
+    skill = Skill.query.get_or_404(skill_id)
+    reason = request.form.get("reason", "").strip()
+    description = request.form.get("description", "").strip()
+
+    # 不能檢舉自己的技能
+    if skill.user_id == current_user.id:
+        return jsonify({"error": "你不能檢舉自己的技能"}), 400
+
+    # 檢查是否已有 pending 檢舉
+    existing = Report.query.filter_by(
+        reporter_id=current_user.id,
+        skill_id=skill_id,
+        status='pending'
+    ).first()
+
+    if existing:
+        return jsonify({"error": "你已檢舉過這個技能"}), 400
+
+    valid_reasons = ['inappropriate_language', 'harassment', 'no_show', 'scam', 'other']
+    if reason not in valid_reasons:
+        return jsonify({"error": "檢舉原因無效"}), 400
+
+    report = Report(
+        reporter_id=current_user.id,
+        reported_user_id=skill.user_id,
+        skill_id=skill_id,
+        reason=reason,
+        description=description,
+        status='pending'
+    )
+    db.session.add(report)
+    db.session.commit()
+
+    try:
+        log = ActivityLog(
+            user_id=current_user.id,
+            action='report_skill',
+            detail=f'report_id={report.id}|skill_id={skill_id}',
+            ip_address=request.remote_addr
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    return jsonify({"message": "檢舉已送出，將由管理者審查"})

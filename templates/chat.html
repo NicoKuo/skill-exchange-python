@@ -1,16 +1,47 @@
 {% extends 'base.html' %}{% set title='聊天室 - 技能交換溝通' %}{% block content %}<section class="card section" data-match-id="{{ match.id }}" data-user-id="{{ current_user.id }}" data-initial-count="{{ messages|length }}">
     <h2>聊天室：{{ match.skill.title }}</h2>
     <p class="muted"><span class="material-icons-round icon-inline">access_time</span> 訊息會每 2 秒自動更新</p>
-    <div class="chat-box" id="chat-messages">{% for msg in messages %}<div
-            class="bubble {% if msg.sender_id==current_user.id %}me{% endif %}"><strong>{{ msg.sender.name
-                                }}</strong><br>{% if msg.content %}<div>{{ msg.content }}</div>{% endif %}{% if msg.file_url %}{% if msg.file_type == 'image' %}<div style="margin-top:10px;"><img src="{{ msg.file_url }}" alt="{{ msg.file_name }}" style="max-width:100%;border-radius:12px;"></div>{% else %}<div style="margin-top:10px;"><a class="btn btn-sm btn-muted" href="{{ msg.file_url }}" download>{{ msg.file_name }}</a></div>{% endif %}{% endif %}<div class="kpi">{{ format_taiwan_time(msg.created_at, '%Y-%m-%d %H:%M') }}</div>
-        </div>{% else %}<div class="empty">目前沒有訊息。</div>{% endfor %}</div>
+    <div class="chat-box" id="chat-messages">{% for msg in messages %}<div class="message-wrapper" data-message-id="{{ msg.id }}" data-sender-id="{{ msg.sender_id }}">
+        <div class="bubble {% if msg.sender_id==current_user.id %}me{% endif %}"><strong>{{ msg.sender.name }}</strong><br>{% if msg.content %}<div>{{ msg.content }}</div>{% endif %}{% if msg.file_url %}{% if msg.file_type == 'image' %}<div style="margin-top:10px;"><img src="{{ msg.file_url }}" alt="{{ msg.file_name }}" style="max-width:100%;border-radius:12px;"></div>{% else %}<div style="margin-top:10px;"><a class="btn btn-sm btn-muted" href="{{ msg.file_url }}" download>{{ msg.file_name }}</a></div>{% endif %}{% endif %}<div class="kpi">{{ format_taiwan_time(msg.created_at, '%Y-%m-%d %H:%M') }}</div>
+        </div>
+        {% if msg.sender_id != current_user.id %}<div class="message-actions"><button type="button" class="btn-icon-small report-msg-btn" data-message-id="{{ msg.id }}" data-sender-id="{{ msg.sender_id }}" title="檢舉此訊息">⚠️</button></div>{% endif %}
+    </div>{% else %}<div class="empty">目前沒有訊息。</div>{% endfor %}</div>
         <form method="post" class="form-grid" style="margin-top:18px" id="chat-form" enctype="multipart/form-data">
         <div class="field" style="grid-column:1/-1"><label>輸入訊息</label><textarea name="content" placeholder="可輸入文字，或只上傳圖片/檔案"></textarea>
         </div>
         <div class="field" style="grid-column:1/-1"><label>附件</label><input type="file" name="attachment" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.docx,.pptx,.xlsx,.zip"><small class="muted">支援 jpg、jpeg、png、gif、webp、pdf、docx、pptx、xlsx、zip，檔案上限 10MB。</small></div>
         <button class="btn" type="submit">送出</button>
     </form>
+
+    <!-- 訊息檢舉 Modal -->
+    <div id="report-message-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>檢舉訊息</h3>
+            <form id="report-message-form" method="post">
+                <input type="hidden" name="message_id" id="modal-message-id">
+                <div class="field">
+                    <label>檢舉原因</label>
+                    <select name="reason" required>
+                        <option value="">-- 請選擇 --</option>
+                        <option value="inappropriate_language">用詞不當</option>
+                        <option value="harassment">騷擾或威脅</option>
+                        <option value="no_show">爽約或不履行交換</option>
+                        <option value="scam">詐騙或可疑行為</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>補充說明</label>
+                    <textarea name="description" rows="3" placeholder="請說明檢舉原因..."></textarea>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end;">
+                    <button type="button" class="btn btn-muted" onclick="document.getElementById('report-message-modal').style.display='none';">取消</button>
+                    <button type="submit" class="btn">送出檢舉</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
         <script>
             (function() {
                 const section = document.querySelector('section[data-match-id]');
@@ -22,6 +53,8 @@
                 const textarea = form.querySelector('textarea[name="content"]');
                 const button = form.querySelector('button[type="submit"], button.btn');
                 const chatBox = document.getElementById('chat-messages');
+                const reportModal = document.getElementById('report-message-modal');
+                const reportForm = document.getElementById('report-message-form');
                 let submitting = false;
 
                 const escapeHtml = (value) => {
@@ -47,8 +80,37 @@
                         }
                     }
 
-                    return `<div class="${bubbleClass}"><strong>${escapeHtml(msg.sender_name)}</strong><br>${textHtml}${fileHtml}<div class="kpi">${timeStr}</div></div>`;
+                    const reportBtn = msg.sender_id !== currentUserId ? `<div class="message-actions"><button type="button" class="btn-icon-small report-msg-btn" data-message-id="${msg.id}" data-sender-id="${msg.sender_id}" title="檢舉此訊息">⚠️</button></div>` : '';
+
+                    return `<div class="message-wrapper" data-message-id="${msg.id}" data-sender-id="${msg.sender_id}"><div class="${bubbleClass}"><strong>${escapeHtml(msg.sender_name)}</strong><br>${textHtml}${fileHtml}<div class="kpi">${timeStr}</div></div>${reportBtn}</div>`;
                 };
+
+                // 訊息檢舉按鈕事件
+                document.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('report-msg-btn')) {
+                        const messageId = e.target.dataset.messageId;
+                        document.getElementById('modal-message-id').value = messageId;
+                        reportModal.style.display = 'block';
+                    }
+                });
+
+                // 訊息檢舉提交
+                reportForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const formData = new FormData(reportForm);
+                    fetch(`/chat/${matchId}/report-message`, { method: 'POST', body: formData })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.message) {
+                                alert(data.message);
+                                reportModal.style.display = 'none';
+                                reportForm.reset();
+                            } else if (data.error) {
+                                alert('檢舉失敗: ' + data.error);
+                            }
+                        })
+                        .catch(err => alert('檢舉失敗: ' + err));
+                });
 
                 // 自動更新訊息（每 2 秒）
                 setInterval(function() {

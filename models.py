@@ -127,6 +127,7 @@ class Report(db.Model):
     reported_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=True)
     skill_id = db.Column(db.Integer, db.ForeignKey('skills.id'), nullable=True)
+    message_id = db.Column(db.Integer, db.ForeignKey('messages.id'), nullable=True)
     reason = db.Column(db.String(50), nullable=False)  # inappropriate_language, harassment, no_show, scam, other
     description = db.Column(db.Text)
     status = db.Column(db.String(20), default='pending', nullable=False, index=True)  # pending, reviewed, rejected, resolved
@@ -139,4 +140,5 @@ class Report(db.Model):
     reported_user = db.relationship('User', foreign_keys=[reported_user_id])
     match = db.relationship('Match')
     skill = db.relationship('Skill')
+    message = db.relationship('Message')
     reviewed_by_user = db.relationship('User', foreign_keys=[reviewed_by])

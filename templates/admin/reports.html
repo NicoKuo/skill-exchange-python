@@ -20,11 +20,13 @@
     </div>
 
     <div class="table-wrap">
-        <table class="table" style="min-width: 1200px;">
+        <table class="table" style="min-width: 1400px;">
             <tr>
                 <th>時間</th>
                 <th>檢舉人</th>
                 <th>被檢舉人</th>
+                <th>報告類型</th>
+                <th>內容預覽</th>
                 <th>原因</th>
                 <th>狀態</th>
                 <th>操作</th>
@@ -35,6 +37,28 @@
                 <td>{{ report.reporter.name }}</td>
                 <td>{{ report.reported_user.name }}</td>
                 <td>
+                    {% if report.message_id %}
+                    <span class="tag tag-red">訊息檢舉</span>
+                    {% elif report.skill_id %}
+                    <span class="tag tag-orange">技能檢舉</span>
+                    {% elif report.match_id %}
+                    <span class="tag tag-purple">媒合檢舉</span>
+                    {% else %}
+                    <span class="tag">未知</span>
+                    {% endif %}
+                </td>
+                <td style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    {% if report.message_id and report.message %}
+                    <strong>訊息:</strong> {{ report.message.content[:50] }}{% if report.message.content|length > 50 %}...{% endif %}
+                    {% elif report.skill_id and report.skill %}
+                    <strong>技能:</strong> {{ report.skill.title }}
+                    {% elif report.match_id and report.match %}
+                    <strong>媒合:</strong> {{ report.match.user1.name }} ↔ {{ report.match.user2.name }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
                     {% if report.reason == 'inappropriate_language' %}
                     用詞不當
                     {% elif report.reason == 'harassment' %}
@@ -43,6 +67,12 @@
                     爽約或不履行交換
                     {% elif report.reason == 'scam' %}
                     詐騙或可疑行為
+                    {% elif report.reason == 'inappropriate_content' %}
+                    內容不當
+                    {% elif report.reason == 'spam' %}
+                    垃圾訊息/廣告
+                    {% elif report.reason == 'copyright' %}
+                    侵犯著作權
                     {% else %}
                     其他
                     {% endif %}
@@ -63,7 +93,7 @@
                 </td>
             </tr>
             {% else %}
-            <tr><td colspan="6" class="empty">沒有檢舉。</td></tr>
+            <tr><td colspan="8" class="empty">沒有檢舉。</td></tr>
             {% endfor %}
         </table>
     </div>

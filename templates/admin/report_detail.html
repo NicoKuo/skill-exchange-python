@@ -10,6 +10,105 @@
 <section class="card section">
     <h1>檢舉詳情</h1>
     
+    <h2>報告內容</h2>
+    <div class="table-wrap" style="margin-bottom: 24px;">
+        <table class="table" style="width: 100%; table-layout: fixed;">
+            {% if report.message_id and report.message %}
+            <tr>
+                <td style="width: 150px; font-weight: 600;">報告類型</td>
+                <td><span class="tag tag-red">訊息檢舉</span></td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">發送者</td>
+                <td>{{ report.message.sender.name }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">訊息內容</td>
+                <td style="white-space: pre-wrap; word-break: break-word;">{{ report.message.content }}</td>
+            </tr>
+            {% if report.message.file_url %}
+            <tr>
+                <td style="font-weight: 600;">附件</td>
+                <td>
+                    <a class="btn btn-sm" href="{{ report.message.file_url }}" target="_blank" download>{{ report.message.file_name or '下載附件' }}</a>
+                </td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td style="font-weight: 600;">發送時間</td>
+                <td>{{ format_taiwan_time(report.message.created_at, '%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">媒合編號</td>
+                <td>媒合 #{{ report.message.match_id }}</td>
+            </tr>
+            {% elif report.skill_id and report.skill %}
+            <tr>
+                <td style="width: 150px; font-weight: 600;">報告類型</td>
+                <td><span class="tag tag-orange">技能檢舉</span></td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">技能標題</td>
+                <td>{{ report.skill.title }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">發佈者</td>
+                <td>{{ report.skill.user.name }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">分類</td>
+                <td>{{ report.skill.category.name if report.skill.category else '未分類' }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">類型</td>
+                <td>{{ '我可以教' if report.skill.type == 'offer' else '我想學' }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">方式</td>
+                <td>{{ report.skill.method }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">描述</td>
+                <td style="white-space: pre-wrap; word-break: break-word;">{{ report.skill.description }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">發佈時間</td>
+                <td>{{ format_taiwan_time(report.skill.created_at, '%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            {% elif report.match_id and report.match %}
+            <tr>
+                <td style="width: 150px; font-weight: 600;">報告類型</td>
+                <td><span class="tag tag-purple">媒合檢舉</span></td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">媒合編號</td>
+                <td>媒合 #{{ report.match.id }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">參與者</td>
+                <td>{{ report.match.user1.name }} ↔ {{ report.match.user2.name }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">技能</td>
+                <td>{{ report.match.skill.title }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">狀態</td>
+                <td>{{ report.match.status }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">建立時間</td>
+                <td>{{ format_taiwan_time(report.match.created_at, '%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="2" class="empty">找不到相關的報告內容</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <h2>檢舉詳情</h2>
     <div class="table-wrap" style="margin-bottom: 24px;">
         <table class="table" style="width: 100%; table-layout: fixed;">
             <tr>
@@ -41,6 +140,12 @@
                     爽約或不履行交換
                     {% elif report.reason == 'scam' %}
                     詐騙或可疑行為
+                    {% elif report.reason == 'inappropriate_content' %}
+                    內容不當
+                    {% elif report.reason == 'spam' %}
+                    垃圾訊息/廣告
+                    {% elif report.reason == 'copyright' %}
+                    侵犯著作權
                     {% else %}
                     其他
                     {% endif %}
@@ -49,17 +154,6 @@
             <tr>
                 <td style="font-weight: 600;">補充說明</td>
                 <td>{{ report.description or '無' }}</td>
-            </tr>
-            <tr>
-                <td style="font-weight: 600;">關聯媒合</td>
-                <td>
-                    {% if report.match_id %}
-                    媒合 #{{ report.match_id }}
-                    <a class="btn btn-sm btn-muted" href="{{ url_for('admin.matches') }}">檢視媒合</a>
-                    {% else %}
-                    無
-                    {% endif %}
-                </td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">狀態</td>

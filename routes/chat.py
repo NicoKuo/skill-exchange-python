@@ -10,7 +10,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, abort,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
-from models import db, Match, Message
+from models import db, Match, Message, Report, ActivityLog
 from utils import add_notification
 
 chat_bp = Blueprint('chat', __name__)
@@ -141,3 +141,122 @@ def get_messages(match_id):
             for msg in messages
         ]
     })
+
+
+@chat_bp.route("/chat/<int:match_id>/send-message", methods=["POST"], endpoint='send_message_ajax')
+@login_required
+def send_message_ajax(match_id):
+    """API endpoint: 用 AJAX 送出訊息，回傳 JSON"""
+    m = Match.query.get_or_404(match_id)
+
+    if current_user.id not in [m.requester_id, m.receiver_id]:
+        abort(403)
+
+    other_id = m.receiver_id if current_user.id == m.requester_id else m.requester_id
+    content = request.form.get("content", "").strip()
+
+    if not content:
+        return jsonify({"error": "訊息不能為空"}), 400
+
+    # 防止重複訊息
+    last_message = Message.query.filter_by(match_id=m.id, sender_id=current_user.id).order_by(Message.created_at.desc()).first()
+    if last_message and last_message.content == content:
+        elapsed_seconds = (datetime.utcnow() - last_message.created_at).total_seconds()
+        if elapsed_seconds < 2:
+            return jsonify({"error": "訊息發送過於頻繁"}), 429
+
+    msg = Message(
+        match_id=m.id,
+        sender_id=current_user.id,
+        receiver_id=other_id,
+        content=content,
+        is_read=False
+    )
+    db.session.add(msg)
+    db.session.commit()
+
+    add_notification(other_id, "message", "你收到一則新訊息。", m.id)
+
+    return jsonify({
+        "id": msg.id,
+        "sender_id": msg.sender_id,
+        "sender_name": msg.sender.name,
+        "content": msg.content,
+        "created_at": msg.created_at.isoformat(),
+        "is_read": msg.is_read,
+    })
+
+
+@chat_bp.route("/chat/unread-count", methods=["GET"], endpoint='unread_count')
+@login_required
+def unread_count():
+    """API endpoint: 取得目前登入者的未讀訊息數"""
+    count = Message.query.filter_by(
+        receiver_id=current_user.id,
+        is_read=False
+    ).count()
+    return jsonify({"count": count})
+
+
+@chat_bp.route("/chat/<int:match_id>/report-message", methods=["POST"], endpoint='report_message')
+@login_required
+def report_message(match_id):
+    """API endpoint: 檢舉訊息"""
+    m = Match.query.get_or_404(match_id)
+
+    if current_user.id not in [m.requester_id, m.receiver_id]:
+        abort(403)
+
+    message_id = request.form.get("message_id", type=int)
+    reason = request.form.get("reason", "").strip()
+    description = request.form.get("description", "").strip()
+
+    msg = Message.query.get_or_404(message_id)
+
+    # 訊息必須屬於這個媒合
+    if msg.match_id != match_id:
+        abort(400)
+
+    # 不能檢舉自己的訊息
+    if msg.sender_id == current_user.id:
+        return jsonify({"error": "你不能檢舉自己的訊息"}), 400
+
+    # 檢查是否已有 pending 檢舉
+    existing = Report.query.filter_by(
+        reporter_id=current_user.id,
+        message_id=message_id,
+        status='pending'
+    ).first()
+
+    if existing:
+        return jsonify({"error": "你已檢舉過這則訊息"}), 400
+
+    valid_reasons = ['inappropriate_language', 'harassment', 'no_show', 'scam', 'other']
+    if reason not in valid_reasons:
+        return jsonify({"error": "檢舉原因無效"}), 400
+
+    report = Report(
+        reporter_id=current_user.id,
+        reported_user_id=msg.sender_id,
+        match_id=match_id,
+        message_id=message_id,
+        reason=reason,
+        description=description,
+        status='pending'
+    )
+    db.session.add(report)
+    db.session.commit()
+
+    try:
+        log = ActivityLog(
+            user_id=current_user.id,
+            action='report_message',
+            detail=f'report_id={report.id}|message_id={message_id}|match_id={match_id}',
+            ip_address=request.remote_addr
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    return jsonify({"message": "檢舉已送出，將由管理者審查"})

@@ -105,6 +105,27 @@
                 <td colspan="2" class="empty">找不到相關的報告內容</td>
             </tr>
             {% endif %}
+            
+            <!-- 檢舉附件 -->
+            {% if report.evidence_file_url %}
+            <tr>
+                <td style="font-weight: 600;">檢舉附件</td>
+                <td>
+                    <div style="margin-bottom: 8px;">
+                        <p style="margin: 0 0 8px 0; font-size: 13px; color: var(--muted);">檔名：{{ report.evidence_file_name }}</p>
+                        {% if report.evidence_file_type == 'image' %}
+                        <img src="{{ report.evidence_file_url }}" alt="{{ report.evidence_file_name }}" style="max-width: 300px; border-radius: var(--radius-md); border: 1px solid var(--line);">
+                        {% endif %}
+                    </div>
+                    <a class="btn btn-sm" href="{{ report.evidence_file_url }}" target="_blank" download>開啟原圖</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td style="font-weight: 600;">檢舉附件</td>
+                <td>未提供截圖</td>
+            </tr>
+            {% endif %}
         </table>
     </div>
 

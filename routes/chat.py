@@ -210,6 +210,7 @@ def report_message(match_id):
     message_id = request.form.get("message_id", type=int)
     reason = request.form.get("reason", "").strip()
     description = request.form.get("description", "").strip()
+    evidence = request.files.get("evidence")
 
     msg = Message.query.get_or_404(message_id)
 
@@ -235,6 +236,31 @@ def report_message(match_id):
     if reason not in valid_reasons:
         return jsonify({"error": "檢舉原因無效"}), 400
 
+    # 處理檢舉附件
+    evidence_url = None
+    evidence_name = None
+    evidence_type = None
+    
+    if evidence and evidence.filename:
+        # 只允許圖片格式
+        ext = evidence.filename.rsplit('.', 1)[1].lower() if '.' in evidence.filename else ''
+        if ext not in ALLOWED_IMAGE_EXTENSIONS:
+            return jsonify({"error": "只支援圖片檔案（jpg、jpeg、png、gif、webp）"}), 400
+        
+        # 檢查檔案大小（5MB）
+        if file_size(evidence) > 5 * 1024 * 1024:
+            return jsonify({"error": "檢舉附件不能超過 5MB"}), 400
+        
+        # 保存檔案
+        upload_dir = os.path.join(current_app.static_folder, 'uploads', 'report')
+        os.makedirs(upload_dir, exist_ok=True)
+        original_name = secure_filename(evidence.filename)
+        stored_name = f"{uuid4().hex}_{original_name}"
+        evidence.save(os.path.join(upload_dir, stored_name))
+        evidence_url = url_for('static', filename=f'uploads/report/{stored_name}')
+        evidence_name = original_name
+        evidence_type = 'image'
+
     report = Report(
         reporter_id=current_user.id,
         reported_user_id=msg.sender_id,
@@ -242,6 +268,9 @@ def report_message(match_id):
         message_id=message_id,
         reason=reason,
         description=description,
+        evidence_file_url=evidence_url,
+        evidence_file_name=evidence_name,
+        evidence_file_type=evidence_type,
         status='pending'
     )
     db.session.add(report)

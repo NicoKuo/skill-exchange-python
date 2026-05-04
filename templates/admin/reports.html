@@ -28,6 +28,7 @@
                 <th>報告類型</th>
                 <th>內容預覽</th>
                 <th>原因</th>
+                <th>附件</th>
                 <th>狀態</th>
                 <th>操作</th>
             </tr>
@@ -47,9 +48,9 @@
                     <span class="tag">未知</span>
                     {% endif %}
                 </td>
-                <td style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                     {% if report.message_id and report.message %}
-                    <strong>訊息:</strong> {{ report.message.content[:50] }}{% if report.message.content|length > 50 %}...{% endif %}
+                    <strong>訊息:</strong> {{ report.message.content[:40] }}{% if report.message.content|length > 40 %}...{% endif %}
                     {% elif report.skill_id and report.skill %}
                     <strong>技能:</strong> {{ report.skill.title }}
                     {% elif report.match_id and report.match %}
@@ -78,6 +79,13 @@
                     {% endif %}
                 </td>
                 <td>
+                    {% if report.evidence_file_url %}
+                    <span class="tag tag-blue">有截圖</span>
+                    {% else %}
+                    <span class="tag tag-gray">未提供</span>
+                    {% endif %}
+                </td>
+                <td>
                     {% if report.status == 'pending' %}
                     <span class="tag tag-yellow">待審</span>
                     {% elif report.status == 'reviewed' %}
@@ -93,7 +101,7 @@
                 </td>
             </tr>
             {% else %}
-            <tr><td colspan="8" class="empty">沒有檢舉。</td></tr>
+            <tr><td colspan="9" class="empty">沒有檢舉。</td></tr>
             {% endfor %}
         </table>
     </div>

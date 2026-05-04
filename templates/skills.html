@@ -27,69 +27,107 @@
         <p class="kpi">發佈者：{{ skill.user.name }}｜時間：{{ skill.available_time or '未填' }}</p>{% if
         current_user.is_authenticated and current_user.id != skill.user_id %}<a class="btn"
             href="{{ url_for('match_center', skill_id=skill.id) }}">送出媒合</a>{% endif %}
+        
+        <!-- 技能檢舉 inline panel -->
+        {% if current_user.is_authenticated and current_user.id != skill.user_id %}
+        <div class="report-panel" data-skill-id="{{ skill.id }}">
+            <h4>檢舉技能</h4>
+            <form class="report-skill-form">
+                <div class="field">
+                    <label>檢舉原因</label>
+                    <select name="reason" required>
+                        <option value="">-- 請選擇 --</option>
+                        <option value="inappropriate_content">內容不當</option>
+                        <option value="spam">垃圾訊息/廣告</option>
+                        <option value="scam">詐騙或可疑行為</option>
+                        <option value="copyright">侵犯著作權</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>補充說明</label>
+                    <textarea name="description" placeholder="請說明檢舉原因..."></textarea>
+                </div>
+                <div class="field">
+                    <label>截圖證據（選填）</label>
+                    <input type="file" name="evidence" accept="image/jpeg,image/png,image/gif,image/webp">
+                    <small>支援 jpg、png、gif、webp，檔案上限 5MB</small>
+                </div>
+                <div class="button-group">
+                    <button type="button" class="btn btn-muted cancel-report">取消</button>
+                    <button type="submit" class="btn">送出檢舉</button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
     </div>{% else %}<div class="empty">找不到符合條件的技能。</div>{% endfor %}</section>
-
-<!-- 技能檢舉 Modal -->
-<div id="report-skill-modal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <h3>檢舉技能</h3>
-        <form id="report-skill-form" method="post">
-            <input type="hidden" name="skill_id" id="modal-skill-id">
-            <div class="field">
-                <label>檢舉原因</label>
-                <select name="reason" required>
-                    <option value="">-- 請選擇 --</option>
-                    <option value="inappropriate_content">內容不當</option>
-                    <option value="spam">垃圾訊息/廣告</option>
-                    <option value="scam">詐騙或可疑行為</option>
-                    <option value="copyright">侵犯著作權</option>
-                    <option value="other">其他</option>
-                </select>
-            </div>
-            <div class="field">
-                <label>補充說明</label>
-                <textarea name="description" rows="3" placeholder="請說明檢舉原因..."></textarea>
-            </div>
-            <div style="display:flex; gap:10px; justify-content:flex-end;">
-                <button type="button" class="btn btn-muted" onclick="document.getElementById('report-skill-modal').style.display='none';">取消</button>
-                <button type="submit" class="btn">送出檢舉</button>
-            </div>
-        </form>
-    </div>
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const reportModal = document.getElementById('report-skill-modal');
-    const reportForm = document.getElementById('report-skill-form');
+    let openReportPanel = null;
+
+    // 關閉所有其他的檢舉面板
+    const closeAllReportPanels = (except) => {
+        document.querySelectorAll('.report-panel.open').forEach(panel => {
+            if (panel !== except) {
+                panel.classList.remove('open');
+            }
+        });
+    };
+
+    // 切換報告面板
+    const toggleReportPanel = (skillId) => {
+        const card = document.querySelector(`.card:has(.report-skill-btn[data-skill-id="${skillId}"])`);
+        if (!card) return;
+        
+        const panel = card.querySelector('.report-panel');
+        if (!panel) return;
+
+        closeAllReportPanels(panel);
+        panel.classList.toggle('open');
+        openReportPanel = panel.classList.contains('open') ? panel : null;
+    };
 
     // 技能檢舉按鈕事件
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('report-skill-btn')) {
             const skillId = e.target.dataset.skillId;
-            document.getElementById('modal-skill-id').value = skillId;
-            reportModal.style.display = 'block';
+            toggleReportPanel(skillId);
+        }
+        
+        if (e.target.classList.contains('cancel-report')) {
+            e.preventDefault();
+            const panel = e.target.closest('.report-panel');
+            if (panel) {
+                panel.classList.remove('open');
+                openReportPanel = null;
+            }
         }
     });
 
-    // 技能檢舉提交
-    reportForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const skillId = document.getElementById('modal-skill-id').value;
-        const formData = new FormData(reportForm);
-        
-        fetch(`/skills/${skillId}/report`, { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(data => {
-                if (data.message) {
-                    alert(data.message);
-                    reportModal.style.display = 'none';
-                    reportForm.reset();
-                } else if (data.error) {
-                    alert('檢舉失敗: ' + data.error);
-                }
-            })
-            .catch(err => alert('檢舉失敗: ' + err));
+    // 技能檢舉表單提交
+    document.addEventListener('submit', function(e) {
+        if (e.target.classList.contains('report-skill-form')) {
+            e.preventDefault();
+            const form = e.target;
+            const panel = form.closest('.report-panel');
+            const skillId = panel.dataset.skillId;
+            const formData = new FormData(form);
+            
+            fetch(`/skills/${skillId}/report`, { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.message) {
+                        alert('檢舉已送出');
+                        panel.classList.remove('open');
+                        openReportPanel = null;
+                        form.reset();
+                    } else if (data.error) {
+                        alert('檢舉失敗: ' + data.error);
+                    }
+                })
+                .catch(err => alert('檢舉失敗: ' + err));
+        }
     });
 
     // 關閉模態框（點擊外部區域）

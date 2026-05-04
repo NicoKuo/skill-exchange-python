@@ -3,7 +3,7 @@
 import os
 from uuid import uuid4
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory, abort, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from werkzeug.utils import secure_filename
@@ -12,6 +12,7 @@ from models import db, Skill, SkillCategory, ActivityLog, Report
 
 skills_bp = Blueprint('skills', __name__)
 ALLOWED_ATTACHMENT_EXTENSIONS = {'pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'}
+ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 
 
 def file_size(file_storage):
@@ -172,11 +173,11 @@ def deactivate_skill(skill_id):
 @login_required
 def report_skill(skill_id):
     """API endpoint: 檢舉技能"""
-    from flask import jsonify
     
     skill = Skill.query.get_or_404(skill_id)
     reason = request.form.get("reason", "").strip()
     description = request.form.get("description", "").strip()
+    evidence = request.files.get("evidence")
 
     # 不能檢舉自己的技能
     if skill.user_id == current_user.id:
@@ -192,9 +193,34 @@ def report_skill(skill_id):
     if existing:
         return jsonify({"error": "你已檢舉過這個技能"}), 400
 
-    valid_reasons = ['inappropriate_language', 'harassment', 'no_show', 'scam', 'other']
+    valid_reasons = ['inappropriate_content', 'spam', 'scam', 'copyright', 'other']
     if reason not in valid_reasons:
         return jsonify({"error": "檢舉原因無效"}), 400
+
+    # 處理檢舉附件
+    evidence_url = None
+    evidence_name = None
+    evidence_type = None
+    
+    if evidence and evidence.filename:
+        # 只允許圖片格式
+        ext = evidence.filename.rsplit('.', 1)[1].lower() if '.' in evidence.filename else ''
+        if ext not in ALLOWED_IMAGE_EXTENSIONS:
+            return jsonify({"error": "只支援圖片檔案（jpg、jpeg、png、gif、webp）"}), 400
+        
+        # 檢查檔案大小（5MB）
+        if file_size(evidence) > 5 * 1024 * 1024:
+            return jsonify({"error": "檢舉附件不能超過 5MB"}), 400
+        
+        # 保存檔案
+        upload_dir = os.path.join(current_app.static_folder, 'uploads', 'report')
+        os.makedirs(upload_dir, exist_ok=True)
+        original_name = secure_filename(evidence.filename)
+        stored_name = f"{uuid4().hex}_{original_name}"
+        evidence.save(os.path.join(upload_dir, stored_name))
+        evidence_url = url_for('static', filename=f'uploads/report/{stored_name}')
+        evidence_name = original_name
+        evidence_type = 'image'
 
     report = Report(
         reporter_id=current_user.id,
@@ -202,6 +228,9 @@ def report_skill(skill_id):
         skill_id=skill_id,
         reason=reason,
         description=description,
+        evidence_file_url=evidence_url,
+        evidence_file_name=evidence_name,
+        evidence_file_type=evidence_type,
         status='pending'
     )
     db.session.add(report)

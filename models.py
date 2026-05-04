@@ -130,6 +130,9 @@ class Report(db.Model):
     message_id = db.Column(db.Integer, db.ForeignKey('messages.id'), nullable=True)
     reason = db.Column(db.String(50), nullable=False)  # inappropriate_language, harassment, no_show, scam, other
     description = db.Column(db.Text)
+    evidence_file_url = db.Column(db.String(500), nullable=True)
+    evidence_file_name = db.Column(db.String(255), nullable=True)
+    evidence_file_type = db.Column(db.String(20), nullable=True)
     status = db.Column(db.String(20), default='pending', nullable=False, index=True)  # pending, reviewed, rejected, resolved
     admin_note = db.Column(db.Text, nullable=True)
     reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)

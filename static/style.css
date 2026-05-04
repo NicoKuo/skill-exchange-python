@@ -715,6 +715,7 @@ h1, h2, h3, h4, h5 {
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 24px;
+  position: relative;
 }
 
 .floating-chat-btn:hover {
@@ -726,21 +727,25 @@ h1, h2, h3, h4, h5 {
   transform: scale(1.08);
 }
 
-/* 聊天badge */
+/* 聊天badge - 紅色圓形，固定在右上角 */
 .chat-badge {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  background: var(--danger);
-  color: #fff;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  background: #ef4444;
+  color: white;
+  border: 2px solid white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
   z-index: 100;
 }
 
@@ -774,6 +779,84 @@ h1, h2, h3, h4, h5 {
 
 .btn-icon-small:hover {
   transform: scale(1.1);
+}
+
+/* Inline Report Panel */
+.report-panel {
+  display: none;
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  animation: slideDown 0.2s ease-out;
+}
+
+.report-panel.open {
+  display: block;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.report-panel h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.report-panel .field {
+  margin-bottom: 12px;
+}
+
+.report-panel .field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.report-panel .field select,
+.report-panel .field textarea,
+.report-panel .field input[type="file"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.report-panel .field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.report-panel .field small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.report-panel .button-group {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.report-panel .button-group button,
+.report-panel .button-group .btn {
+  padding: 8px 14px;
+  font-size: 13px;
 }
 
 /* 模態框 */

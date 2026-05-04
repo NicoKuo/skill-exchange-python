@@ -26,13 +26,13 @@
                 class="tag tag-yellow">{{ skill.method }}</span></div>
         <p class="kpi">發佈者：{{ skill.user.name }}｜時間：{{ skill.available_time or '未填' }}</p>{% if
         current_user.is_authenticated and current_user.id != skill.user_id %}<a class="btn"
-            href="{{ url_for('match_center', skill_id=skill.id) }}">送出媒合</a>{% endif %}
+            href="{{ url_for('matches.match_center', skill_id=skill.id) }}">送出媒合</a>{% endif %}
         
         <!-- 技能檢舉 inline panel -->
         {% if current_user.is_authenticated and current_user.id != skill.user_id %}
         <div class="report-panel" data-skill-id="{{ skill.id }}">
             <h4>檢舉技能</h4>
-            <form class="report-skill-form">
+            <form class="report-skill-form" data-report-url="{{ url_for('skills.report_skill', skill_id=skill.id) }}">
                 <div class="field">
                     <label>檢舉原因</label>
                     <select name="reason" required>
@@ -77,10 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 切換報告面板
     const toggleReportPanel = (skillId) => {
-        const card = document.querySelector(`.card:has(.report-skill-btn[data-skill-id="${skillId}"])`);
-        if (!card) return;
-        
-        const panel = card.querySelector('.report-panel');
+        const panel = document.querySelector(`.report-panel[data-skill-id="${skillId}"]`);
         if (!panel) return;
 
         closeAllReportPanels(panel);
@@ -106,34 +103,40 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // 技能檢舉表單提交
-    document.addEventListener('submit', function(e) {
-        if (e.target.classList.contains('report-skill-form')) {
-            e.preventDefault();
-            const form = e.target;
-            const panel = form.closest('.report-panel');
-            const skillId = panel.dataset.skillId;
-            const formData = new FormData(form);
-            
-            fetch(`/skills/${skillId}/report`, { method: 'POST', body: formData })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.message) {
-                        alert('檢舉已送出');
-                        panel.classList.remove('open');
-                        openReportPanel = null;
-                        form.reset();
-                    } else if (data.error) {
-                        alert('檢舉失敗: ' + data.error);
-                    }
-                })
-                .catch(err => alert('檢舉失敗: ' + err));
+    document.addEventListener('submit', async function(e) {
+        if (!e.target.classList.contains('report-skill-form')) {
+            return;
         }
-    });
 
-    // 關閉模態框（點擊外部區域）
-    window.addEventListener('click', function(e) {
-        if (e.target === reportModal) {
-            reportModal.style.display = 'none';
+        e.preventDefault();
+        const form = e.target;
+        const panel = form.closest('.report-panel');
+        const reportUrl = form.dataset.reportUrl;
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch(reportUrl, {
+                method: 'POST',
+                body: formData,
+            });
+
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                await response.text();
+                throw new Error('伺服器沒有回傳 JSON，可能是路由錯誤或登入狀態失效');
+            }
+
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || '檢舉送出失敗');
+            }
+
+            alert(data.message || '檢舉已送出，將由管理者審查。');
+            panel.classList.remove('open');
+            openReportPanel = null;
+            form.reset();
+        } catch (err) {
+            alert('檢舉失敗: ' + err.message);
         }
     });
 });

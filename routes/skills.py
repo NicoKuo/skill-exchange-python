@@ -170,18 +170,32 @@ def deactivate_skill(skill_id):
 
 
 @skills_bp.route("/skills/<int:skill_id>/report", methods=["POST"], endpoint='report_skill')
-@login_required
 def report_skill(skill_id):
     """API endpoint: 檢舉技能"""
-    
-    skill = Skill.query.get_or_404(skill_id)
+
+    if not current_user.is_authenticated:
+        return jsonify({
+            "success": False,
+            "message": "請先登入後再檢舉。"
+        }), 401
+
+    skill = Skill.query.get(skill_id)
+    if not skill:
+        return jsonify({
+            "success": False,
+            "message": "找不到要檢舉的技能。"
+        }), 404
+
     reason = request.form.get("reason", "").strip()
     description = request.form.get("description", "").strip()
     evidence = request.files.get("evidence")
 
     # 不能檢舉自己的技能
     if skill.user_id == current_user.id:
-        return jsonify({"error": "你不能檢舉自己的技能"}), 400
+        return jsonify({
+            "success": False,
+            "message": "你不能檢舉自己的技能。"
+        }), 400
 
     # 檢查是否已有 pending 檢舉
     existing = Report.query.filter_by(
@@ -191,11 +205,17 @@ def report_skill(skill_id):
     ).first()
 
     if existing:
-        return jsonify({"error": "你已檢舉過這個技能"}), 400
+        return jsonify({
+            "success": False,
+            "message": "你已檢舉過這個技能，請等待審核。"
+        }), 400
 
     valid_reasons = ['inappropriate_content', 'spam', 'scam', 'copyright', 'other']
     if reason not in valid_reasons:
-        return jsonify({"error": "檢舉原因無效"}), 400
+        return jsonify({
+            "success": False,
+            "message": "檢舉原因無效。"
+        }), 400
 
     # 處理檢舉附件
     evidence_url = None
@@ -206,11 +226,17 @@ def report_skill(skill_id):
         # 只允許圖片格式
         ext = evidence.filename.rsplit('.', 1)[1].lower() if '.' in evidence.filename else ''
         if ext not in ALLOWED_IMAGE_EXTENSIONS:
-            return jsonify({"error": "只支援圖片檔案（jpg、jpeg、png、gif、webp）"}), 400
+            return jsonify({
+                "success": False,
+                "message": "只支援圖片檔案（jpg、jpeg、png、gif、webp）。"
+            }), 400
         
         # 檢查檔案大小（5MB）
         if file_size(evidence) > 5 * 1024 * 1024:
-            return jsonify({"error": "檢舉附件不能超過 5MB"}), 400
+            return jsonify({
+                "success": False,
+                "message": "檢舉附件不能超過 5MB。"
+            }), 400
         
         # 保存檔案
         upload_dir = os.path.join(current_app.static_folder, 'uploads', 'report')
@@ -233,8 +259,15 @@ def report_skill(skill_id):
         evidence_file_type=evidence_type,
         status='pending'
     )
-    db.session.add(report)
-    db.session.commit()
+    try:
+        db.session.add(report)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "message": "檢舉送出失敗，請稍後再試。"
+        }), 500
 
     try:
         log = ActivityLog(
@@ -248,4 +281,7 @@ def report_skill(skill_id):
     except Exception:
         db.session.rollback()
 
-    return jsonify({"message": "檢舉已送出，將由管理者審查"})
+    return jsonify({
+        "success": True,
+        "message": "檢舉已送出，將由管理者審查。"
+    })

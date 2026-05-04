@@ -21,7 +21,7 @@ ALLOWED_FILE_EXTENSIONS = {'pdf', 'docx', 'pptx', 'xlsx', 'zip'}
 @chat_bp.route("/chat", methods=["GET"], endpoint='chat_list')
 @login_required
 def chat_list():
-    return redirect(url_for('match_center'))
+    return redirect(url_for('matches.match_center'))
 
 
 def allowed_chat_upload(filename):

@@ -17,7 +17,7 @@
       </div>
             <nav class="nav-links"><a href="{{ url_for('index') }}">首頁</a><a href="{{ url_for('skills') }}">技能列表</a>{%
                 if current_user.is_authenticated %}<a href="{{ url_for('dashboard') }}">會員中心</a><a
-                  href="{{ url_for('add_skill') }}">上架技能</a><a href="{{ url_for('match_center') }}">媒合</a><a
+                  href="{{ url_for('add_skill') }}">上架技能</a><a href="{{ url_for('matches.match_center') }}">媒合</a><a
                     href="{{ url_for('notifications') }}">通知{% if unread_notifications_count(current_user.id)>0 %}({{
                     unread_notifications_count(current_user.id) }}){% endif %}</a><a
                     href="{{ url_for('profile') }}">個人檔案</a>{% if current_user.role in ['admin', 'super_admin'] %}<a

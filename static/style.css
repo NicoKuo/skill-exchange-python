@@ -352,7 +352,8 @@ h1, h2, h3, h4, h5 {
 }
 
 /* ─── Grids ───────────────────────────────── */
-.grid { display: grid; gap: 20px; }
+.grid { display: grid; gap: 20px; align-items: stretch; }
+.grid > .card { display: flex; flex-direction: column; }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-4 { grid-template-columns: repeat(4, 1fr); }

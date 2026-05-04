@@ -6,7 +6,7 @@ from functools import wraps
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from models import db, Match, Skill, User, ActivityLog
+from models import db, Match, Skill, User, ActivityLog, Report
 from utils import format_taiwan_time
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -113,6 +113,7 @@ def entry():
 def dashboard():
     return render_template(
         'admin/dashboard.html',
+        current_page='dashboard',
         stats=_admin_counts(),
         recent_activities=_recent_activities(),
     )
@@ -137,6 +138,7 @@ def users():
 
     return render_template(
         'admin/users.html',
+        current_page='users',
         users=users,
         stats=_admin_counts(),
         completed_counts=completed_counts,
@@ -189,7 +191,7 @@ def update_user_status(user_id):
 @admin_required
 def skills():
     skills = Skill.query.order_by(Skill.created_at.desc()).all()
-    return render_template('admin/skills.html', skills=skills, stats=_admin_counts())
+    return render_template('admin/skills.html', current_page='skills', skills=skills, stats=_admin_counts())
 
 
 @admin_bp.route('/skills/<int:skill_id>/action', methods=['POST'], endpoint='skill_action')
@@ -223,7 +225,7 @@ def skill_action(skill_id):
 @admin_required
 def matches():
     matches = Match.query.order_by(Match.updated_at.desc()).all()
-    return render_template('admin/matches.html', matches=matches, stats=_admin_counts())
+    return render_template('admin/matches.html', current_page='matches', matches=matches, stats=_admin_counts())
 
 
 @admin_bp.route('/managers', methods=['GET', 'POST'], endpoint='managers')
@@ -231,25 +233,30 @@ def matches():
 @admin_required
 @super_admin_required
 def managers():
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        email = request.form.get('email', '').strip().lower()
-        password = request.form.get('password', '')
+    search_query = request.args.get('search', '').strip()
+    
+    if search_query:
+        users = User.query.filter(
+            db.or_(
+                User.name.ilike(f'%{search_query}%'),
+                User.email.ilike(f'%{search_query}%')
+            )
+        ).order_by(User.created_at.desc()).all()
+    else:
+        users = User.query.order_by(User.created_at.desc()).all()
+    
+    # Separate managers and regular users for display
+    managers_list = [u for u in users if u.role in ['admin', 'super_admin']]
+    regular_users = [u for u in users if u.role == 'user']
 
-        if not name or not email or len(password) < 6:
-            flash('姓名、Email 與密碼必填，且密碼至少 6 碼。', 'error')
-        elif User.query.filter_by(email=email).first():
-            flash('這個 Email 已存在。', 'error')
-        else:
-            manager = User(name=name, email=email, role='admin', bio='')
-            manager.set_password(password)
-            db.session.add(manager)
-            db.session.commit()
-            flash('已新增管理者。', 'success')
-            return redirect(url_for('admin.managers'))
-
-    managers = User.query.filter(User.role.in_(['admin', 'super_admin'])).order_by(User.created_at.desc()).all()
-    return render_template('admin/managers.html', managers=managers, stats=_admin_counts())
+    return render_template(
+        'admin/managers.html',
+        current_page='managers',
+        managers=managers_list,
+        users=regular_users,
+        search_query=search_query,
+        stats=_admin_counts()
+    )
 
 
 @admin_bp.route('/activity', endpoint='activity')
@@ -292,3 +299,103 @@ def delete_manager(user_id):
     db.session.commit()
     flash('已刪除管理者。', 'success')
     return redirect(url_for('admin.managers'))
+
+
+@admin_bp.route('/managers/<int:user_id>/promote', methods=['POST'], endpoint='promote_manager')
+@login_required
+@admin_required
+@super_admin_required
+def promote_manager(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    if user.id == current_user.id:
+        flash('不能修改自己的角色。', 'error')
+        return redirect(url_for('admin.managers'))
+    
+    if user.status != 'active':
+        flash('停權或封鎖中的使用者不能設為管理者。', 'error')
+        return redirect(url_for('admin.managers'))
+    
+    if user.role in ['admin', 'super_admin']:
+        flash('此使用者已經是管理者。', 'warning')
+        return redirect(url_for('admin.managers'))
+    
+    user.role = 'admin'
+    db.session.commit()
+    
+    try:
+        log = ActivityLog(user_id=current_user.id, action='promote_user_to_admin', detail=f'target_user_id={user.id}', ip_address=request.remote_addr)
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    
+    flash(f'已將 {user.name} 升級為管理者。', 'success')
+    return redirect(url_for('admin.managers'))
+
+
+@admin_bp.route('/reports', endpoint='reports')
+@login_required
+@admin_required
+def reports():
+    status_filter = request.args.get('status', 'all')
+    
+    query = Report.query
+    if status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    
+    reports_list = query.order_by(Report.created_at.desc()).all()
+    
+    return render_template(
+        'admin/reports.html',
+        current_page='reports',
+        reports=reports_list,
+        status_filter=status_filter,
+        stats=_admin_counts()
+    )
+
+
+@admin_bp.route('/reports/<int:report_id>', endpoint='report_detail')
+@login_required
+@admin_required
+def report_detail(report_id):
+    report = Report.query.get_or_404(report_id)
+    return render_template(
+        'admin/report_detail.html',
+        report=report,
+        stats=_admin_counts()
+    )
+
+
+@admin_bp.route('/reports/<int:report_id>/update', methods=['POST'], endpoint='update_report')
+@login_required
+@admin_required
+def update_report(report_id):
+    report = Report.query.get_or_404(report_id)
+    
+    new_status = request.form.get('status', '').strip()
+    admin_note = request.form.get('admin_note', '').strip()
+    
+    if new_status not in ['pending', 'reviewed', 'rejected', 'resolved']:
+        abort(400)
+    
+    report.status = new_status
+    report.admin_note = admin_note
+    report.reviewed_by = current_user.id
+    report.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    try:
+        log = ActivityLog(
+            user_id=current_user.id,
+            action='update_report',
+            detail=f'report_id={report.id}|new_status={new_status}',
+            ip_address=request.remote_addr
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    
+    flash('檢舉已更新。', 'success')
+    return redirect(url_for('admin.report_detail', report_id=report_id))

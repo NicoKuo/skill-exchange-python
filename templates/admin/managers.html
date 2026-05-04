@@ -1,13 +1,58 @@
-{# 管理後台管理者管理 - 只有 super_admin 可新增與刪除管理者 #}
-{% extends 'base.html' %}{% set title='管理者管理' %}{% block content %}<section class="card section">
+{# 管理後台管理者管理 - 只有 super_admin 可升級與刪除管理者 #}
+{% extends 'base.html' %}{% set title='管理者管理' %}{% block content %}
+<section class="section">
+    {% include 'admin/_admin_nav_card.html' %}
+</section>
+
+<section class="card section">
     <h1>管理者管理</h1>
-    <p class="muted">只有最高管理者 super_admin 可以新增或刪除一般管理者。</p>
-    <form method="post" class="form-grid" style="margin-bottom: 24px;">
-        <div class="field"><label>姓名</label><input name="name" required></div>
-        <div class="field"><label>Email</label><input name="email" type="email" required></div>
-        <div class="field"><label>密碼</label><input name="password" type="password" minlength="6" required></div>
-        <div style="align-self:end;"><button class="btn" type="submit">新增管理者</button></div>
+    <p class="muted">只有最高管理者 super_admin 可以將使用者升級為管理者或刪除一般管理者。</p>
+    
+    <form method="get" class="form-grid" style="margin-bottom: 24px;">
+        <div class="field"><input type="text" name="search" placeholder="搜尋姓名或 Email" value="{{ search_query }}" style="flex: 1;"></div>
+        <button class="btn" type="submit">搜尋</button>
+        {% if search_query %}<a class="btn btn-muted" href="{{ url_for('admin.managers') }}">清除</a>{% endif %}
     </form>
+
+    {% if users %}
+    <h3>一般使用者</h3>
+    <div class="table-wrap">
+        <table class="table" style="min-width: 860px;">
+            <tr>
+                <th>姓名</th>
+                <th>Email</th>
+                <th>狀態</th>
+                <th>操作</th>
+            </tr>{% for user in users %}<tr>
+                <td>{{ user.name }}</td>
+                <td>{{ user.email }}</td>
+                <td>
+                    {% if user.status == 'active' %}
+                    <span class="tag tag-green">active</span>
+                    {% elif user.status == 'suspended' %}
+                    <span class="tag tag-yellow">suspended</span>
+                    {% elif user.status == 'blocked' %}
+                    <span class="tag tag-red">blocked</span>
+                    {% else %}
+                    <span class="tag tag-gray">{{ user.status or 'unknown' }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.status == 'active' %}
+                    <form method="post" action="{{ url_for('admin.promote_manager', user_id=user.id) }}" style="display:inline;">
+                        <button class="btn btn-sm btn-success" type="submit">設為管理者</button>
+                    </form>
+                    {% else %}
+                    <span class="tag tag-gray">停權或封鎖</span>
+                    {% endif %}
+                </td>
+            </tr>{% endfor %}
+        </table>
+    </div>
+    {% endif %}
+
+    {% if managers %}
+    <h3 style="margin-top: 32px;">現有管理者</h3>
     <div class="table-wrap">
         <table class="table" style="min-width: 860px;">
             <tr>
@@ -27,10 +72,13 @@
                         <button class="btn btn-danger btn-sm" type="submit">刪除</button>
                     </form>
                     {% else %}
-                    <span class="tag tag-gray">不可刪除</span>
+                    <span class="tag tag-gray">{% if manager.role == 'super_admin' %}最高管理者{% else %}不可刪除{% endif %}</span>
                     {% endif %}
                 </td>
             </tr>{% else %}<tr><td colspan="5" class="empty">目前沒有管理者資料。</td></tr>{% endfor %}
         </table>
     </div>
+    {% else %}
+    <div class="empty">沒有管理者。</div>
+    {% endif %}
 </section>{% endblock %}

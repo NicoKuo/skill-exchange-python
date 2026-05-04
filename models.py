@@ -118,3 +118,25 @@ class ActivityLog(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
     user = db.relationship('User')
+
+
+class Report(db.Model):
+    __tablename__ = 'reports'
+    id = db.Column(db.Integer, primary_key=True)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    reported_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=True)
+    skill_id = db.Column(db.Integer, db.ForeignKey('skills.id'), nullable=True)
+    reason = db.Column(db.String(50), nullable=False)  # inappropriate_language, harassment, no_show, scam, other
+    description = db.Column(db.Text)
+    status = db.Column(db.String(20), default='pending', nullable=False, index=True)  # pending, reviewed, rejected, resolved
+    admin_note = db.Column(db.Text, nullable=True)
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)
+
+    reporter = db.relationship('User', foreign_keys=[reporter_id])
+    reported_user = db.relationship('User', foreign_keys=[reported_user_id])
+    match = db.relationship('Match')
+    skill = db.relationship('Skill')
+    reviewed_by_user = db.relationship('User', foreign_keys=[reviewed_by])

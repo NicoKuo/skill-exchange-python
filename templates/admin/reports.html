@@ -1,0 +1,71 @@
+{# 管理後台檢舉審查 - 檢視和審查所有檢舉 #}
+{% extends 'base.html' %}
+{% set title='檢舉審查' %}
+
+{% block content %}
+<section class="section">
+    {% include 'admin/_admin_nav_card.html' %}
+</section>
+
+<section class="card section">
+    <h1>檢舉審查</h1>
+    <p class="muted">檢視和審查使用者檢舉。</p>
+    
+    <div style="margin-bottom: 24px;">
+        <a class="btn{% if status_filter == 'all' %} active{% endif %}" href="{{ url_for('admin.reports') }}">全部</a>
+        <a class="btn btn-muted{% if status_filter == 'pending' %} active{% endif %}" href="{{ url_for('admin.reports', status='pending') }}">待審 (pending)</a>
+        <a class="btn btn-muted{% if status_filter == 'reviewed' %} active{% endif %}" href="{{ url_for('admin.reports', status='reviewed') }}">已審 (reviewed)</a>
+        <a class="btn btn-muted{% if status_filter == 'rejected' %} active{% endif %}" href="{{ url_for('admin.reports', status='rejected') }}">駁回 (rejected)</a>
+        <a class="btn btn-muted{% if status_filter == 'resolved' %} active{% endif %}" href="{{ url_for('admin.reports', status='resolved') }}">已解決 (resolved)</a>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table" style="min-width: 1200px;">
+            <tr>
+                <th>時間</th>
+                <th>檢舉人</th>
+                <th>被檢舉人</th>
+                <th>原因</th>
+                <th>狀態</th>
+                <th>操作</th>
+            </tr>
+            {% for report in reports %}
+            <tr>
+                <td>{{ format_taiwan_time(report.created_at, '%Y-%m-%d %H:%M') }}</td>
+                <td>{{ report.reporter.name }}</td>
+                <td>{{ report.reported_user.name }}</td>
+                <td>
+                    {% if report.reason == 'inappropriate_language' %}
+                    用詞不當
+                    {% elif report.reason == 'harassment' %}
+                    騷擾或威脅
+                    {% elif report.reason == 'no_show' %}
+                    爽約或不履行交換
+                    {% elif report.reason == 'scam' %}
+                    詐騙或可疑行為
+                    {% else %}
+                    其他
+                    {% endif %}
+                </td>
+                <td>
+                    {% if report.status == 'pending' %}
+                    <span class="tag tag-yellow">待審</span>
+                    {% elif report.status == 'reviewed' %}
+                    <span class="tag tag-blue">已審</span>
+                    {% elif report.status == 'rejected' %}
+                    <span class="tag tag-gray">駁回</span>
+                    {% else %}
+                    <span class="tag tag-green">已解決</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a class="btn btn-sm" href="{{ url_for('admin.report_detail', report_id=report.id) }}">檢視</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="empty">沒有檢舉。</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
+{% endblock %}

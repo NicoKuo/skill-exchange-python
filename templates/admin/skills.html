@@ -1,5 +1,10 @@
 {# 管理後台技能管理 - 可查看、下架與刪除技能 #}
-{% extends 'base.html' %}{% set title='技能管理' %}{% block content %}<section class="card section">
+{% extends 'base.html' %}{% set title='技能管理' %}{% block content %}
+<section class="section">
+    {% include 'admin/_admin_nav_card.html' %}
+</section>
+
+<section class="card section">
     <h1>技能管理</h1>
     <div class="table-wrap">
         <table class="table" style="min-width: 980px;">

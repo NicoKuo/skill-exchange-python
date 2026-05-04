@@ -46,11 +46,45 @@
                             method="post" class="inline-form" style="display: inline;"><input type="hidden" name="match_id"
                                 value="{{ m.id }}"><input type="hidden" name="action" value="completed"><button
                                 class="btn btn-sm">標記完成</button></form>{% endif %}
+                    <a class="btn btn-muted btn-sm" href="javascript:void(0);" data-toggle="report-form-{{ m.id }}" style="margin-left: 4px;">檢舉</a>
                     </div>
+                    <form method="post" action="{{ url_for('matches.create_report') }}" class="report-form" id="report-form-{{ m.id }}" style="display:none; margin-top: 12px; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px;">
+                        <input type="hidden" name="match_id" value="{{ m.id }}">
+                        <div class="field" style="margin-bottom: 8px;">
+                            <label>檢舉原因</label>
+                            <select name="reason" required>
+                                <option value="">-- 請選擇 --</option>
+                                <option value="inappropriate_language">用詞不當</option>
+                                <option value="harassment">騷擾或威脅</option>
+                                <option value="no_show">爽約或不履行交換</option>
+                                <option value="scam">詐騙或可疑行為</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                        <div class="field" style="margin-bottom: 8px;">
+                            <label>補充說明</label>
+                            <textarea name="description" rows="3" placeholder="請說明檢舉原因..."></textarea>
+                        </div>
+                        <button class="btn btn-sm" type="submit">送出檢舉</button>
+                        <button class="btn btn-sm btn-muted" type="button" onclick="document.getElementById('report-form-{{ m.id }}').style.display='none';">取消</button>
+                    </form>
                 </td>
             </tr>{% else %}<tr>
                 <td colspan="5" class="empty">你還沒有媒合紀錄。</td>
             </tr>{% endfor %}
         </table>
     </div>
-</section>{% endblock %}
+</section>
+<script>
+document.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('data-toggle');
+        const form = document.getElementById(targetId);
+        if (form) {
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

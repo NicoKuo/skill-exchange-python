@@ -1,0 +1,116 @@
+{# 管理後台檢舉詳情 - 審查單筆檢舉 #}
+{% extends 'base.html' %}
+{% set title='檢舉詳情' %}
+
+{% block content %}
+<section class="section">
+    {% include 'admin/_admin_nav_card.html' %}
+</section>
+
+<section class="card section">
+    <h1>檢舉詳情</h1>
+    
+    <div class="table-wrap" style="margin-bottom: 24px;">
+        <table class="table" style="width: 100%; table-layout: fixed;">
+            <tr>
+                <td style="width: 150px; font-weight: 600;">檢舉時間</td>
+                <td>{{ format_taiwan_time(report.created_at, '%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">檢舉人</td>
+                <td>
+                    {{ report.reporter.name }}
+                    <a class="btn btn-sm btn-muted" href="{{ url_for('admin.users') }}">檢視使用者</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">被檢舉人</td>
+                <td>
+                    {{ report.reported_user.name }}
+                    <a class="btn btn-sm btn-muted" href="{{ url_for('admin.users') }}">檢視使用者</a>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">原因</td>
+                <td>
+                    {% if report.reason == 'inappropriate_language' %}
+                    用詞不當
+                    {% elif report.reason == 'harassment' %}
+                    騷擾或威脅
+                    {% elif report.reason == 'no_show' %}
+                    爽約或不履行交換
+                    {% elif report.reason == 'scam' %}
+                    詐騙或可疑行為
+                    {% else %}
+                    其他
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">補充說明</td>
+                <td>{{ report.description or '無' }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">關聯媒合</td>
+                <td>
+                    {% if report.match_id %}
+                    媒合 #{{ report.match_id }}
+                    <a class="btn btn-sm btn-muted" href="{{ url_for('admin.matches') }}">檢視媒合</a>
+                    {% else %}
+                    無
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">狀態</td>
+                <td>
+                    {% if report.status == 'pending' %}
+                    <span class="tag tag-yellow">待審</span>
+                    {% elif report.status == 'reviewed' %}
+                    <span class="tag tag-blue">已審</span>
+                    {% elif report.status == 'rejected' %}
+                    <span class="tag tag-gray">駁回</span>
+                    {% else %}
+                    <span class="tag tag-green">已解決</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% if report.reviewed_by_user %}
+            <tr>
+                <td style="font-weight: 600;">審查人員</td>
+                <td>{{ report.reviewed_by_user.name }}</td>
+            </tr>
+            {% endif %}
+            {% if report.admin_note %}
+            <tr>
+                <td style="font-weight: 600;">管理者備註</td>
+                <td>{{ report.admin_note }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <h2>審查</h2>
+    <form method="post" action="{{ url_for('admin.update_report', report_id=report.id) }}" class="form-grid">
+        <div class="field" style="grid-column: 1/-1;">
+            <label>狀態</label>
+            <select name="status" required>
+                <option value="pending" {% if report.status == 'pending' %}selected{% endif %}>待審 (pending)</option>
+                <option value="reviewed" {% if report.status == 'reviewed' %}selected{% endif %}>已審 (reviewed)</option>
+                <option value="rejected" {% if report.status == 'rejected' %}selected{% endif %}>駁回 (rejected)</option>
+                <option value="resolved" {% if report.status == 'resolved' %}selected{% endif %}>已解決 (resolved)</option>
+            </select>
+        </div>
+        
+        <div class="field" style="grid-column: 1/-1;">
+            <label>管理者備註</label>
+            <textarea name="admin_note" rows="5">{{ report.admin_note or '' }}</textarea>
+        </div>
+        
+        <div style="grid-column: 1/-1;">
+            <button class="btn" type="submit">更新檢舉</button>
+            <a class="btn btn-muted" href="{{ url_for('admin.reports') }}">返回列表</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -3,18 +3,7 @@
 
 {% block content %}
 <section class="section">
-    <div class="card">
-        <h1>管理後台</h1>
-        <p class="muted">查看平台整體狀態，並進入會員、技能與媒合管理頁面。</p>
-        <div class="actions">
-            <a class="btn" href="{{ url_for('admin.users') }}">會員管理</a>
-            <a class="btn btn-muted" href="{{ url_for('admin.skills') }}">技能管理</a>
-            <a class="btn btn-muted" href="{{ url_for('admin.matches') }}">媒合管理</a>
-            {% if current_user.role == 'super_admin' %}
-            <a class="btn btn-muted" href="{{ url_for('admin.managers') }}">管理者管理</a>
-            {% endif %}
-        </div>
-    </div>
+    {% include 'admin/_admin_nav_card.html' %}
 </section>
 
 <section class="stats section" style="grid-template-columns: repeat(3, 1fr);">

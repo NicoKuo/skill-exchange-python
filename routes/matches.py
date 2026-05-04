@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 
-from models import db, Match, Skill, Notification, ActivityLog
+from models import db, Match, Skill, Notification, ActivityLog, Report
 from utils import add_notification, user_pending_review_count
 
 matches_bp = Blueprint('matches', __name__)
@@ -118,3 +118,64 @@ def match_center():
         matches=matches,
         pending_review_count=pending_review_count,
     )
+
+
+@matches_bp.route("/report", methods=["POST"], endpoint='create_report')
+@login_required
+def create_report():
+    match_id = request.form.get("match_id", type=int)
+    reason = request.form.get("reason", "").strip()
+    description = request.form.get("description", "").strip()
+    
+    m = Match.query.get_or_404(match_id)
+    
+    # Check if current user is involved in the match
+    if current_user.id not in [m.requester_id, m.receiver_id]:
+        abort(403)
+    
+    # Determine reported user
+    reported_user_id = m.receiver_id if current_user.id == m.requester_id else m.requester_id
+    
+    # Check for duplicate pending reports
+    existing = Report.query.filter_by(
+        reporter_id=current_user.id,
+        match_id=match_id,
+        status='pending'
+    ).first()
+    
+    if existing:
+        flash("你已對此媒合送出檢舉，請等待審查。", "warning")
+        return redirect(request.referrer or url_for("matches.match_center"))
+    
+    # Validate reason
+    valid_reasons = ['inappropriate_language', 'harassment', 'no_show', 'scam', 'other']
+    if reason not in valid_reasons:
+        flash("檢舉原因無效。", "error")
+        return redirect(request.referrer or url_for("matches.match_center"))
+    
+    # Create report
+    report = Report(
+        reporter_id=current_user.id,
+        reported_user_id=reported_user_id,
+        match_id=match_id,
+        reason=reason,
+        description=description,
+        status='pending'
+    )
+    db.session.add(report)
+    db.session.commit()
+    
+    try:
+        log = ActivityLog(
+            user_id=current_user.id,
+            action='create_report',
+            detail=f'report_id={report.id}|match_id={match_id}|reported_user_id={reported_user_id}',
+            ip_address=request.remote_addr
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    
+    flash("檢舉已送出，將由管理者審查。", "success")
+    return redirect(request.referrer or url_for("matches.match_center"))

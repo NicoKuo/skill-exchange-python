@@ -18,6 +18,12 @@ ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 ALLOWED_FILE_EXTENSIONS = {'pdf', 'docx', 'pptx', 'xlsx', 'zip'}
 
 
+@chat_bp.route("/chat", methods=["GET"], endpoint='chat_list')
+@login_required
+def chat_list():
+    return redirect(url_for('match_center'))
+
+
 def allowed_chat_upload(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in (ALLOWED_IMAGE_EXTENSIONS | ALLOWED_FILE_EXTENSIONS)
 

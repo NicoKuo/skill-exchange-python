@@ -700,22 +700,24 @@ h1, h2, h3, h4, h5 {
 /* ─── Floating Chat Button ────────────────── */
 .floating-chat-btn {
   position: fixed;
-  bottom: 32px;
-  right: 32px;
+  right: 28px;
+  bottom: 28px;
   width: 56px;
   height: 56px;
-  background: var(--primary);
-  color: #fff;
   border-radius: 50%;
+  background: #0b63ce;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(0,52,204,.28);
-  z-index: 99;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 24px;
-  position: relative;
+  box-shadow: 0 12px 28px rgba(11, 99, 206, 0.32);
+  text-decoration: none;
+  z-index: 9999;
+}
+
+.floating-chat-btn .material-icons-round {
+  font-size: 26px;
+  line-height: 1;
 }
 
 .floating-chat-btn:hover {
@@ -736,17 +738,15 @@ h1, h2, h3, h4, h5 {
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  border: 2px solid #fff;
   font-size: 12px;
   font-weight: 700;
   line-height: 20px;
   text-align: center;
-  background: #ef4444;
-  color: white;
-  border: 2px solid white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
+  box-sizing: border-box;
+  z-index: 10000;
 }
 
 /* 訊息檢舉按鈕 */
@@ -889,8 +889,8 @@ h1, h2, h3, h4, h5 {
 /* 手機版浮動按鈕調整 */
 @media (max-width: 600px) {
   .floating-chat-btn {
-    bottom: 20px;
-    right: 20px;
+    right: 18px;
+    bottom: 18px;
     width: 50px;
     height: 50px;
     font-size: 20px;

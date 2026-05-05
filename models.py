@@ -47,6 +47,11 @@ class Skill(db.Model):
     status = db.Column(db.String(20), default='open')
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    attachment_data = db.Column(db.LargeBinary, nullable=True)
+    attachment_name = db.Column(db.Text, nullable=True)
+    attachment_mime = db.Column(db.Text, nullable=True)
+    attachment_type = db.Column(db.Text, nullable=True)
+    attachment_url = db.Column(db.Text, nullable=True)
 
     category = db.relationship('SkillCategory')
 

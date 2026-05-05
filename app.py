@@ -15,7 +15,9 @@ from utils import (
     unread_notifications_count,
     skill_match_score,
     split_tags,
+    detect_attachment_type,
     skill_attachment_url,
+    normalize_skill_attachment_url,
     format_taiwan_time,
     render_skill_description,
     user_pending_review_count,
@@ -83,6 +85,11 @@ def ensure_sqlite_compatibility(app):
         if 'skills' in table_names:
             add_column_if_missing('skills', 'is_active', 'is_active BOOLEAN NOT NULL DEFAULT 1')
             add_column_if_missing('skills', 'tags', 'tags TEXT')
+            add_column_if_missing('skills', 'attachment_data', 'attachment_data BLOB')
+            add_column_if_missing('skills', 'attachment_name', 'attachment_name TEXT')
+            add_column_if_missing('skills', 'attachment_mime', 'attachment_mime TEXT')
+            add_column_if_missing('skills', 'attachment_type', 'attachment_type TEXT')
+            add_column_if_missing('skills', 'attachment_url', 'attachment_url TEXT')
             db.session.execute(text("UPDATE skills SET is_active = 1 WHERE is_active IS NULL"))
 
         for message_table in ('messages', 'chat_messages'):
@@ -108,7 +115,7 @@ def ensure_sqlite_compatibility(app):
 
         if 'skills' in verification_tables:
             skill_columns = {column['name'] for column in verification_inspector.get_columns('skills')}
-            missing_skill_columns = {'is_active', 'tags'} - skill_columns
+            missing_skill_columns = {'is_active', 'tags', 'attachment_data', 'attachment_name', 'attachment_mime', 'attachment_type', 'attachment_url'} - skill_columns
             if missing_skill_columns:
                 raise RuntimeError(f'技能資料表仍缺少欄位: {", ".join(sorted(missing_skill_columns))}')
 
@@ -159,7 +166,9 @@ def create_app():
             unread_notifications_count=unread_notifications_count,
             skill_match_score=skill_match_score,
             split_tags=split_tags,
+            detect_attachment_type=detect_attachment_type,
             skill_attachment_url=skill_attachment_url,
+            normalize_skill_attachment_url=normalize_skill_attachment_url,
             format_taiwan_time=format_taiwan_time,
             render_skill_description=render_skill_description,
             user_pending_review_count=user_pending_review_count,

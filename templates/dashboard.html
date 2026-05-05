@@ -28,6 +28,20 @@
         <p><strong>{{ skill.title }}</strong></p>
         <p>分類：{{ skill.category.name if skill.category else '未分類' }}｜方式：{{ skill.method }}｜狀態：{% if skill.is_active %}啟用中{% else %}已下架{% endif %}</p>
         <div>{{ render_skill_description(skill.description) }}</div>
+        {% if skill.attachment_data %}
+        {% set attachment_url = normalize_skill_attachment_url(skill) %}
+        {% set attachment_type = skill.attachment_type or detect_attachment_type(skill.attachment_name or skill.attachment_mime) %}
+        {% if attachment_type == 'image' %}
+        <a href="{{ attachment_url }}" target="_blank" rel="noopener" style="display:block; margin-top:12px;">
+            <img src="{{ attachment_url }}" alt="{{ skill.attachment_name or skill.title }}" style="display:block; width:100%; max-width:260px; border-radius:12px; border:1px solid #e5e7eb; object-fit:cover;">
+        </a>
+        {% else %}
+        <div class="skill-attachment" style="margin-top:12px;">
+            <span class="tag tag-yellow">附件</span>
+            <a href="{{ attachment_url }}" target="_blank" rel="noopener">查看附件{% if skill.attachment_name %}：{{ skill.attachment_name }}{% endif %}</a>
+        </div>
+        {% endif %}
+        {% endif %}
         {% set skill_tags = split_tags(skill.tags) %}
         <div class="pill-list" style="margin-top: 10px;">{% for tag in skill_tags %}<span class="tag tag-blue">{{ tag }}</span>{% endfor %}</div>
         <div class="actions" style="margin-top: 10px;">

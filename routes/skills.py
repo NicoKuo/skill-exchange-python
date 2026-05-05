@@ -1,9 +1,10 @@
 # 技能頁面 - 瀏覽與上架技能，支援多選類別和檔案附件
 # routes/skills.py: Blueprint for skill listing and creation routes
 import os
+from io import BytesIO
 from uuid import uuid4
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory, abort, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory, send_file, abort, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from werkzeug.utils import secure_filename
@@ -11,7 +12,7 @@ from werkzeug.utils import secure_filename
 from models import db, Skill, SkillCategory, ActivityLog, Report
 
 skills_bp = Blueprint('skills', __name__)
-ALLOWED_ATTACHMENT_EXTENSIONS = {'pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'}
+ALLOWED_ATTACHMENT_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt', 'doc', 'docx', 'ppt', 'pptx'}
 ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 
 
@@ -28,10 +29,49 @@ def allowed_attachment(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_ATTACHMENT_EXTENSIONS
 
 
+def detect_attachment_type(filename_or_url):
+    if not filename_or_url:
+        return 'file'
+
+    value = str(filename_or_url).strip().lower()
+    mime_value = value.split(';', 1)[0].strip()
+    if mime_value in {'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'}:
+        return 'image'
+    if mime_value == 'application/pdf':
+        return 'pdf'
+    if mime_value.startswith('image/'):
+        return 'image'
+
+    base_value = value.split('?', 1)[0].split('#', 1)[0]
+    ext = base_value.rsplit('.', 1)[-1] if '.' in base_value else ''
+    if ext in {'jpg', 'jpeg', 'png', 'gif', 'webp'}:
+        return 'image'
+    if ext == 'pdf':
+        return 'pdf'
+
+    return 'file'
+
+
+@skills_bp.route('/skills/<int:skill_id>/attachment', endpoint='skill_attachment')
 @skills_bp.route('/skill-attachments/<path:filename>', endpoint='skill_attachment')
-def skill_attachment(filename):
-    attachment_dir = os.path.join(current_app.instance_path, 'skill_attachments')
-    return send_from_directory(attachment_dir, filename)
+def skill_attachment(skill_id=None, filename=None):
+    if skill_id is not None:
+        skill = Skill.query.get_or_404(skill_id)
+        if not skill.attachment_data:
+            abort(404)
+
+        return send_file(
+            BytesIO(skill.attachment_data),
+            mimetype=skill.attachment_mime or 'application/octet-stream',
+            download_name=skill.attachment_name or f'skill-{skill.id}',
+            as_attachment=False,
+        )
+
+    if filename:
+        attachment_dir = os.path.join(current_app.instance_path, 'skill_attachments')
+        return send_from_directory(attachment_dir, filename)
+
+    abort(404)
 
 
 @skills_bp.route("/skills", endpoint='skills')
@@ -88,24 +128,24 @@ def add_skill():
 
     if request.method == "POST":
         attachment = request.files.get("attachment")
-        attachment_marker = ""
+        attachment_data = None
+        attachment_name = None
+        attachment_mime = None
+        attachment_type = None
 
         if attachment and attachment.filename:
             if not allowed_attachment(attachment.filename):
-                flash("只支援 pdf、doc、docx、png、jpg、jpeg 檔案。", "error")
+                flash("只支援 jpg、jpeg、png、gif、webp、pdf、txt、doc、docx、ppt、pptx 檔案。", "error")
                 return render_template("add_skill.html", categories=categories)
 
             if file_size(attachment) > current_app.config.get('SKILL_ATTACHMENT_MAX_SIZE', 5 * 1024 * 1024):
                 flash("技能附件不能超過 5MB。", "error")
                 return render_template("add_skill.html", categories=categories)
 
-            attachment_dir = os.path.join(current_app.instance_path, 'skill_attachments')
-            os.makedirs(attachment_dir, exist_ok=True)
-
-            original_name = secure_filename(attachment.filename)
-            stored_name = f"{uuid4().hex}_{original_name}"
-            attachment.save(os.path.join(attachment_dir, stored_name))
-            attachment_marker = f"\n<!--attachment:{stored_name}|{original_name}-->"
+            attachment_data = attachment.read()
+            attachment_name = attachment.filename
+            attachment_mime = attachment.mimetype or 'application/octet-stream'
+            attachment_type = detect_attachment_type(attachment_name or attachment_mime)
 
         # handle multiple category checkboxes
         selected = request.form.getlist('categories')
@@ -124,14 +164,18 @@ def add_skill():
             user_id=current_user.id,
             category_id=primary_category,
             title=request.form.get("title", "").strip(),
-            description=description_text + attachment_marker,
+            description=description_text,
             tags=request.form.get("tags", "").strip() or None,
             type=request.form.get("type", "offer"),
             method=request.form.get("method", "online"),
             location=request.form.get("location", "").strip(),
             available_time=request.form.get("available_time", "").strip(),
             status="open",
-            is_active=True
+            is_active=True,
+            attachment_data=attachment_data,
+            attachment_name=attachment_name,
+            attachment_mime=attachment_mime,
+            attachment_type=attachment_type,
         )
 
         if not skill.title or not skill.description:

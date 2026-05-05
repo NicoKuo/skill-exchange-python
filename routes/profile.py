@@ -1,8 +1,8 @@
 # routes/profile.py: Blueprint for user profile and dashboard routes
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
 
-from models import db, Skill, Review, ActivityLog
+from models import db, User, Skill, Review, ActivityLog
 
 profile_bp = Blueprint('profile', __name__)
 
@@ -48,3 +48,12 @@ def profile():
 
     reviews = Review.query.filter_by(reviewee_id=current_user.id).order_by(Review.created_at.desc()).all()
     return render_template("profile.html", reviews=reviews)
+
+@profile_bp.route("/user/<int:user_id>", endpoint='view_user')
+def view_user(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.status != 'active':
+        abort(404)
+    skills = Skill.query.filter_by(user_id=user.id, status="open", is_active=True).order_by(Skill.created_at.desc()).all()
+    reviews = Review.query.filter_by(reviewee_id=user.id).order_by(Review.created_at.desc()).all()
+    return render_template("user_profile.html", user=user, skills=skills, reviews=reviews)

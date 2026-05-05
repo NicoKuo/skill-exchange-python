@@ -110,12 +110,12 @@
                 <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
                     class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
                     class="tag tag-yellow"><span class="material-icons-round icon-label">place</span> {{ skill.method }}</span></div>
-            <p class="kpi"><span class="material-icons-round icon-inline">person</span> 發佈者：{{ skill.user.name }}</p>
+            <p class="kpi"><span class="material-icons-round icon-inline">person</span> 發佈者：<a href="{{ url_for('profile.view_user', user_id=skill.user.id) }}" style="color:inherit;text-decoration:underline;text-underline-offset:2px;">{{ skill.user.name }}</a></p>
         </div>{% else %}<div class="empty">目前尚無熱門技能資料。</div>{% endfor %}
     </div>
     <div class="card">
         <h2><span class="material-icons-round icon-inline">leaderboard</span> 交換排行榜</h2>{% for item in leaderboard %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
-            <strong>#{{ loop.index }} <span class="material-icons-round icon-inline">emoji_events</span> {{ item.user.name }}</strong>
+            <strong>#{{ loop.index }} <span class="material-icons-round icon-inline">emoji_events</span> <a href="{{ url_for('profile.view_user', user_id=item.user.id) }}" style="color:inherit;text-decoration:underline;text-underline-offset:2px;">{{ item.user.name }}</a></strong>
             <div class="muted">{{ item.user.bio or '尚未填寫自我介紹' }}</div>
             <div class="kpi">經驗值 {{ item.points }}｜完成交換 {{ item.completed_matches }} 次｜平均評價 {{ item.average_rating }} <span class="material-icons-round icon-inline">star</span>
             </div>

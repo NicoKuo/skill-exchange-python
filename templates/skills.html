@@ -35,8 +35,7 @@
             </div>
             {% endif %}
             {% endif %}
-        {% set skill_tags = split_tags(skill.tags) %}
-        <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span>{% for tag in skill_tags %}<span class="tag tag-blue">{{ tag }}</span>{% endfor %}<span
+        <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
             class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
             class="tag tag-yellow">{{ skill.method }}</span></div>
         <p class="kpi">發佈者：{{ skill.user.name }}｜時間：{{ skill.available_time or '未填' }}</p>{% if

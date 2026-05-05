@@ -42,8 +42,6 @@
         </div>
         {% endif %}
         {% endif %}
-        {% set skill_tags = split_tags(skill.tags) %}
-        <div class="pill-list" style="margin-top: 10px;">{% for tag in skill_tags %}<span class="tag tag-blue">{{ tag }}</span>{% endfor %}</div>
         <div class="actions" style="margin-top: 10px;">
             {% if skill.is_active %}
             <form method="post" action="{{ url_for('skills.deactivate_skill', skill_id=skill.id) }}" class="inline-form">

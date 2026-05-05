@@ -149,6 +149,10 @@ def add_skill():
 
         # handle multiple category checkboxes
         selected = request.form.getlist('categories')
+        if len(selected) > 4:
+            flash("分類最多只能選擇 4 個", "error")
+            return render_template("add_skill.html", categories=categories)
+        
         primary_category = int(selected[0]) if selected else None
         # append chosen category names as a prefix tag in description to preserve multi-select
         category_names = []
@@ -165,7 +169,6 @@ def add_skill():
             category_id=primary_category,
             title=request.form.get("title", "").strip(),
             description=description_text,
-            tags=request.form.get("tags", "").strip() or None,
             type=request.form.get("type", "offer"),
             method=request.form.get("method", "online"),
             location=request.form.get("location", "").strip(),

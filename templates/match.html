@@ -17,9 +17,8 @@
             </div>
             {% endif %}
             {% endif %}
-        {% set skill_tags = split_tags(selected_skill.tags) %}
         <div class="pill-list"><span class="tag tag-green">成功率 {{ skill_match_score(selected_skill,current_user)
-            }}%</span>{% for tag in skill_tags %}<span class="tag tag-blue">{{ tag }}</span>{% endfor %}<span class="tag">{{ '我可以教' if selected_skill.type=='offer' else '我想學' }}</span></div>
+            }}%</span><span class="tag">{{ '我可以教' if selected_skill.type=='offer' else '我想學' }}</span></div>
     {% if pending_review_count > 0 %}
     <div class="card" style="margin-top: 16px; border: 1px solid #f59e0b; background: #fff7ed;">
         <strong>你還有 {{ pending_review_count }} 筆完成媒合尚未評價</strong>

@@ -114,10 +114,10 @@
         </div>{% else %}<div class="empty">目前尚無熱門技能資料。</div>{% endfor %}
     </div>
     <div class="card">
-        <h2><span class="material-icons-round icon-inline">leaderboard</span> 交換排行榜</h2>{% for member in top_users %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
-            <strong>#{{ loop.index }} <span class="material-icons-round icon-inline">emoji_events</span> {{ member.name }}</strong>
-            <div class="muted">{{ member.bio or '尚未填寫自我介紹' }}</div>
-            <div class="kpi">完成交換 {{ user_completed_matches(member.id) }} 次｜平均評價 {{ user_average_rating(member.id) }} <span class="material-icons-round icon-inline">star</span>
+        <h2><span class="material-icons-round icon-inline">leaderboard</span> 交換排行榜</h2>{% for item in leaderboard %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
+            <strong>#{{ loop.index }} <span class="material-icons-round icon-inline">emoji_events</span> {{ item.user.name }}</strong>
+            <div class="muted">{{ item.user.bio or '尚未填寫自我介紹' }}</div>
+            <div class="kpi">經驗值 {{ item.points }}｜完成交換 {{ item.completed_matches }} 次｜平均評價 {{ item.average_rating }} <span class="material-icons-round icon-inline">star</span>
             </div>
         </div>{% else %}<div class="empty">目前尚無排行榜資料。</div>{% endfor %}
     </div>

@@ -116,6 +116,12 @@ def _add_column_sql(dialect_name: str, table_name: str, column_name: str) -> str
     if column_name == 'tags':
         return f"ALTER TABLE {table_name} ADD COLUMN tags TEXT"
 
+    if column_name == 'failed_login_attempts':
+        return f"ALTER TABLE {table_name} ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0"
+
+    if column_name == 'locked_until':
+        return f"ALTER TABLE {table_name} ADD COLUMN locked_until TIMESTAMP"
+
     if column_name in {'file_url', 'file_name'}:
         return f"ALTER TABLE {table_name} ADD COLUMN {column_name} VARCHAR(255)"
 
@@ -143,6 +149,8 @@ def run_migration(database_url: str | None = None) -> None:
         if 'users' in table_names:
             _ensure_column(cursor, connection, 'users', 'role', dialect_name)
             _ensure_column(cursor, connection, 'users', 'status', dialect_name)
+            _ensure_column(cursor, connection, 'users', 'failed_login_attempts', dialect_name)
+            _ensure_column(cursor, connection, 'users', 'locked_until', dialect_name)
             cursor.execute("UPDATE users SET role = 'user' WHERE role IS NULL OR role = '' OR role = 'student'")
             if dialect_name == 'sqlite':
                 cursor.execute("UPDATE users SET status = 'active' WHERE status IS NULL OR status = ''")

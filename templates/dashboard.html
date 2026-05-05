@@ -28,6 +28,8 @@
         <p><strong>{{ skill.title }}</strong></p>
         <p>分類：{{ skill.category.name if skill.category else '未分類' }}｜方式：{{ skill.method }}｜狀態：{% if skill.is_active %}啟用中{% else %}已下架{% endif %}</p>
         <div>{{ render_skill_description(skill.description) }}</div>
+        {% set skill_tags = split_tags(skill.tags) %}
+        <div class="pill-list" style="margin-top: 10px;">{% for tag in skill_tags %}<span class="tag tag-blue">{{ tag }}</span>{% endfor %}</div>
         <div class="actions" style="margin-top: 10px;">
             {% if skill.is_active %}
             <form method="post" action="{{ url_for('skills.deactivate_skill', skill_id=skill.id) }}" class="inline-form">

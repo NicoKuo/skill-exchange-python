@@ -15,6 +15,8 @@ ATTACHMENT_MARKER_RE = re.compile(
     r'(?s)^(.*?)(?:\n)?<!--attachment:([^|]+)\|([^>]+)-->$'
 )
 
+TAG_SPLIT_RE = re.compile(r'[，,、]+')
+
 
 def user_average_rating(user_id):
     avg = db.session.query(func.avg(Review.rating)).filter(
@@ -55,6 +57,60 @@ def user_pending_review_count(user_id):
     }
 
     return len(completed_ids - reviewed_ids)
+
+
+def split_tags(tags):
+    if not tags:
+        return []
+
+    if isinstance(tags, (list, tuple, set)):
+        raw_tags = list(tags)
+    else:
+        raw_tags = TAG_SPLIT_RE.split(str(tags))
+
+    cleaned_tags = []
+    for tag in raw_tags:
+        value = str(tag).strip()
+        if value and value not in cleaned_tags:
+            cleaned_tags.append(value)
+
+    return cleaned_tags
+
+
+def skill_attachment_url(attachment):
+    if not attachment:
+        return None
+
+    if isinstance(attachment, dict):
+        direct_url = attachment.get('url')
+        if direct_url:
+            return direct_url
+
+        stored_name = attachment.get('stored_name') or attachment.get('filename')
+        if stored_name:
+            return url_for('skills.skill_attachment', filename=stored_name)
+
+        attachment = attachment.get('file_name') or attachment.get('path') or attachment.get('value')
+        if not attachment:
+            return None
+
+    attachment = str(attachment).strip()
+    if not attachment:
+        return None
+
+    if attachment.startswith(('http://', 'https://')):
+        return attachment
+
+    if attachment.startswith('/static/'):
+        return attachment
+
+    if attachment.startswith('uploads/'):
+        return url_for('static', filename=attachment)
+
+    if attachment.startswith('skill_attachments/'):
+        return url_for('skills.skill_attachment', filename=attachment.split('/', 1)[1])
+
+    return url_for('static', filename=f'uploads/{attachment}')
 
 
 def user_badges(user_id):
@@ -234,16 +290,12 @@ def render_skill_description(description, truncate=None):
     html = escape(text).replace('\n', Markup('<br>'))
 
     if attachment:
-        attachment_url = url_for(
-            'skills.skill_attachment',
-            filename=attachment['stored_name']
-        )
+        attachment_url = skill_attachment_url(attachment)
 
         html += Markup(
             '<div class="skill-attachment">'
             '<span class="tag tag-yellow">附件</span> '
-            f'<a href="{escape(attachment_url)}" '
-            f'target="_blank" rel="noopener">'
+            f'<a href="{escape(attachment_url)}" target="_blank" rel="noopener">'
             f'{escape(attachment["display_name"])}</a>'
             '</div>'
         )

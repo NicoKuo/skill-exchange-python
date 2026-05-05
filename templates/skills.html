@@ -21,9 +21,10 @@
             {% if current_user.is_authenticated and current_user.id != skill.user_id %}<button type="button" class="btn-icon-small report-skill-btn" data-skill-id="{{ skill.id }}" title="檢舉此技能">⚠️</button>{% endif %}
         </div>
         <div class="muted">{{ render_skill_description(skill.description) }}</div>
-        <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
-                class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
-                class="tag tag-yellow">{{ skill.method }}</span></div>
+        {% set skill_tags = split_tags(skill.tags) %}
+        <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span>{% for tag in skill_tags %}<span class="tag tag-blue">{{ tag }}</span>{% endfor %}<span
+            class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
+            class="tag tag-yellow">{{ skill.method }}</span></div>
         <p class="kpi">發佈者：{{ skill.user.name }}｜時間：{{ skill.available_time or '未填' }}</p>{% if
         current_user.is_authenticated and current_user.id != skill.user_id %}<a class="btn"
             href="{{ url_for('matches.match_center', skill_id=skill.id) }}">送出媒合</a>{% endif %}

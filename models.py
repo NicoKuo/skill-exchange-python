@@ -39,6 +39,7 @@ class Skill(db.Model):
     category_id = db.Column(db.Integer, db.ForeignKey('skill_categories.id'))
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
+    tags = db.Column(db.Text)
     type = db.Column(db.String(20), nullable=False)      # offer / learn
     method = db.Column(db.String(20), default='online') # online / offline / both
     location = db.Column(db.String(100))

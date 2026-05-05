@@ -92,8 +92,9 @@
     <div class="card">
         <h2><span class="material-icons-round icon-inline">whatshot</span> 熱門技能</h2>{% for skill in popular_skills %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
             <h3><span class="material-icons-round icon-inline">menu_book</span> {{ skill.title }}</h3>
-            <div class="muted">{{ render_skill_description(skill.description, 90) }}</div>
-            <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
+                <div class="muted">{{ render_skill_description(skill.description, 90) }}</div>
+                {% set skill_tags = split_tags(skill.tags) %}
+                <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span>{% for tag in skill_tags %}<span class="tag tag-blue">{{ tag }}</span>{% endfor %}<span
                     class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
                     class="tag tag-yellow"><span class="material-icons-round icon-label">place</span> {{ skill.method }}</span></div>
             <p class="kpi"><span class="material-icons-round icon-inline">person</span> 發佈者：{{ skill.user.name }}</p>

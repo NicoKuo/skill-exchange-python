@@ -473,7 +473,7 @@ h1, h2, h3, h4, h5 {
 .actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* ─── Tags & Pills ────────────────────────── */
-.pill-list { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill-list { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
 
 .tag {
   display: inline-flex;
@@ -496,6 +496,29 @@ h1, h2, h3, h4, h5 {
 .tag-blue  { background: rgba(59,130,246,.1); color: #1e40af; border-color: rgba(59,130,246,.15); }
 .tag-orange { background: rgba(251,146,60,.1); color: #9a3412; border-color: rgba(251,146,60,.15); }
 .tag-purple { background: rgba(168,85,247,.1); color: #6b21a8; border-color: rgba(168,85,247,.15); }
+
+.match-chat-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.match-unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 4px 12px rgba(239,68,68,.22);
+}
 
 /* ─── Utility ─────────────────────────────── */
 .muted { color: var(--muted); }

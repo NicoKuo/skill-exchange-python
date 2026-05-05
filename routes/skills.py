@@ -31,7 +31,7 @@ def allowed_attachment(filename):
 @skills_bp.route('/skill-attachments/<path:filename>', endpoint='skill_attachment')
 def skill_attachment(filename):
     attachment_dir = os.path.join(current_app.instance_path, 'skill_attachments')
-    return send_from_directory(attachment_dir, filename, as_attachment=True)
+    return send_from_directory(attachment_dir, filename)
 
 
 @skills_bp.route("/skills", endpoint='skills')
@@ -125,6 +125,7 @@ def add_skill():
             category_id=primary_category,
             title=request.form.get("title", "").strip(),
             description=description_text + attachment_marker,
+            tags=request.form.get("tags", "").strip() or None,
             type=request.form.get("type", "offer"),
             method=request.form.get("method", "online"),
             location=request.form.get("location", "").strip(),

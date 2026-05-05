@@ -1,0 +1,23 @@
+<div class="identity-card">
+  <div class="identity-header">
+    {% if user.avatar %}
+      <img class="identity-avatar" src="{{ user.avatar }}" alt="使用者頭像">
+    {% else %}
+      <div class="identity-avatar" style="display:flex;align-items:center;justify-content:center;font-weight:700;color:#334155">{{ (user.name or '?')[0] }}</div>
+    {% endif %}
+    <div>
+      <h3 style="margin:0;">{{ user.name }}</h3>
+      <p class="muted" style="margin:4px 0 0;">
+        {{ user.department or '未填寫系級' }}{% if user.grade %}・{{ user.grade }}{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="identity-info">
+    <p><strong>自我介紹：</strong>{{ user.bio or '尚未填寫' }}</p>
+    <p><strong>擅長技能：</strong>{{ user.offered_skills_intro or '尚未填寫' }}</p>
+    <p><strong>想學技能：</strong>{{ user.wanted_skills_intro or '尚未填寫' }}</p>
+    <p><strong>平均評分：</strong>{{ user_average_rating(user.id) }}</p>
+    <p><strong>完成交換：</strong>{{ user_completed_matches(user.id) }} 次</p>
+  </div>
+</div>

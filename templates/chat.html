@@ -1,7 +1,9 @@
 {% extends 'base.html' %}{% set title='聊天室 - 技能交換溝通' %}{% block content %}<section class="card section" data-match-id="{{ match.id }}" data-user-id="{{ current_user.id }}" data-initial-count="{{ messages|length }}">
     <h2>聊天室：{{ match.skill.title }}</h2>
     <p class="muted"><span class="material-icons-round icon-inline">access_time</span> 訊息會每 2 秒自動更新</p>
-    <div class="chat-box" id="chat-messages">{% for msg in messages %}<div class="message-wrapper" data-message-id="{{ msg.id }}" data-sender-id="{{ msg.sender_id }}">
+        <div class="chat-layout">
+            <div class="chat-main">
+                <div class="chat-box" id="chat-messages">{% for msg in messages %}<div class="message-wrapper" data-message-id="{{ msg.id }}" data-sender-id="{{ msg.sender_id }}">
         <div class="bubble {% if msg.sender_id==current_user.id %}me{% endif %}"><strong>{{ '我' if msg.sender_id==current_user.id else msg.sender.name }}</strong><br>{% if msg.content %}<div>{{ msg.content }}</div>{% endif %}{% if msg.file_url %}{% if msg.file_type == 'image' %}<div style="margin-top:10px;"><img src="{{ msg.file_url }}" alt="{{ msg.file_name }}" style="max-width:100%;border-radius:12px;"></div>{% else %}<div style="margin-top:10px;"><a class="btn btn-sm btn-muted" href="{{ msg.file_url }}" target="_blank" rel="noopener">{{ msg.file_name }}</a></div>{% endif %}{% endif %}<div class="kpi">{{ format_taiwan_time(msg.created_at, '%Y-%m-%d %H:%M') }}</div>
         </div>
         {% if msg.sender_id != current_user.id %}<div class="message-actions"><button type="button" class="btn-icon-small report-msg-btn" data-message-id="{{ msg.id }}" data-sender-id="{{ msg.sender_id }}" title="檢舉此訊息">⚠️</button></div>{% endif %}
@@ -40,7 +42,19 @@
         </div>
         <div class="field" style="grid-column:1/-1"><label>附件</label><input type="file" name="attachment" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.docx,.pptx,.xlsx,.zip"><small class="muted">支援 jpg、jpeg、png、gif、webp、pdf、docx、pptx、xlsx、zip，檔案上限 10MB。</small></div>
         <button class="btn" type="submit">送出</button>
-    </form>
+        </form>
+            </div>
+
+            <aside class="chat-sidebar">
+                <h3>交換對象資料</h3>
+                {% if other_user %}
+                    {% set user = other_user %}
+                    {% include 'components/user_identity_card.html' %}
+                {% else %}
+                    <div class="card">無法取得對方資料</div>
+                {% endif %}
+            </aside>
+        </div>
 
         <script>
             (function() {

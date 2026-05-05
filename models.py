@@ -15,6 +15,10 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), default='user', nullable=False)
     bio = db.Column(db.Text, default='')
     avatar = db.Column(db.String(255))
+    department = db.Column(db.String(100), nullable=True)
+    grade = db.Column(db.String(50), nullable=True)
+    offered_skills_intro = db.Column(db.Text, nullable=True)
+    wanted_skills_intro = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(20), default='active')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

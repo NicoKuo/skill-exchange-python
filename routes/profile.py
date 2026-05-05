@@ -21,6 +21,11 @@ def profile():
         current_user.name = request.form.get("name", "").strip()
         current_user.bio = request.form.get("bio", "").strip()
         current_user.avatar = request.form.get("avatar", "").strip() or None
+        # new identity fields
+        current_user.department = request.form.get("department", "").strip() or None
+        current_user.grade = request.form.get("grade", "").strip() or None
+        current_user.offered_skills_intro = request.form.get("offered_skills_intro", "").strip() or None
+        current_user.wanted_skills_intro = request.form.get("wanted_skills_intro", "").strip() or None
 
         new_password = request.form.get("new_password", "").strip()
 

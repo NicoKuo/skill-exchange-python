@@ -404,6 +404,42 @@ h1, h2, h3, h4, h5 {
 }
 .stat p { margin: 0; color: var(--muted); font-size: 13.5px; }
 
+/* Identity card and chat layout styles */
+.identity-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+.identity-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.identity-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f3f4f6;
+}
+.identity-info p { margin: 8px 0; font-size: 14px; }
+
+.chat-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+  align-items: start;
+}
+.chat-sidebar { position: sticky; top: 90px; }
+
+@media (max-width: 768px) {
+  .chat-layout { grid-template-columns: 1fr; }
+  .chat-sidebar { position: static; }
+}
+
 /* ─── Buttons ─────────────────────────────── */
 .btn {
   display: inline-flex;

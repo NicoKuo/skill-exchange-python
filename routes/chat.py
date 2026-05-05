@@ -54,7 +54,12 @@ def chat(match_id):
     if current_user.id not in [m.requester_id, m.receiver_id]:
         abort(403)
 
-    other_id = m.receiver_id if current_user.id == m.requester_id else m.requester_id
+    # determine other_user for identity card
+    if current_user.id == m.requester_id:
+        other_user = m.receiver
+    else:
+        other_user = m.requester
+    other_id = other_user.id
 
     if request.method == "POST":
         content = request.form.get("content", "").strip()
@@ -117,7 +122,7 @@ def chat(match_id):
 
     messages = Message.query.filter_by(match_id=m.id).order_by(Message.created_at.asc()).all()
 
-    return render_template("chat.html", match=m, messages=messages, other_id=other_id)
+    return render_template("chat.html", match=m, messages=messages, other_id=other_id, other_user=other_user)
 
 
 @chat_bp.route("/chat/<int:match_id>/messages", methods=["GET"], endpoint='get_messages')

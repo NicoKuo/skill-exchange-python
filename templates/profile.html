@@ -36,6 +36,22 @@
                 <textarea name="bio">{{ current_user.bio or '' }}</textarea>
             </div>
             <div class="field">
+                <label>系級</label>
+                <input name="department" value="{{ current_user.department or '' }}" placeholder="例如：資管系">
+            </div>
+            <div class="field">
+                <label>年級</label>
+                <input name="grade" value="{{ current_user.grade or '' }}" placeholder="例如：大二">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+                <label>擅長技能（簡短介紹）</label>
+                <input name="offered_skills_intro" value="{{ current_user.offered_skills_intro or '' }}" placeholder="例如：Python、簡報設計、英文口說">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+                <label>想學技能（簡短介紹）</label>
+                <input name="wanted_skills_intro" value="{{ current_user.wanted_skills_intro or '' }}" placeholder="例如：影片剪輯、日文、吉他">
+            </div>
+            <div class="field">
                 <label>頭像圖片網址</label>
                 <input name="avatar" value="{{ current_user.avatar or '' }}" placeholder="貼上圖片網址">
             </div>

@@ -51,7 +51,11 @@
             </tr>{% for m in matches %}<tr id="match-{{ m.id }}">
                 <td style="width: 140px;"><div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ m.skill.title }}</div><div class="kpi">{{ m.skill.method }}</div>
                 </td>
-                <td style="width: 200px;"><div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ m.requester.name }} ↔ {{ m.receiver.name }}</div></td>
+                <td style="width: 200px;"><div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ m.requester.name }} ↔ {{ m.receiver.name }}</div>
+                    {% set other_user = m.receiver if current_user.id == m.requester_id else m.requester %}
+                    <div style="margin-top:8px; font-size:13px; color:#475569;"><strong>對方：</strong>{{ other_user.name }} ・ {{ other_user.department or '未填寫系級' }}{% if other_user.grade %}・{{ other_user.grade }}{% endif %}<br>
+                    <small>評分 {{ user_average_rating(other_user.id) }}｜完成 {{ user_completed_matches(other_user.id) }} 次</small></div>
+                </td>
                 <td style="width: 250px;"><div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ m.message }}</div></td>
                 <td style="width: 100px;"><span class="tag">{{ m.status }}</span></td>
                 <td style="width: 210px;">

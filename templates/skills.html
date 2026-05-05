@@ -38,10 +38,15 @@
         <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
             class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
             class="tag tag-yellow">{{ skill.method }}</span></div>
-        <p class="kpi">發佈者：{{ skill.user.name }}｜時間：{{ skill.available_time or '未填' }}</p>{% if
-        current_user.is_authenticated and current_user.id != skill.user_id %}{% if skill.id in applied_skill_ids %}<a class="btn btn-muted"
-            href="{{ url_for('matches.match_center', skill_id=skill.id) }}">查看媒合</a>{% else %}<a class="btn"
-            href="{{ url_for('matches.match_center', skill_id=skill.id) }}">我要媒合</a>{% endif %}{% endif %}
+        <p class="kpi">發佈者：{{ skill.user.name }}{% if skill.user.department %}｜{{ skill.user.department }}{% endif %}{% if skill.user.grade %}｜{{ skill.user.grade }}{% endif %}｜時間：{{ skill.available_time or '未填' }}</p>
+        <p class="kpi" style="font-size:13px; margin-top:6px; color:#475569;">平均評分：{{ user_average_rating(skill.user.id) }} ｜ 完成交換：{{ user_completed_matches(skill.user.id) }} 次</p>
+        {% if current_user.is_authenticated and current_user.id != skill.user_id %}
+            {% if skill.id in applied_skill_ids %}
+                <a class="btn btn-muted" href="{{ url_for('matches.match_center', skill_id=skill.id) }}">查看媒合</a>
+            {% else %}
+                <a class="btn" href="{{ url_for('matches.match_center', skill_id=skill.id) }}">我要媒合</a>
+            {% endif %}
+        {% endif %}
         
         <!-- 技能檢舉 inline panel -->
         {% if current_user.is_authenticated and current_user.id != skill.user_id %}

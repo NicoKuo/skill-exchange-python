@@ -8,6 +8,10 @@ from .helpers import (
     unread_notifications_count,
     add_notification,
     skill_match_score,
+    split_tags,
+    detect_attachment_type,
+    skill_attachment_url,
+    normalize_skill_attachment_url,
     format_taiwan_time,
     render_skill_description,
 )
@@ -21,6 +25,10 @@ __all__ = [
     'unread_notifications_count',
     'add_notification',
     'skill_match_score',
+    'split_tags',
+    'detect_attachment_type',
+    'skill_attachment_url',
+    'normalize_skill_attachment_url',
     'format_taiwan_time',
     'render_skill_description',
 ]

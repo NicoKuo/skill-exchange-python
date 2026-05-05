@@ -352,12 +352,14 @@ h1, h2, h3, h4, h5 {
 }
 
 /* ─── Grids ───────────────────────────────── */
-.grid { display: grid; gap: 20px; }
-.grid-2 { grid-template-columns: repeat(2, 1fr); }
-.grid-3 { grid-template-columns: repeat(3, 1fr); }
-.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.grid { display: grid; gap: 24px; align-items: stretch; }
+.grid > .card { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+.grid > .card .btn { align-self: flex-start; width: auto; }
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
 
 /* ─── Stat Cards ──────────────────────────── */
 .stat {
@@ -471,7 +473,19 @@ h1, h2, h3, h4, h5 {
 .actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* ─── Tags & Pills ────────────────────────── */
-.pill-list { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill-list { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
+
+.table tbody tr td:first-child {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.table tbody tr td:first-child .tag {
+  font-size: 11px;
+  padding: 4px 10px;
+}
 
 .tag {
   display: inline-flex;
@@ -494,6 +508,29 @@ h1, h2, h3, h4, h5 {
 .tag-blue  { background: rgba(59,130,246,.1); color: #1e40af; border-color: rgba(59,130,246,.15); }
 .tag-orange { background: rgba(251,146,60,.1); color: #9a3412; border-color: rgba(251,146,60,.15); }
 .tag-purple { background: rgba(168,85,247,.1); color: #6b21a8; border-color: rgba(168,85,247,.15); }
+
+.match-chat-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.match-unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 4px 12px rgba(239,68,68,.22);
+}
 
 /* ─── Utility ─────────────────────────────── */
 .muted { color: var(--muted); }

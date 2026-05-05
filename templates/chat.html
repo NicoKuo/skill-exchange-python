@@ -2,7 +2,7 @@
     <h2>聊天室：{{ match.skill.title }}</h2>
     <p class="muted"><span class="material-icons-round icon-inline">access_time</span> 訊息會每 2 秒自動更新</p>
     <div class="chat-box" id="chat-messages">{% for msg in messages %}<div class="message-wrapper" data-message-id="{{ msg.id }}" data-sender-id="{{ msg.sender_id }}">
-        <div class="bubble {% if msg.sender_id==current_user.id %}me{% endif %}"><strong>{{ msg.sender.name }}</strong><br>{% if msg.content %}<div>{{ msg.content }}</div>{% endif %}{% if msg.file_url %}{% if msg.file_type == 'image' %}<div style="margin-top:10px;"><img src="{{ msg.file_url }}" alt="{{ msg.file_name }}" style="max-width:100%;border-radius:12px;"></div>{% else %}<div style="margin-top:10px;"><a class="btn btn-sm btn-muted" href="{{ msg.file_url }}" download>{{ msg.file_name }}</a></div>{% endif %}{% endif %}<div class="kpi">{{ format_taiwan_time(msg.created_at, '%Y-%m-%d %H:%M') }}</div>
+        <div class="bubble {% if msg.sender_id==current_user.id %}me{% endif %}"><strong>{{ '我' if msg.sender_id==current_user.id else msg.sender.name }}</strong><br>{% if msg.content %}<div>{{ msg.content }}</div>{% endif %}{% if msg.file_url %}{% if msg.file_type == 'image' %}<div style="margin-top:10px;"><img src="{{ msg.file_url }}" alt="{{ msg.file_name }}" style="max-width:100%;border-radius:12px;"></div>{% else %}<div style="margin-top:10px;"><a class="btn btn-sm btn-muted" href="{{ msg.file_url }}" target="_blank" rel="noopener">{{ msg.file_name }}</a></div>{% endif %}{% endif %}<div class="kpi">{{ format_taiwan_time(msg.created_at, '%Y-%m-%d %H:%M') }}</div>
         </div>
         {% if msg.sender_id != current_user.id %}<div class="message-actions"><button type="button" class="btn-icon-small report-msg-btn" data-message-id="{{ msg.id }}" data-sender-id="{{ msg.sender_id }}" title="檢舉此訊息">⚠️</button></div>{% endif %}
         {% if msg.sender_id != current_user.id %}<div class="report-panel" data-message-id="{{ msg.id }}">
@@ -93,11 +93,11 @@
 
                     const textHtml = msg.content ? `<div>${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>` : '';
                     let fileHtml = '';
-                    if (msg.file_url) {
+                        if (msg.file_url) {
                         if (msg.file_type === 'image') {
                             fileHtml = `<div style="margin-top:10px;"><img src="${msg.file_url}" alt="${escapeHtml(msg.file_name || '圖片附件')}" style="max-width:100%;border-radius:12px;"></div>`;
                         } else {
-                            fileHtml = `<div style="margin-top:10px;"><a class="btn btn-sm btn-muted" href="${msg.file_url}" download>${escapeHtml(msg.file_name || '下載附件')}</a></div>`;
+                            fileHtml = `<div style="margin-top:10px;"><a class="btn btn-sm btn-muted" href="${msg.file_url}" target="_blank" rel="noopener">${escapeHtml(msg.file_name || '下載附件')}</a></div>`;
                         }
                     }
 
@@ -138,7 +138,8 @@
 
                     const reportBtn = msg.sender_id !== currentUserId ? `<div class="message-actions"><button type="button" class="btn-icon-small report-msg-btn" data-message-id="${msg.id}" data-sender-id="${msg.sender_id}" title="檢舉此訊息">⚠️</button></div>` : '';
 
-                    return `<div class="message-wrapper" data-message-id="${msg.id}" data-sender-id="${msg.sender_id}"><div class="${bubbleClass}"><strong>${escapeHtml(msg.sender_name)}</strong><br>${textHtml}${fileHtml}<div class="kpi">${timeStr}</div></div>${reportBtn}${panelHtml}</div>`;
+                    const senderName = msg.sender_id === currentUserId ? '我' : escapeHtml(msg.sender_name);
+                    return `<div class="message-wrapper" data-message-id="${msg.id}" data-sender-id="${msg.sender_id}"><div class="${bubbleClass}"><strong>${senderName}</strong><br>${textHtml}${fileHtml}<div class="kpi">${timeStr}</div></div>${reportBtn}${panelHtml}</div>`;
                 };
 
                 // 委派訊息檢舉事件
@@ -167,19 +168,34 @@
                         const messageId = panel.dataset.messageId;
                         const formData = new FormData(form);
                         
+                        // 確保把 message_id 一併送出，並安全處理非 JSON 回應
+                        formData.append('message_id', messageId);
                         fetch(`/chat/${matchId}/report-message`, { method: 'POST', body: formData })
-                            .then(r => r.json())
-                            .then(data => {
-                                if (data.message) {
+                            .then(async (r) => {
+                                const text = await r.text();
+                                let data = null;
+                                try {
+                                    data = text ? JSON.parse(text) : null;
+                                } catch (e) {
+                                    // 後端回傳非 JSON（可能是錯誤頁面 HTML）
+                                    alert('檢舉送出失敗，請稍後再試');
+                                    return;
+                                }
+
+                                if (r.ok && data && data.success) {
                                     alert('檢舉已送出');
                                     panel.classList.remove('open');
                                     openReportPanel = null;
                                     form.reset();
-                                } else if (data.error) {
-                                    alert('檢舉失敗: ' + data.error);
+                                } else {
+                                    const msg = data && data.message ? data.message : '檢舉送出失敗，請稍後再試';
+                                    alert('檢舉失敗: ' + msg);
                                 }
                             })
-                            .catch(err => alert('檢舉失敗: ' + err));
+                            .catch(err => {
+                                console.error(err);
+                                alert('檢舉送出失敗，請稍後再試');
+                            });
                     }
                 });
 

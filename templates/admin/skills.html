@@ -23,12 +23,10 @@
                 <td>{{ skill.method }}</td>
                 <td>
                     <div class="actions">
-                        <form method="post" action="{{ url_for('admin.skill_action', skill_id=skill.id) }}" class="inline-form">
-                            <input type="hidden" name="action" value="take_down">
+                        <form method="post" action="{{ url_for('admin.deactivate_skill', skill_id=skill.id) }}" class="inline-form">
                             <button class="btn btn-sm" type="submit">下架</button>
                         </form>
-                        <form method="post" action="{{ url_for('admin.skill_action', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要刪除這筆技能嗎？');">
-                            <input type="hidden" name="action" value="delete">
+                        <form method="post" action="{{ url_for('admin.delete_skill', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要刪除這筆技能嗎？');">
                             <button class="btn btn-danger btn-sm" type="submit">刪除</button>
                         </form>
                     </div>

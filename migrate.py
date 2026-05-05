@@ -113,6 +113,9 @@ def _add_column_sql(dialect_name: str, table_name: str, column_name: str) -> str
         default_value = 'true' if dialect_name == 'postgresql' else '1'
         return f"ALTER TABLE {table_name} ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT {default_value}"
 
+    if column_name == 'tags':
+        return f"ALTER TABLE {table_name} ADD COLUMN tags TEXT"
+
     if column_name in {'file_url', 'file_name'}:
         return f"ALTER TABLE {table_name} ADD COLUMN {column_name} VARCHAR(255)"
 
@@ -149,6 +152,7 @@ def run_migration(database_url: str | None = None) -> None:
 
         if 'skills' in table_names:
             _ensure_column(cursor, connection, 'skills', 'is_active', dialect_name)
+            _ensure_column(cursor, connection, 'skills', 'tags', dialect_name)
             if dialect_name == 'sqlite':
                 cursor.execute('UPDATE skills SET is_active = 1 WHERE is_active IS NULL')
             else:
@@ -172,8 +176,9 @@ def run_migration(database_url: str | None = None) -> None:
 
         if 'skills' in verification_tables:
             skill_columns = _table_columns(cursor, 'skills', dialect_name)
-            if 'is_active' not in skill_columns:
-                raise RuntimeError('skills 資料表仍缺少 is_active 欄位')
+            missing = {'is_active', 'tags'} - skill_columns
+            if missing:
+                raise RuntimeError(f"skills 資料表仍缺少欄位: {', '.join(sorted(missing))}")
 
         for table_name in ('messages', 'chat_messages'):
             if table_name in verification_tables:

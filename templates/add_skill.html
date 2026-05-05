@@ -2,13 +2,14 @@
     <h2>上架新技能</h2>
     <form method="post" class="form-grid" enctype="multipart/form-data">
         <div class="field"><label>技能標題</label><input name="title" required></div>
-        <div class="field"><label>分類（可多選）</label>
+        <div class="field"><label>分類</label>
             <div style="display:flex;flex-wrap:wrap;gap:8px;">
                 {% for c in categories %}
-                <label style="display:inline-flex;align-items:center;"><input type="checkbox" name="categories" value="{{ c.id }}"> {{ c.name }}</label>
+                <label style="display:inline-flex;align-items:center;"><input type="checkbox" name="categories" value="{{ c.id }}" class="category-checkbox"> {{ c.name }}</label>
                 {% endfor %}
             </div>
-            <small class="muted">可勾選多個分類，系統會以第一個勾選作為主要分類。</small>
+            <small class="muted">可勾選最多 4 個分類，系統會以第一個分類作為主要分類。</small>
+            <small class="muted" id="category-warning" style="color:#dc2626;display:none;">最多只能選擇 4 個分類</small>
         </div>
         <div class="field"><label>類型</label><select name="type">
                 <option value="offer">我可以教</option>
@@ -21,8 +22,26 @@
             </select></div>
         <div class="field"><label>地點</label><input name="location"></div>
         <div class="field"><label>可交換時間</label><input name="available_time"></div>
-        <div class="field" style="grid-column:1/-1"><label>附件</label><input type="file" name="attachment" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"><small class="muted">支援 pdf、doc、docx、png、jpg、jpeg，檔案上限 5MB。</small></div>
+        <div class="field" style="grid-column:1/-1"><label>附件</label><input type="file" name="attachment" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.doc,.docx,.ppt,.pptx"><small class="muted">支援 jpg、jpeg、png、gif、webp、pdf、txt、doc、docx、ppt、pptx，檔案上限 5MB。</small></div>
         <div class="field" style="grid-column:1/-1"><label>描述</label><textarea name="description" required></textarea>
         </div><button class="btn">送出</button>
     </form>
-</div>{% endblock %}
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const checkboxes = document.querySelectorAll('.category-checkbox');
+  const warning = document.getElementById('category-warning');
+  
+  checkboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+      const checked = document.querySelectorAll('.category-checkbox:checked').length;
+      if (checked > 4) {
+        this.checked = false;
+        warning.style.display = 'block';
+        setTimeout(() => { warning.style.display = 'none'; }, 3000);
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

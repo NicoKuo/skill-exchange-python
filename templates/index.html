@@ -88,51 +88,36 @@
     </div>
     {% endif %}
 </section>
-<section class="section">
-    <h2><span class="material-icons-round icon-inline">rocket_launch</span> 平台功能總覽</h2>
-    <div class="grid grid-3">
-        <div class="card">
-            <h3><span class="material-icons-round icon-inline">person</span> 帳號與個人檔案</h3>
-            <p>註冊登入、編輯個人介紹、查看經驗值與徽章。</p>
-        </div>
-        <div class="card">
-            <h3><span class="material-icons-round icon-inline">search</span> 技能探索與上架</h3>
-            <p>瀏覽熱門技能、依類別與授課方式篩選。</p>
-        </div>
-        <div class="card">
-            <h3><span class="material-icons-round icon-inline">bolt</span> 雙向媒合</h3>
-            <p>顯示匹配成功率，快速送出媒合邀請。</p>
-        </div>
-        <div class="card">
-            <h3><span class="material-icons-round icon-inline">chat</span> 交換聊天室</h3>
-            <p>配對後聊天討論時間地點。</p>
-        </div>
-        <div class="card">
-            <h3><span class="material-icons-round icon-inline">emoji_events</span> 信譽系統</h3>
-            <p>歷史紀錄、評分評論、平均星等與排行榜。</p>
-        </div>
-        <div class="card">
-            <h3><span class="material-icons-round icon-inline">admin_panel_settings</span> 管理後台</h3>
-            <p>查看使用者與技能資料，方便展示。</p>
-        </div>
-    </div>
-</section>
 <section class="section split">
     <div class="card">
         <h2><span class="material-icons-round icon-inline">whatshot</span> 熱門技能</h2>{% for skill in popular_skills %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
             <h3><span class="material-icons-round icon-inline">menu_book</span> {{ skill.title }}</h3>
-            <div class="muted">{{ render_skill_description(skill.description, 90) }}</div>
-            <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
+                <div class="muted">{{ render_skill_description(skill.description, 90) }}</div>
+                {% if skill.attachment_data %}
+                {% set attachment_url = normalize_skill_attachment_url(skill) %}
+                {% set attachment_type = skill.attachment_type or detect_attachment_type(skill.attachment_name or skill.attachment_mime) %}
+                {% if attachment_type == 'image' %}
+                <a href="{{ attachment_url }}" target="_blank" rel="noopener" style="display:block; margin-top:12px;">
+                    <img src="{{ attachment_url }}" alt="{{ skill.attachment_name or skill.title }}" style="display:block; width:100%; max-width:260px; border-radius:12px; border:1px solid #e5e7eb; object-fit:cover;">
+                </a>
+                {% else %}
+                <div class="skill-attachment" style="margin-top:12px;">
+                    <span class="tag tag-yellow">附件</span>
+                    <a href="{{ attachment_url }}" target="_blank" rel="noopener">查看附件{% if skill.attachment_name %}：{{ skill.attachment_name }}{% endif %}</a>
+                </div>
+                {% endif %}
+                {% endif %}
+                <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
                     class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
                     class="tag tag-yellow"><span class="material-icons-round icon-label">place</span> {{ skill.method }}</span></div>
             <p class="kpi"><span class="material-icons-round icon-inline">person</span> 發佈者：{{ skill.user.name }}</p>
         </div>{% else %}<div class="empty">目前尚無熱門技能資料。</div>{% endfor %}
     </div>
     <div class="card">
-        <h2><span class="material-icons-round icon-inline">leaderboard</span> 交換排行榜</h2>{% for member in top_users %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
-            <strong>#{{ loop.index }} <span class="material-icons-round icon-inline">emoji_events</span> {{ member.name }}</strong>
-            <div class="muted">{{ member.bio or '尚未填寫自我介紹' }}</div>
-            <div class="kpi">完成交換 {{ user_completed_matches(member.id) }} 次｜平均評價 {{ user_average_rating(member.id) }} <span class="material-icons-round icon-inline">star</span>
+        <h2><span class="material-icons-round icon-inline">leaderboard</span> 交換排行榜</h2>{% for item in leaderboard %}<div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
+            <strong>#{{ loop.index }} <span class="material-icons-round icon-inline">emoji_events</span> {{ item.user.name }}</strong>
+            <div class="muted">{{ item.user.bio or '尚未填寫自我介紹' }}</div>
+            <div class="kpi">經驗值 {{ item.points }}｜完成交換 {{ item.completed_matches }} 次｜平均評價 {{ item.average_rating }} <span class="material-icons-round icon-inline">star</span>
             </div>
         </div>{% else %}<div class="empty">目前尚無排行榜資料。</div>{% endfor %}
     </div>

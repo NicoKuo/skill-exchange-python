@@ -194,29 +194,55 @@ def skills():
     return render_template('admin/skills.html', current_page='skills', skills=skills, stats=_admin_counts())
 
 
+@admin_bp.route('/skills/<int:skill_id>/deactivate', methods=['POST'], endpoint='deactivate_skill')
+@login_required
+@admin_required
+def deactivate_skill(skill_id):
+    skill = Skill.query.get_or_404(skill_id)
+
+    if not skill.is_active:
+        flash('這個技能已經是下架狀態。', 'warning')
+        return redirect(url_for('admin.skills'))
+
+    skill.is_active = False
+    db.session.commit()
+    flash('技能已下架。', 'success')
+
+    return redirect(url_for('admin.skills'))
+
+
+@admin_bp.route('/skills/<int:skill_id>/delete', methods=['POST'], endpoint='delete_skill')
+@login_required
+@admin_required
+def delete_skill(skill_id):
+    skill = Skill.query.get_or_404(skill_id)
+
+    has_matches = Match.query.filter_by(skill_id=skill.id).count() > 0
+    has_reports = Report.query.filter_by(skill_id=skill.id).count() > 0
+
+    if has_matches or has_reports:
+        skill.is_active = False
+        db.session.commit()
+        flash('此技能已有關聯資料，已改為下架，無法直接刪除。', 'warning')
+        return redirect(url_for('admin.skills'))
+
+    db.session.delete(skill)
+    db.session.commit()
+    flash('技能已刪除。', 'success')
+
+    return redirect(url_for('admin.skills'))
+
+
 @admin_bp.route('/skills/<int:skill_id>/action', methods=['POST'], endpoint='skill_action')
 @login_required
 @admin_required
 def skill_action(skill_id):
-    skill = Skill.query.get_or_404(skill_id)
     action = request.form.get('action')
-
     if action == 'take_down':
-        skill.status = 'closed'
-        db.session.commit()
-        flash('技能已下架。', 'success')
-    elif action == 'delete':
-        if Match.query.filter_by(skill_id=skill.id).count() == 0:
-            db.session.delete(skill)
-            db.session.commit()
-            flash('技能已刪除。', 'success')
-        else:
-            skill.status = 'closed'
-            db.session.commit()
-            flash('此技能已有媒合紀錄，已改為下架。', 'warning')
-    else:
-        flash('未知的技能操作。', 'error')
-
+        return deactivate_skill(skill_id)
+    if action == 'delete':
+        return delete_skill(skill_id)
+    flash('未知的技能操作。', 'error')
     return redirect(url_for('admin.skills'))
 
 

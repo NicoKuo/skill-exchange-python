@@ -25,6 +25,12 @@
         <p class="muted" style="margin: 8px 0 0;">請先到互評頁完成評論，再開始下一次媒合。</p>
         <a class="btn" href="{{ url_for('review') }}" style="margin-top: 12px;">前往互評</a>
     </div>
+    {% elif selected_skill_has_match %}
+    <div class="card" style="margin-top: 16px; border: 1px solid #93c5fd; background: #eff6ff;">
+        <strong>你已經對這個技能申請過媒合</strong>
+        <p class="muted" style="margin: 8px 0 0;">你可以到媒合紀錄查看目前狀態。</p>
+        <a class="btn btn-muted" href="{{ url_for('matches.match_center') }}" style="margin-top: 12px;">查看媒合</a>
+    </div>
     {% else %}
     <form method="post" class="form-grid"><input type="hidden" name="action" value="create"><input type="hidden"
             name="skill_id" value="{{ selected_skill.id }}">

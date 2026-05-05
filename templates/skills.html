@@ -39,8 +39,9 @@
             class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
             class="tag tag-yellow">{{ skill.method }}</span></div>
         <p class="kpi">發佈者：{{ skill.user.name }}｜時間：{{ skill.available_time or '未填' }}</p>{% if
-        current_user.is_authenticated and current_user.id != skill.user_id %}<a class="btn"
-            href="{{ url_for('matches.match_center', skill_id=skill.id) }}">送出媒合</a>{% endif %}
+        current_user.is_authenticated and current_user.id != skill.user_id %}{% if skill.id in applied_skill_ids %}<a class="btn btn-muted"
+            href="{{ url_for('matches.match_center', skill_id=skill.id) }}">查看媒合</a>{% else %}<a class="btn"
+            href="{{ url_for('matches.match_center', skill_id=skill.id) }}">我要媒合</a>{% endif %}{% endif %}
         
         <!-- 技能檢舉 inline panel -->
         {% if current_user.is_authenticated and current_user.id != skill.user_id %}

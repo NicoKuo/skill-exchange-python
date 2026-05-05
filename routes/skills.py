@@ -9,7 +9,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 
-from models import db, Skill, SkillCategory, ActivityLog, Report
+from models import db, Skill, SkillCategory, Match, ActivityLog, Report
 
 skills_bp = Blueprint('skills', __name__)
 ALLOWED_ATTACHMENT_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt', 'doc', 'docx', 'ppt', 'pptx'}
@@ -79,6 +79,21 @@ def skills():
     keyword = request.args.get("keyword", "").strip()
     category_id = request.args.get("category_id", "").strip()
     method = request.args.get("method", "").strip()
+    applied_skill_ids = set()
+
+    if current_user.is_authenticated:
+        applied_skill_ids = {
+            row[0]
+            for row in db.session.query(Match.skill_id)
+            .filter(
+                or_(
+                    Match.requester_id == current_user.id,
+                    Match.receiver_id == current_user.id,
+                )
+            )
+            .distinct()
+            .all()
+        }
 
     query = Skill.query.filter_by(status="open", is_active=True)
 
@@ -105,7 +120,8 @@ def skills():
         categories=categories,
         keyword=keyword,
         category_id=category_id,
-        method=method
+        method=method,
+        applied_skill_ids=applied_skill_ids,
     )
 
 

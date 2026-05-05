@@ -32,14 +32,17 @@ def match_center():
             if skill.user_id == current_user.id:
                 flash("不能媒合自己的技能。", "error")
             else:
-                exists = Match.query.filter(
+                existing_match = Match.query.filter(
                     Match.skill_id == skill.id,
-                    Match.requester_id == current_user.id,
-                    Match.status.in_(["pending", "accepted"])
+                    or_(
+                        Match.requester_id == current_user.id,
+                        Match.receiver_id == current_user.id,
+                    )
                 ).first()
 
-                if exists:
-                    flash("你已送出過這筆媒合邀請。", "error")
+                if existing_match:
+                    flash('你已經對這個技能申請過媒合，不能重複申請', 'error')
+                    return redirect(url_for("matches.match_center", skill_id=skill.id))
                 else:
                     m = Match(
                         skill_id=skill.id,
@@ -99,11 +102,20 @@ def match_center():
             return redirect(url_for("matches.match_center"))
 
     selected_skill = None
+    selected_skill_has_match = False
     if request.args.get("skill_id"):
         selected_skill = Skill.query.get_or_404(int(request.args.get("skill_id")))
         if not selected_skill.is_active or selected_skill.status != 'open':
             flash("這個技能已下架，無法進行媒合。", "error")
             return redirect(url_for("skills.skills"))
+
+        selected_skill_has_match = Match.query.filter(
+            Match.skill_id == selected_skill.id,
+            or_(
+                Match.requester_id == current_user.id,
+                Match.receiver_id == current_user.id,
+            )
+        ).first() is not None
 
     matches = Match.query.filter(
         or_(
@@ -125,6 +137,7 @@ def match_center():
     return render_template(
         "match.html",
         selected_skill=selected_skill,
+        selected_skill_has_match=selected_skill_has_match,
         matches=matches,
         pending_review_count=pending_review_count,
         unread_map=unread_map,

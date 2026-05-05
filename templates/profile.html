@@ -1,134 +1,137 @@
 {% extends 'base.html' %}
-{% set title = user.name ~ ' 的個人檔案' %}
+{% set title='個人檔案' %}
 
 {% block content %}
 
 <div class="split section">
 
-    <!-- 左側：個人資訊 -->
     <div class="card">
-        <div class="profile-preview" style="margin-bottom: 20px;">
-            {% if user.avatar %}
-                <img src="{{ user.avatar }}" class="avatar-lg" alt="頭像">
+        <h2>編輯個人檔案</h2>
+
+        <div class="profile-preview">
+            {% if current_user.avatar %}
+                <img src="{{ current_user.avatar }}" class="avatar-lg" alt="頭像">
             {% else %}
                 <div class="avatar-placeholder">
-                    {{ user.name[0] }}
+                    {{ current_user.name[0] }}
                 </div>
             {% endif %}
             <div>
-                <h3>{{ user.name }}</h3>
-                {% if user.department or user.grade %}
-                    <p class="muted">{{ user.department or '' }}{% if user.department and user.grade %} · {% endif %}{{ user.grade or '' }}</p>
-                {% endif %}
+                <h3>{{ current_user.name }}</h3>
+                <p>{{ current_user.email }}</p>
             </div>
         </div>
 
-        {% if user.bio %}
-        <div style="margin-bottom: 16px;">
-            <h4 style="font-size:13px; font-weight:600; color:#888; margin-bottom:6px;">自我介紹</h4>
-            <p style="font-size:14px; line-height:1.6;">{{ user.bio }}</p>
-        </div>
-        {% endif %}
-
-        {% if user.offered_skills_intro %}
-        <div style="margin-bottom: 12px;">
-            <h4 style="font-size:13px; font-weight:600; color:#888; margin-bottom:4px;">擅長技能</h4>
-            <p style="font-size:14px;">{{ user.offered_skills_intro }}</p>
-        </div>
-        {% endif %}
-
-        {% if user.wanted_skills_intro %}
-        <div style="margin-bottom: 12px;">
-            <h4 style="font-size:13px; font-weight:600; color:#888; margin-bottom:4px;">想學技能</h4>
-            <p style="font-size:14px;">{{ user.wanted_skills_intro }}</p>
-        </div>
-        {% endif %}
-
-        <div style="margin-top: 20px;">
-            <h4 style="font-size:13px; font-weight:600; color:#888; margin-bottom:10px;">信譽統計</h4>
-            <div class="stats" style="grid-template-columns:repeat(3,1fr); gap:12px;">
-                <div class="stat" style="margin-bottom:0">
-                    <div class="num">{{ user_average_rating(user.id) }}</div>
-                    <p>⭐ 平均評分</p>
-                </div>
-                <div class="stat" style="margin-bottom:0">
-                    <div class="num">{{ user_completed_matches(user.id) }}</div>
-                    <p>🤝 完成交換</p>
-                </div>
-                <div class="stat" style="margin-bottom:0">
-                    <div class="num">{{ user_points(user.id) }}</div>
-                    <p>✨ 經驗值</p>
-                </div>
+        <form method="post" class="form-grid">
+            <div class="field">
+                <label>姓名</label>
+                <input name="name" value="{{ current_user.name }}" required>
             </div>
-        </div>
-
-        <div style="margin-top: 20px;">
-            <h4 style="font-size:13px; font-weight:600; color:#888; margin-bottom:8px;">成就徽章</h4>
-            <div class="pill-list">
-                {% for badge in user_badges(user.id) %}
-                    {% if badge.tier == 'gold' %}
-                        <span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">{{ badge.icon }} {{ badge.name }}</span>
-                    {% elif badge.tier == 'silver' %}
-                        <span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">{{ badge.icon }} {{ badge.name }}</span>
-                    {% elif badge.tier == 'bronze' %}
-                        <span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">{{ badge.icon }} {{ badge.name }}</span>
-                    {% else %}
-                        <span class="tag tag-gray">{{ badge.icon }} {{ badge.name }}</span>
-                    {% endif %}
-                {% else %}
-                    <span class="tag tag-gray">尚未取得徽章</span>
-                {% endfor %}
+            <div class="field">
+                <label>Email</label>
+                <input value="{{ current_user.email }}" disabled>
             </div>
-        </div>
-
-        {% if current_user.is_authenticated and current_user.id != user.id %}
-        <div style="margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap;">
-            <a class="btn btn-muted" href="{{ url_for('skills') }}?user_id={{ user.id }}">
-                <span class="material-icons-round icon-inline">search</span> 查看技能
-            </a>
-        </div>
-        {% endif %}
+            <div class="field" style="grid-column:1/-1">
+                <label>自我介紹</label>
+                <textarea name="bio">{{ current_user.bio or '' }}</textarea>
+            </div>
+            <div class="field">
+                <label>系級</label>
+                <input name="department" value="{{ current_user.department or '' }}" placeholder="例如：資管系">
+            </div>
+            <div class="field">
+                <label>年級</label>
+                <input name="grade" value="{{ current_user.grade or '' }}" placeholder="例如：大二">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+                <label>擅長技能（簡短介紹）</label>
+                <input name="offered_skills_intro" value="{{ current_user.offered_skills_intro or '' }}" placeholder="例如：Python、簡報設計、英文口說">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+                <label>想學技能（簡短介紹）</label>
+                <input name="wanted_skills_intro" value="{{ current_user.wanted_skills_intro or '' }}" placeholder="例如：影片剪輯、日文、吉他">
+            </div>
+            <div class="field">
+                <label>頭像圖片網址</label>
+                <input name="avatar" value="{{ current_user.avatar or '' }}" placeholder="貼上圖片網址">
+            </div>
+            <div class="field">
+                <label>新密碼</label>
+                <input type="password" name="new_password">
+            </div>
+            <button class="btn">儲存修改</button>
+        </form>
     </div>
 
-    <!-- 右側：技能列表 -->
-    <div>
-        <div class="card" style="margin-bottom: 16px;">
-            <h2>開放技能（{{ skills | length }}）</h2>
-            {% if skills %}
-                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
-                {% for skill in skills %}
-                    <div style="border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px;">
-                            <strong style="font-size: 15px;">{{ skill.title }}</strong>
-                            <span class="tag {% if skill.type == 'offer' %}tag-blue{% else %}tag-green{% endif %}" style="white-space:nowrap; flex-shrink:0;">
-                                {{ '提供' if skill.type == 'offer' else '學習' }}
-                            </span>
-                        </div>
-                        <p class="muted" style="font-size: 13px; margin-bottom: 8px;">{{ skill.description[:80] }}{% if skill.description|length > 80 %}…{% endif %}</p>
-                        {% if skill.tags %}
-                            <div class="pill-list" style="margin-bottom: 8px;">
-                                {% for tag in skill.tags.split(',') %}
-                                    <span class="tag tag-gray">{{ tag.strip() }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                        {% if current_user.is_authenticated and current_user.id != user.id %}
-                            <a class="btn" style="font-size: 13px; padding: 6px 14px;" href="{{ url_for('matches.match_center', skill_id=skill.id) }}">我要媒合</a>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-                </div>
+    <div class="card">
+        <h2>信譽與遊戲化</h2>
+
+        <div class="stats" style="grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px">
+            <div class="stat" style="margin-bottom:0">
+                <div class="num">{{ user_average_rating(current_user.id) }}</div>
+                <p>⭐ 平均評分</p>
+            </div>
+            <div class="stat" style="margin-bottom:0">
+                <div class="num">{{ user_completed_matches(current_user.id) }}</div>
+                <p>🤝 完成交換</p>
+            </div>
+            <div class="stat" style="margin-bottom:0">
+                <div class="num">{{ user_points(current_user.id) }}</div>
+                <p>✨ 經驗值</p>
+            </div>
+        </div>
+
+        <h3 style="font-size:14px; font-weight:600; margin:0 0 10px">成就徽章</h3>
+        <div class="pill-list" style="margin-bottom:20px">
+            {% for badge in user_badges(current_user.id) %}
+                {% if badge.tier == 'gold' %}
+                    <span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">{{ badge.icon }} {{ badge.name }}</span>
+                {% elif badge.tier == 'silver' %}
+                    <span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">{{ badge.icon }} {{ badge.name }}</span>
+                {% elif badge.tier == 'bronze' %}
+                    <span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">{{ badge.icon }} {{ badge.name }}</span>
+                {% else %}
+                    <span class="tag tag-gray">{{ badge.icon }} {{ badge.name }}</span>
+                {% endif %}
             {% else %}
-                <p class="muted" style="margin-top: 10px;">目前沒有開放中的技能。</p>
-            {% endif %}
+                <span class="tag tag-gray">尚未取得徽章</span>
+            {% endfor %}
+        </div>
+
+        <h3 style="font-size:14px; font-weight:600; margin:0 0 10px">解鎖條件</h3>
+        <div style="display:flex; flex-direction:column; gap:6px; font-size:13px">
+
+            <p style="margin:4px 0; font-weight:600; color:#888">— 忠誠類 —</p>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">📅</span><span><strong>老朋友</strong> <span class="muted">— 加入滿 7 天</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🗓️</span><span><strong>月老會員</strong> <span class="muted">— 加入滿 30 天</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">👑</span><span><strong>半年元老</strong> <span class="muted">— 加入滿 180 天</span></span></div>
+
+            <p style="margin:8px 0 4px; font-weight:600; color:#888">— 技能類 —</p>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">🎯</span><span><strong>技能先鋒</strong> <span class="muted">— 上架 1 個技能</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🎨</span><span><strong>多才多藝</strong> <span class="muted">— 上架 3 個技能</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">🏆</span><span><strong>技能大師</strong> <span class="muted">— 上架 6 個技能</span></span></div>
+
+            <p style="margin:8px 0 4px; font-weight:600; color:#888">— 評價類 —</p>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">💬</span><span><strong>初獲好評</strong> <span class="muted">— 收到 1 則評價</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">📣</span><span><strong>口碑累積</strong> <span class="muted">— 收到 5 則評價</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">🌟</span><span><strong>眾望所歸</strong> <span class="muted">— 收到 15 則評價</span></span></div>
+
+            <p style="margin:8px 0 4px; font-weight:600; color:#888">— 媒合類 —</p>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag tag-gray">🔩</span><span><strong>新會員</strong> <span class="muted">— 註冊即獲得</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">🤝</span><span><strong>交換新手</strong> <span class="muted">— 完成 1 次媒合</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🔗</span><span><strong>交換達人</strong> <span class="muted">— 完成 3 次媒合</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">🌐</span><span><strong>交換大師</strong> <span class="muted">— 完成 10 次媒合</span></span></div>
+
+            <p style="margin:8px 0 4px; font-weight:600; color:#888">— 評分類 —</p>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">⭐</span><span><strong>高評價成員</strong> <span class="muted">— 平均評分 4.5 以上且有 3 則評價</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">💎</span><span><strong>完美評價</strong> <span class="muted">— 平均評分 4.9 以上且有 5 則評價</span></span></div>
         </div>
     </div>
 
 </div>
 
-<!-- 評價紀錄 -->
 <section class="card">
-    <h2>歷史評價（{{ reviews | length }}）</h2>
+    <h2>歷史評價紀錄</h2>
     <table class="table">
         <tr>
             <th>技能</th>
@@ -139,13 +142,9 @@
         {% for review in reviews %}
         <tr>
             <td>{{ review.match.skill.title }}</td>
-            <td>
-                <a href="{{ url_for('profile.view_user', user_id=review.reviewer.id) }}">
-                    {{ review.reviewer.name }}
-                </a>
-            </td>
+            <td>{{ review.reviewer.name }}</td>
             <td>{{ review.rating }}/5</td>
-            <td>{{ review.comment or '—' }}</td>
+            <td>{{ review.comment }}</td>
         </tr>
         {% else %}
         <tr>

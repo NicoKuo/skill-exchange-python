@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% set title = user.name ~ ' 的個人檔案' %}
+
+{% block content %}
+
+<div class="split section">
+
+    <!-- 左側：個人資訊 -->
+    <div class="card">
+        <div class="profile-preview" style="margin-bottom: 20px;">
+            {% if user.avatar %}
+                <img src="{{ user.avatar }}" class="avatar-lg" alt="頭像">
+            {% else %}
+                <div class="avatar-placeholder">
+                    {{ user.name[0] }}
+                </div>
+            {% endif %}
+            <div>
+                <h3>{{ user.name }}</h3>
+                {% if user.department or user.grade %}
+                    <p class="muted">{{ user.department or '' }}{% if user.department and user.grade %} · {% endif %}{{ user.grade or '' }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if user.bio %}
+        <div style="margin-bottom: 16px;">
+            <h4 style="font-size:13px; font-weight:600; color:#888; margin-bottom:6px;">自我介紹</h4>
+            <p style="font-size:14px; line-height:1.6;">{{ user.bio }}</p>
+        </div>
+        {% endif %}
+
+        {% if user.offered_skills_intro %}
+        <div style="margin-bottom: 12px;">
+            <h4 style="font-size:13px; font-weight:600; color:#888; margin-bottom:4px;">擅長技能</h4>
+            <p style="font-size:14px;">{{ user.offered_skills_intro }}</p>
+        </div>
+        {% endif %}
+
+        {% if user.wanted_skills_intro %}
+        <div style="margin-bottom: 12px;">
+            <h4 style="font-size:13px; font-weight:600; color:#888; margin-bottom:4px;">想學技能</h4>
+            <p style="font-size:14px;">{{ user.wanted_skills_intro }}</p>
+        </div>
+        {% endif %}
+
+        <div style="margin-top: 20px;">
+            <h4 style="font-size:13px; font-weight:600; color:#888; margin-bottom:10px;">信譽統計</h4>
+            <div class="stats" style="grid-template-columns:repeat(3,1fr); gap:12px;">
+                <div class="stat" style="margin-bottom:0">
+                    <div class="num">{{ user_average_rating(user.id) }}</div>
+                    <p>⭐ 平均評分</p>
+                </div>
+                <div class="stat" style="margin-bottom:0">
+                    <div class="num">{{ user_completed_matches(user.id) }}</div>
+                    <p>🤝 完成交換</p>
+                </div>
+                <div class="stat" style="margin-bottom:0">
+                    <div class="num">{{ user_points(user.id) }}</div>
+                    <p>✨ 經驗值</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <h4 style="font-size:13px; font-weight:600; color:#888; margin-bottom:8px;">成就徽章</h4>
+            <div class="pill-list">
+                {% for badge in user_badges(user.id) %}
+                    {% if badge.tier == 'gold' %}
+                        <span class="tag" style="background:rgba(251,191,36,.18);color:#92400e;border:1px solid rgba(251,191,36,.4)">{{ badge.icon }} {{ badge.name }}</span>
+                    {% elif badge.tier == 'silver' %}
+                        <span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">{{ badge.icon }} {{ badge.name }}</span>
+                    {% elif badge.tier == 'bronze' %}
+                        <span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">{{ badge.icon }} {{ badge.name }}</span>
+                    {% else %}
+                        <span class="tag tag-gray">{{ badge.icon }} {{ badge.name }}</span>
+                    {% endif %}
+                {% else %}
+                    <span class="tag tag-gray">尚未取得徽章</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if current_user.is_authenticated and current_user.id != user.id %}
+        <div style="margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <a class="btn btn-muted" href="{{ url_for('skills') }}?user_id={{ user.id }}">
+                <span class="material-icons-round icon-inline">search</span> 查看技能
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 右側：技能列表 -->
+    <div>
+        <div class="card" style="margin-bottom: 16px;">
+            <h2>開放技能（{{ skills | length }}）</h2>
+            {% if skills %}
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+                {% for skill in skills %}
+                    <div style="border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px;">
+                            <strong style="font-size: 15px;">{{ skill.title }}</strong>
+                            <span class="tag {% if skill.type == 'offer' %}tag-blue{% else %}tag-green{% endif %}" style="white-space:nowrap; flex-shrink:0;">
+                                {{ '提供' if skill.type == 'offer' else '學習' }}
+                            </span>
+                        </div>
+                        <p class="muted" style="font-size: 13px; margin-bottom: 8px;">{{ skill.description[:80] }}{% if skill.description|length > 80 %}…{% endif %}</p>
+                        {% if skill.tags %}
+                            <div class="pill-list" style="margin-bottom: 8px;">
+                                {% for tag in skill.tags.split(',') %}
+                                    <span class="tag tag-gray">{{ tag.strip() }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if current_user.is_authenticated and current_user.id != user.id %}
+                            <a class="btn" style="font-size: 13px; padding: 6px 14px;" href="{{ url_for('matches.match_center', skill_id=skill.id) }}">我要媒合</a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <p class="muted" style="margin-top: 10px;">目前沒有開放中的技能。</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- 評價紀錄 -->
+<section class="card">
+    <h2>歷史評價（{{ reviews | length }}）</h2>
+    <table class="table">
+        <tr>
+            <th>技能</th>
+            <th>評價者</th>
+            <th>分數</th>
+            <th>評論</th>
+        </tr>
+        {% for review in reviews %}
+        <tr>
+            <td>{{ review.match.skill.title }}</td>
+            <td>
+                <a href="{{ url_for('profile.view_user', user_id=review.reviewer.id) }}">
+                    {{ review.reviewer.name }}
+                </a>
+            </td>
+            <td>{{ review.rating }}/5</td>
+            <td>{{ review.comment or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4" class="empty">目前尚無評價紀錄</td>
+        </tr>
+        {% endfor %}
+    </table>
+</section>
+
+{% endblock %}

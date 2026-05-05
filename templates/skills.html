@@ -21,9 +21,23 @@
             {% if current_user.is_authenticated and current_user.id != skill.user_id %}<button type="button" class="btn-icon-small report-skill-btn" data-skill-id="{{ skill.id }}" title="檢舉此技能">⚠️</button>{% endif %}
         </div>
         <div class="muted">{{ render_skill_description(skill.description) }}</div>
+            {% if skill.attachment_data %}
+            {% set attachment_url = normalize_skill_attachment_url(skill) %}
+            {% set attachment_type = skill.attachment_type or detect_attachment_type(skill.attachment_name or skill.attachment_mime) %}
+            {% if attachment_type == 'image' %}
+            <a href="{{ attachment_url }}" target="_blank" rel="noopener" style="display:block; margin-top:12px;">
+                <img src="{{ attachment_url }}" alt="{{ skill.attachment_name or skill.title }}" style="display:block; width:100%; max-width:280px; border-radius:12px; border:1px solid #e5e7eb; object-fit:cover;">
+            </a>
+            {% else %}
+            <div class="skill-attachment" style="margin-top:12px;">
+                <span class="tag tag-yellow">附件</span>
+                <a href="{{ attachment_url }}" target="_blank" rel="noopener">查看附件{% if skill.attachment_name %}：{{ skill.attachment_name }}{% endif %}</a>
+            </div>
+            {% endif %}
+            {% endif %}
         <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
-                class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
-                class="tag tag-yellow">{{ skill.method }}</span></div>
+            class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
+            class="tag tag-yellow">{{ skill.method }}</span></div>
         <p class="kpi">發佈者：{{ skill.user.name }}｜時間：{{ skill.available_time or '未填' }}</p>{% if
         current_user.is_authenticated and current_user.id != skill.user_id %}<a class="btn"
             href="{{ url_for('matches.match_center', skill_id=skill.id) }}">送出媒合</a>{% endif %}

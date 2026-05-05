@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 
-from models import db, Match, Skill, Notification, ActivityLog, Report
+from models import db, Match, Skill, Message, Notification, ActivityLog, Report
 from utils import add_notification, user_pending_review_count
 
 matches_bp = Blueprint('matches', __name__)
@@ -112,11 +112,22 @@ def match_center():
         )
     ).order_by(Match.updated_at.desc()).all()
 
+    unread_rows = db.session.query(
+        Message.match_id,
+        db.func.count(Message.id)
+    ).filter(
+        Message.receiver_id == current_user.id,
+        Message.is_read.is_(False)
+    ).group_by(Message.match_id).all()
+
+    unread_map = {match_id: unread_count for match_id, unread_count in unread_rows}
+
     return render_template(
         "match.html",
         selected_skill=selected_skill,
         matches=matches,
         pending_review_count=pending_review_count,
+        unread_map=unread_map,
     )
 
 

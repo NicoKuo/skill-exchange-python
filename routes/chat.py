@@ -97,6 +97,7 @@ def chat(match_id):
                     file_url=file_url,
                     file_name=file_name,
                     file_type=file_type,
+                    is_read=False,
                 )
             )
             db.session.commit()

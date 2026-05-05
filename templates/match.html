@@ -2,8 +2,22 @@
     <h2>快速媒合：{{ selected_skill.title }}</h2>
     <p class="muted">發佈者：{{ selected_skill.user.name }}｜分類：{{ selected_skill.category.name if selected_skill.category
         else '未分類' }}｜方式：{{ selected_skill.method }}</p>
-    <div>{{ render_skill_description(selected_skill.description) }}</div>
-    <div class="pill-list"><span class="tag tag-green">成功率 {{ skill_match_score(selected_skill,current_user)
+        <div>{{ render_skill_description(selected_skill.description) }}</div>
+            {% if selected_skill.attachment_data %}
+            {% set attachment_url = normalize_skill_attachment_url(selected_skill) %}
+            {% set attachment_type = selected_skill.attachment_type or detect_attachment_type(selected_skill.attachment_name or selected_skill.attachment_mime) %}
+            {% if attachment_type == 'image' %}
+            <a href="{{ attachment_url }}" target="_blank" rel="noopener" style="display:block; margin-top:12px;">
+                <img src="{{ attachment_url }}" alt="{{ selected_skill.attachment_name or selected_skill.title }}" style="display:block; width:100%; max-width:260px; border-radius:12px; border:1px solid #e5e7eb; object-fit:cover;">
+            </a>
+            {% else %}
+            <div class="skill-attachment" style="margin-top:12px;">
+                <span class="tag tag-yellow">附件</span>
+                <a href="{{ attachment_url }}" target="_blank" rel="noopener">查看附件{% if selected_skill.attachment_name %}：{{ selected_skill.attachment_name }}{% endif %}</a>
+            </div>
+            {% endif %}
+            {% endif %}
+        <div class="pill-list"><span class="tag tag-green">成功率 {{ skill_match_score(selected_skill,current_user)
             }}%</span><span class="tag">{{ '我可以教' if selected_skill.type=='offer' else '我想學' }}</span></div>
     {% if pending_review_count > 0 %}
     <div class="card" style="margin-top: 16px; border: 1px solid #f59e0b; background: #fff7ed;">
@@ -35,7 +49,7 @@
                 <td style="width: 250px;"><div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ m.message }}</div></td>
                 <td style="width: 100px;"><span class="tag">{{ m.status }}</span></td>
                 <td style="width: 210px;">
-                    <div class="actions"><a class="btn btn-muted" href="{{ url_for('chat.chat', match_id=m.id) }}">聊天室</a>{%
+                    <div class="actions match-chat-action"><a class="btn btn-muted" href="{{ url_for('chat.chat', match_id=m.id) }}">進入聊天室</a>{% set unread_count = unread_map.get(m.id, 0) %}{% if unread_count > 0 %}<span class="match-unread-badge" title="未讀訊息 {{ unread_count }}">{{ unread_count if unread_count < 100 else '99+' }}</span>{% endif %}{%
                         if m.receiver_id==current_user.id and m.status=='pending' %}<form method="post"
                             class="inline-form" style="display: inline;"><input type="hidden" name="match_id" value="{{ m.id }}"><input
                                 type="hidden" name="action" value="accepted"><button class="btn btn-success btn-sm">接受</button>

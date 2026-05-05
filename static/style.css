@@ -352,14 +352,14 @@ h1, h2, h3, h4, h5 {
 }
 
 /* ─── Grids ───────────────────────────────── */
-.grid { display: grid; gap: 20px; align-items: stretch; }
-.grid > .card { display: flex; flex-direction: column; justify-content: space-between; }
+.grid { display: grid; gap: 24px; align-items: stretch; }
+.grid > .card { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
 .grid > .card .btn { align-self: flex-start; width: auto; }
-.grid-2 { grid-template-columns: repeat(2, 1fr); }
-.grid-3 { grid-template-columns: repeat(3, 1fr); }
-.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
 
 /* ─── Stat Cards ──────────────────────────── */
 .stat {
@@ -474,6 +474,18 @@ h1, h2, h3, h4, h5 {
 
 /* ─── Tags & Pills ────────────────────────── */
 .pill-list { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
+
+.table tbody tr td:first-child {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.table tbody tr td:first-child .tag {
+  font-size: 11px;
+  padding: 4px 10px;
+}
 
 .tag {
   display: inline-flex;

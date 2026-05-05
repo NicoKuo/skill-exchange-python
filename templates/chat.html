@@ -168,19 +168,34 @@
                         const messageId = panel.dataset.messageId;
                         const formData = new FormData(form);
                         
+                        // 確保把 message_id 一併送出，並安全處理非 JSON 回應
+                        formData.append('message_id', messageId);
                         fetch(`/chat/${matchId}/report-message`, { method: 'POST', body: formData })
-                            .then(r => r.json())
-                            .then(data => {
-                                if (data.message) {
+                            .then(async (r) => {
+                                const text = await r.text();
+                                let data = null;
+                                try {
+                                    data = text ? JSON.parse(text) : null;
+                                } catch (e) {
+                                    // 後端回傳非 JSON（可能是錯誤頁面 HTML）
+                                    alert('檢舉送出失敗，請稍後再試');
+                                    return;
+                                }
+
+                                if (r.ok && data && data.success) {
                                     alert('檢舉已送出');
                                     panel.classList.remove('open');
                                     openReportPanel = null;
                                     form.reset();
-                                } else if (data.error) {
-                                    alert('檢舉失敗: ' + data.error);
+                                } else {
+                                    const msg = data && data.message ? data.message : '檢舉送出失敗，請稍後再試';
+                                    alert('檢舉失敗: ' + msg);
                                 }
                             })
-                            .catch(err => alert('檢舉失敗: ' + err));
+                            .catch(err => {
+                                console.error(err);
+                                alert('檢舉送出失敗，請稍後再試');
+                            });
                     }
                 });
 

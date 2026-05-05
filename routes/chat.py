@@ -206,28 +206,38 @@ def unread_count():
 
 
 @chat_bp.route("/chat/<int:match_id>/report-message", methods=["POST"], endpoint='report_message')
-@login_required
 def report_message(match_id):
-    """API endpoint: 檢舉訊息"""
-    m = Match.query.get_or_404(match_id)
+    """API endpoint: 檢舉訊息（回傳 JSON）"""
+    # 若未登入，回傳 JSON 403（避免被 Flask-Login redirect 成 HTML login page）
+    if not current_user.is_authenticated:
+        return jsonify({"success": False, "message": "沒有權限"}), 403
+
+    m = Match.query.get(match_id)
+    if not m:
+        return jsonify({"success": False, "message": "找不到檢舉對象"}), 404
 
     if current_user.id not in [m.requester_id, m.receiver_id]:
-        abort(403)
+        return jsonify({"success": False, "message": "沒有權限"}), 403
 
     message_id = request.form.get("message_id", type=int)
     reason = request.form.get("reason", "").strip()
     description = request.form.get("description", "").strip()
     evidence = request.files.get("evidence")
 
-    msg = Message.query.get_or_404(message_id)
+    if not message_id:
+        return jsonify({"success": False, "message": "找不到檢舉對象"}), 404
+
+    msg = Message.query.get(message_id)
+    if not msg:
+        return jsonify({"success": False, "message": "找不到檢舉對象"}), 404
 
     # 訊息必須屬於這個媒合
     if msg.match_id != match_id:
-        abort(400)
+        return jsonify({"success": False, "message": "找不到檢舉對象"}), 404
 
     # 不能檢舉自己的訊息
     if msg.sender_id == current_user.id:
-        return jsonify({"error": "你不能檢舉自己的訊息"}), 400
+        return jsonify({"success": False, "message": "你不能檢舉自己的訊息"}), 400
 
     # 檢查是否已有 pending 檢舉
     existing = Report.query.filter_by(
@@ -237,11 +247,11 @@ def report_message(match_id):
     ).first()
 
     if existing:
-        return jsonify({"error": "你已檢舉過這則訊息"}), 400
+        return jsonify({"success": False, "message": "你已檢舉過這則訊息"}), 400
 
     valid_reasons = ['inappropriate_language', 'harassment', 'no_show', 'scam', 'other']
     if reason not in valid_reasons:
-        return jsonify({"error": "檢舉原因無效"}), 400
+        return jsonify({"success": False, "message": "檢舉原因無效"}), 400
 
     # 處理檢舉附件
     evidence_url = None
@@ -252,11 +262,11 @@ def report_message(match_id):
         # 只允許圖片格式
         ext = evidence.filename.rsplit('.', 1)[1].lower() if '.' in evidence.filename else ''
         if ext not in ALLOWED_IMAGE_EXTENSIONS:
-            return jsonify({"error": "只支援圖片檔案（jpg、jpeg、png、gif、webp）"}), 400
+            return jsonify({"success": False, "message": "只支援圖片檔案（jpg、jpeg、png、gif、webp）"}), 400
         
         # 檢查檔案大小（5MB）
         if file_size(evidence) > 5 * 1024 * 1024:
-            return jsonify({"error": "檢舉附件不能超過 5MB"}), 400
+            return jsonify({"success": False, "message": "檢舉附件不能超過 5MB"}), 400
         
         # 保存檔案
         upload_dir = os.path.join(current_app.static_folder, 'uploads', 'report')
@@ -295,4 +305,4 @@ def report_message(match_id):
     except Exception:
         db.session.rollback()
 
-    return jsonify({"message": "檢舉已送出，將由管理者審查"})
+    return jsonify({"success": True, "message": "檢舉已送出"})

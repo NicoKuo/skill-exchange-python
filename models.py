@@ -43,11 +43,17 @@ class Skill(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('skill_categories.id'))
-    title = db.Column(db.String(100), nullable=False)
+    title = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text, nullable=False)
     tags = db.Column(db.Text)
     type = db.Column(db.String(20), nullable=False)      # offer / learn
     method = db.Column(db.String(20), default='online') # online / offline / both
+    location_type = db.Column(db.String(20))
+    location_area = db.Column(db.String(50))
+    location_detail = db.Column(db.String(100))
+    available_day = db.Column(db.String(20))
+    start_time = db.Column(db.Time)
+    end_time = db.Column(db.Time)
     location = db.Column(db.String(100))
     available_time = db.Column(db.String(255))
     status = db.Column(db.String(20), default='open')

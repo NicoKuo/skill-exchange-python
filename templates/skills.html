@@ -12,6 +12,8 @@
                 <option value="offline" {% if method=='offline' %}selected{% endif %}>offline</option>
                 <option value="both" {% if method=='both' %}selected{% endif %}>both</option>
             </select></div>
+        <div class="field"><label>地區</label><input name="location_area" value="{{ location_area }}" placeholder="台北市、大安區"></div>
+        <div class="field"><label>可配合星期</label><input name="available_day" value="{{ available_day }}" placeholder="週一、週三、週末"></div>
         <div style="align-self:end"><button class="btn">搜尋</button></div>
     </form>
 </section>
@@ -39,7 +41,14 @@
             class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
             class="tag tag-yellow">{{ skill.method }}</span></div>
         <p class="kpi">發佈者：<a href="{{ url_for('profile.view_user', user_id=skill.user.id) }}" style="color:inherit;text-decoration:underline;text-underline-offset:2px;">{{ skill.user.name }}</a>{% if skill.user.department %}｜{{ skill.user.department }}{% endif %}{% if skill.user.grade %}｜{{ skill.user.grade }}{% endif %}｜時間：{{ skill.available_time or '未填' }}</p>
+        <p class="kpi" style="font-size:13px; margin-top:6px; color:#475569;">地點類型：{{ skill.location_type or '未填' }}｜地區：{{ skill.location_area or '未填' }}｜詳細地點：{{ skill.location_detail or '未填' }}</p>
+        <p class="kpi" style="font-size:13px; margin-top:6px; color:#475569;">可配合星期：{{ skill.available_day or '未填' }}｜時間：{{ skill.start_time.strftime('%H:%M') if skill.start_time else '未填' }} - {{ skill.end_time.strftime('%H:%M') if skill.end_time else '未填' }}｜舊地點：{{ skill.location or '未填' }}</p>
         <p class="kpi" style="font-size:13px; margin-top:6px; color:#475569;">平均評分：{{ user_average_rating(skill.user.id) }} ｜ 完成交換：{{ user_completed_matches(skill.user.id) }} 次</p>
+        {% if current_user.is_authenticated and current_user.id == skill.user_id %}
+        <div style="margin-top:10px;">
+            <a class="btn btn-muted" href="{{ url_for('skills.edit_skill', skill_id=skill.id) }}">編輯技能</a>
+        </div>
+        {% endif %}
         {% if current_user.is_authenticated and current_user.id != skill.user_id %}
             {% if skill.id in applied_skill_ids %}
                 <a class="btn btn-muted" href="{{ url_for('matches.match_center', skill_id=skill.id) }}">查看媒合</a>

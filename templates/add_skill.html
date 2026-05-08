@@ -1,30 +1,36 @@
-{% extends 'base.html' %}{% set title='上架技能' %}{% block content %}<div class="card section">
-    <h2>上架新技能</h2>
-    <form method="post" class="form-grid" enctype="multipart/form-data">
-        <div class="field"><label>技能標題</label><input name="title" required></div>
+{% extends 'base.html' %}{% set title = '編輯技能' if skill else '上架技能' %}{% block content %}<div class="card section">
+  <h2>{% if skill %}編輯技能{% else %}上架新技能{% endif %}</h2>
+  <form method="post" class="form-grid" enctype="multipart/form-data" action="{{ form_action }}">
+    <div class="field"><label>技能標題</label><input name="title" maxlength="50" required value="{{ title_value }}"></div>
         <div class="field"><label>分類</label>
             <div style="display:flex;flex-wrap:wrap;gap:8px;">
                 {% for c in categories %}
-                <label style="display:inline-flex;align-items:center;"><input type="checkbox" name="categories" value="{{ c.id }}" class="category-checkbox"> {{ c.name }}</label>
+        <label style="display:inline-flex;align-items:center;"><input type="checkbox" name="categories" value="{{ c.id }}" class="category-checkbox" {% if c.id in selected_category_ids %}checked{% endif %}> {{ c.name }}</label>
                 {% endfor %}
             </div>
             <small class="muted">可勾選最多 4 個分類，系統會以第一個分類作為主要分類。</small>
             <small class="muted" id="category-warning" style="color:#dc2626;display:none;">最多只能選擇 4 個分類</small>
         </div>
-        <div class="field"><label>類型</label><select name="type">
-                <option value="offer">我可以教</option>
-                <option value="learn">我想學</option>
+    <div class="field"><label>類型</label><select name="type">
+        <option value="offer" {% if type_value == 'offer' %}selected{% endif %}>我可以教</option>
+        <option value="learn" {% if type_value == 'learn' %}selected{% endif %}>我想學</option>
             </select></div>
-        <div class="field"><label>方式</label><select name="method">
-                <option value="online">線上</option>
-                <option value="offline">實體</option>
-                <option value="both">皆可</option>
+    <div class="field"><label>方式</label><select name="method">
+        <option value="online" {% if method_value == 'online' %}selected{% endif %}>線上</option>
+        <option value="offline" {% if method_value == 'offline' %}selected{% endif %}>實體</option>
+        <option value="both" {% if method_value == 'both' %}selected{% endif %}>皆可</option>
             </select></div>
-        <div class="field"><label>地點</label><input name="location"></div>
-        <div class="field"><label>可交換時間</label><input name="available_time"></div>
+    <div class="field"><label>地點類型</label><input name="location_type" maxlength="20" value="{{ location_type_value }}"></div>
+    <div class="field"><label>地區</label><input name="location_area" maxlength="50" value="{{ location_area_value }}"></div>
+    <div class="field"><label>詳細地點</label><input name="location_detail" maxlength="100" value="{{ location_detail_value }}"></div>
+    <div class="field"><label>可配合星期</label><input name="available_day" maxlength="20" value="{{ available_day_value }}" placeholder="週一、週三、週末"></div>
+    <div class="field"><label>開始時間</label><input name="start_time" type="time" value="{{ start_time_value }}"></div>
+    <div class="field"><label>結束時間</label><input name="end_time" type="time" value="{{ end_time_value }}"></div>
+    <div class="field"><label>地點（舊欄位，保留舊資料）</label><input name="location" value="{{ location_value }}"></div>
+    <div class="field"><label>可交換時間（舊欄位，保留舊資料）</label><input name="available_time" value="{{ available_time_value }}"></div>
         <div class="field" style="grid-column:1/-1"><label>附件</label><input type="file" name="attachment" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.doc,.docx,.ppt,.pptx"><small class="muted">支援 jpg、jpeg、png、gif、webp、pdf、txt、doc、docx、ppt、pptx，檔案上限 5MB。</small></div>
-        <div class="field" style="grid-column:1/-1"><label>描述</label><textarea name="description" required></textarea>
-        </div><button class="btn">送出</button>
+    <div class="field" style="grid-column:1/-1"><label>描述</label><textarea name="description" required>{{ description_value }}</textarea>
+    </div><button class="btn">{% if skill %}更新技能{% else %}送出{% endif %}</button>
     </form>
 </div>
 <script>

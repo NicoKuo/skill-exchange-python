@@ -85,6 +85,12 @@ def ensure_sqlite_compatibility(app):
         if 'skills' in table_names:
             add_column_if_missing('skills', 'is_active', 'is_active BOOLEAN NOT NULL DEFAULT 1')
             add_column_if_missing('skills', 'tags', 'tags TEXT')
+            add_column_if_missing('skills', 'location_type', 'location_type VARCHAR(20)')
+            add_column_if_missing('skills', 'location_area', 'location_area VARCHAR(50)')
+            add_column_if_missing('skills', 'location_detail', 'location_detail VARCHAR(100)')
+            add_column_if_missing('skills', 'available_day', 'available_day VARCHAR(20)')
+            add_column_if_missing('skills', 'start_time', 'start_time TIME')
+            add_column_if_missing('skills', 'end_time', 'end_time TIME')
             add_column_if_missing('skills', 'attachment_data', 'attachment_data BLOB')
             add_column_if_missing('skills', 'attachment_name', 'attachment_name TEXT')
             add_column_if_missing('skills', 'attachment_mime', 'attachment_mime TEXT')
@@ -115,7 +121,7 @@ def ensure_sqlite_compatibility(app):
 
         if 'skills' in verification_tables:
             skill_columns = {column['name'] for column in verification_inspector.get_columns('skills')}
-            missing_skill_columns = {'is_active', 'tags', 'attachment_data', 'attachment_name', 'attachment_mime', 'attachment_type', 'attachment_url'} - skill_columns
+            missing_skill_columns = {'is_active', 'tags', 'location_type', 'location_area', 'location_detail', 'available_day', 'start_time', 'end_time', 'attachment_data', 'attachment_name', 'attachment_mime', 'attachment_type', 'attachment_url'} - skill_columns
             if missing_skill_columns:
                 raise RuntimeError(f'技能資料表仍缺少欄位: {", ".join(sorted(missing_skill_columns))}')
 

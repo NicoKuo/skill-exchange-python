@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
+from sqlalchemy.exc import IntegrityError
 
 from models import db, User, ActivityLog
 
@@ -24,16 +25,22 @@ def register():
 
         if not name or not email or len(password) < 6:
             flash("姓名、Email 必填，密碼至少 6 碼。", "error")
-        elif User.query.filter_by(email=email).first():
-            flash("這個 Email 已被註冊。", "error")
         else:
-            user = User(name=name, email=email, role="user", bio="")
-            user.set_password(password)
-            db.session.add(user)
-            db.session.commit()
-
-            flash("註冊成功，請登入。", "success")
-            return redirect(url_for(".login"))
+            existing_user = User.query.filter_by(email=email).first()
+            if existing_user:
+                flash("此 Email 已被註冊，請直接登入或使用其他 Email。", "error")
+            else:
+                user = User(name=name, email=email, role="user", bio="")
+                user.set_password(password)
+                try:
+                    db.session.add(user)
+                    db.session.commit()
+                except IntegrityError:
+                    db.session.rollback()
+                    flash("此 Email 已被註冊，請直接登入或使用其他 Email。", "error")
+                else:
+                    flash("註冊成功，請登入。", "success")
+                    return redirect(url_for(".login"))
 
     return render_template("register.html")
 

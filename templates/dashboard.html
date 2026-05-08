@@ -27,6 +27,7 @@
     <h2>我的技能</h2>{% for skill in my_skills %}<div>
         <p><strong>{{ skill.title }}</strong></p>
         <p>分類：{{ skill.category.name if skill.category else '未分類' }}｜方式：{{ skill.method }}｜狀態：{% if skill.is_active %}啟用中{% else %}已下架{% endif %}</p>
+        <p>地區：{{ skill.location_area or '未填' }}｜可配合星期：{{ skill.available_day or '未填' }}｜時間：{{ skill.start_time.strftime('%H:%M') if skill.start_time else '未填' }} - {{ skill.end_time.strftime('%H:%M') if skill.end_time else '未填' }}</p>
         <div>{{ render_skill_description(skill.description) }}</div>
         {% if skill.attachment_data %}
         {% set attachment_url = normalize_skill_attachment_url(skill) %}
@@ -43,6 +44,7 @@
         {% endif %}
         {% endif %}
         <div class="actions" style="margin-top: 10px;">
+            <a class="btn btn-muted btn-sm" href="{{ url_for('skills.edit_skill', skill_id=skill.id) }}">編輯</a>
             {% if skill.is_active %}
             <form method="post" action="{{ url_for('skills.deactivate_skill', skill_id=skill.id) }}" class="inline-form">
                 <button class="btn btn-muted btn-sm" type="submit">下架技能</button>

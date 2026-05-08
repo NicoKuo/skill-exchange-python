@@ -2,52 +2,62 @@
   <h2>{% if skill %}編輯技能{% else %}上架新技能{% endif %}</h2>
   <form method="post" class="form-grid" enctype="multipart/form-data" action="{{ form_action }}">
     <div class="field"><label>技能標題</label><input name="title" maxlength="50" required value="{{ title_value }}"></div>
-        <div class="field"><label>分類</label>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                {% for c in categories %}
-        <label style="display:inline-flex;align-items:center;"><input type="checkbox" name="categories" value="{{ c.id }}" class="category-checkbox" {% if c.id in selected_category_ids %}checked{% endif %}> {{ c.name }}</label>
-                {% endfor %}
-            </div>
-            <small class="muted">可勾選最多 4 個分類，系統會以第一個分類作為主要分類。</small>
-            <small class="muted" id="category-warning" style="color:#dc2626;display:none;">最多只能選擇 4 個分類</small>
-        </div>
+    <div class="field"><label>分類</label>
+      <select name="category_id" required>
+        <option value="">請選擇分類</option>
+        {% for c in categories %}
+        <option value="{{ c.id }}" {% if category_id_value and category_id_value|int == c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
     <div class="field"><label>類型</label><select name="type">
         <option value="offer" {% if type_value == 'offer' %}selected{% endif %}>我可以教</option>
         <option value="learn" {% if type_value == 'learn' %}selected{% endif %}>我想學</option>
-            </select></div>
+      </select></div>
     <div class="field"><label>方式</label><select name="method">
         <option value="online" {% if method_value == 'online' %}selected{% endif %}>線上</option>
         <option value="offline" {% if method_value == 'offline' %}selected{% endif %}>實體</option>
         <option value="both" {% if method_value == 'both' %}selected{% endif %}>皆可</option>
-            </select></div>
-    <div class="field"><label>地點類型</label><input name="location_type" maxlength="20" value="{{ location_type_value }}"></div>
-    <div class="field"><label>地區</label><input name="location_area" maxlength="50" value="{{ location_area_value }}"></div>
-    <div class="field"><label>詳細地點</label><input name="location_detail" maxlength="100" value="{{ location_detail_value }}"></div>
-    <div class="field"><label>可配合星期</label><input name="available_day" maxlength="20" value="{{ available_day_value }}" placeholder="週一、週三、週末"></div>
-    <div class="field"><label>開始時間</label><input name="start_time" type="time" value="{{ start_time_value }}"></div>
-    <div class="field"><label>結束時間</label><input name="end_time" type="time" value="{{ end_time_value }}"></div>
-    <div class="field"><label>地點（舊欄位，保留舊資料）</label><input name="location" value="{{ location_value }}"></div>
-    <div class="field"><label>可交換時間（舊欄位，保留舊資料）</label><input name="available_time" value="{{ available_time_value }}"></div>
-        <div class="field" style="grid-column:1/-1"><label>附件</label><input type="file" name="attachment" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.doc,.docx,.ppt,.pptx"><small class="muted">支援 jpg、jpeg、png、gif、webp、pdf、txt、doc、docx、ppt、pptx，檔案上限 5MB。</small></div>
-    <div class="field" style="grid-column:1/-1"><label>描述</label><textarea name="description" required>{{ description_value }}</textarea>
-    </div><button class="btn">{% if skill %}更新技能{% else %}送出{% endif %}</button>
-    </form>
+      </select></div>
+    <div class="field"><label>地點類型</label>
+      <select name="location_type" required>
+        <option value="">請選擇地點類型</option>
+        <option value="online" {% if location_type_value == 'online' %}selected{% endif %}>線上</option>
+        <option value="campus" {% if location_type_value == 'campus' %}selected{% endif %}>校內</option>
+        <option value="off_campus" {% if location_type_value == 'off_campus' %}selected{% endif %}>校外</option>
+      </select>
+    </div>
+    <div class="field"><label>地區</label>
+      <select name="location_area" required>
+        <option value="">請選擇地區</option>
+        <option value="輔大校內" {% if location_area_value == '輔大校內' %}selected{% endif %}>輔大校內</option>
+        <option value="新北" {% if location_area_value == '新北' %}selected{% endif %}>新北</option>
+        <option value="台北" {% if location_area_value == '台北' %}selected{% endif %}>台北</option>
+        <option value="桃園" {% if location_area_value == '桃園' %}selected{% endif %}>桃園</option>
+        <option value="線上" {% if location_area_value == '線上' %}selected{% endif %}>線上</option>
+        <option value="其他" {% if location_area_value == '其他' %}selected{% endif %}>其他</option>
+      </select>
+    </div>
+    <div class="field"><label>詳細地點</label><input name="location_detail" maxlength="100" value="{{ location_detail_value }}" placeholder="例如：圖書館一樓、商院大樓、Google Meet、其他指定地點"></div>
+    <div class="field"><label>可配合星期</label>
+      <select name="available_day" required>
+        <option value="">請選擇可配合星期</option>
+        <option value="mon" {% if available_day_value == 'mon' %}selected{% endif %}>星期一</option>
+        <option value="tue" {% if available_day_value == 'tue' %}selected{% endif %}>星期二</option>
+        <option value="wed" {% if available_day_value == 'wed' %}selected{% endif %}>星期三</option>
+        <option value="thu" {% if available_day_value == 'thu' %}selected{% endif %}>星期四</option>
+        <option value="fri" {% if available_day_value == 'fri' %}selected{% endif %}>星期五</option>
+        <option value="sat" {% if available_day_value == 'sat' %}selected{% endif %}>星期六</option>
+        <option value="sun" {% if available_day_value == 'sun' %}selected{% endif %}>星期日</option>
+        <option value="weekend" {% if available_day_value == 'weekend' %}selected{% endif %}>週末</option>
+        <option value="flexible" {% if available_day_value == 'flexible' %}selected{% endif %}>彈性</option>
+      </select>
+    </div>
+    <div class="field"><label>開始時間（24 小時制，請輸入例如 09:00、13:30）</label><input name="start_time" type="time" step="60" value="{{ start_time_value }}"></div>
+    <div class="field"><label>結束時間（24 小時制，請輸入例如 09:00、13:30）</label><input name="end_time" type="time" step="60" value="{{ end_time_value }}"></div>
+    <div class="field" style="grid-column:1/-1"><label>附件</label><input type="file" name="attachment" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.doc,.docx,.ppt,.pptx"><small class="muted">支援 jpg、jpeg、png、gif、webp、pdf、txt、doc、docx、ppt、pptx，檔案上限 5MB。</small></div>
+    <div class="field" style="grid-column:1/-1"><label>描述</label><textarea name="description" required>{{ description_value }}</textarea></div>
+    <button class="btn">{% if skill %}更新技能{% else %}送出{% endif %}</button>
+  </form>
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const checkboxes = document.querySelectorAll('.category-checkbox');
-  const warning = document.getElementById('category-warning');
-  
-  checkboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', function() {
-      const checked = document.querySelectorAll('.category-checkbox:checked').length;
-      if (checked > 4) {
-        this.checked = false;
-        warning.style.display = 'block';
-        setTimeout(() => { warning.style.display = 'none'; }, 3000);
-      }
-    });
-  });
-});
-</script>
 {% endblock %}

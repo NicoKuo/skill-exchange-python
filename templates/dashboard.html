@@ -27,7 +27,8 @@
     <h2>我的技能</h2>{% for skill in my_skills %}<div>
         <p><strong>{{ skill.title }}</strong></p>
         <p>分類：{{ skill.category.name if skill.category else '未分類' }}｜方式：{{ skill.method }}｜狀態：{% if skill.is_active %}啟用中{% else %}已下架{% endif %}</p>
-        <p>地區：{{ skill.location_area or '未填' }}｜可配合星期：{{ skill.available_day or '未填' }}｜時間：{{ skill.start_time.strftime('%H:%M') if skill.start_time else '未填' }} - {{ skill.end_time.strftime('%H:%M') if skill.end_time else '未填' }}</p>
+        <p>地點類型：{{ skill_location_type_label(skill.location_type) }}｜地區：{{ skill.location_area or '未設定' }}｜詳細地點：{{ skill.location_detail or '未設定' }}</p>
+        <p>可配合星期：{{ skill_available_day_label(skill.available_day) }}｜時間：{{ format_skill_time(skill.start_time) }} - {{ format_skill_time(skill.end_time) }}</p>
         <div>{{ render_skill_description(skill.description) }}</div>
         {% if skill.attachment_data %}
         {% set attachment_url = normalize_skill_attachment_url(skill) %}

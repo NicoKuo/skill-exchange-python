@@ -54,8 +54,6 @@ class Skill(db.Model):
     available_day = db.Column(db.String(20))
     start_time = db.Column(db.Time)
     end_time = db.Column(db.Time)
-    location = db.Column(db.String(100))
-    available_time = db.Column(db.String(255))
     status = db.Column(db.String(20), default='open')
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

@@ -53,17 +53,6 @@ def detect_attachment_type(filename_or_url):
     return 'file'
 
 
-def strip_category_prefix(description):
-    if not description:
-        return ''
-
-    lines = description.splitlines()
-    if lines and lines[0].startswith('[分類] '):
-        return '\n'.join(lines[1:]).lstrip()
-
-    return description
-
-
 def parse_time_input(value):
     value = (value or '').strip()
     if not value:
@@ -79,31 +68,27 @@ def build_skill_form_values(skill=None):
             'description_value': request.form.get('description', '').strip(),
             'type_value': request.form.get('type', 'offer'),
             'method_value': request.form.get('method', 'online'),
+            'category_id_value': request.form.get('category_id', '').strip(),
             'location_type_value': request.form.get('location_type', '').strip(),
             'location_area_value': request.form.get('location_area', '').strip(),
             'location_detail_value': request.form.get('location_detail', '').strip(),
             'available_day_value': request.form.get('available_day', '').strip(),
             'start_time_value': request.form.get('start_time', '').strip(),
             'end_time_value': request.form.get('end_time', '').strip(),
-            'location_value': request.form.get('location', '').strip(),
-            'available_time_value': request.form.get('available_time', '').strip(),
-            'selected_category_ids': [int(value) for value in request.form.getlist('categories') if value.isdigit()],
         }
 
     return {
         'title_value': skill.title if skill else '',
-        'description_value': strip_category_prefix(skill.description) if skill else '',
+        'description_value': skill.description if skill else '',
         'type_value': skill.type if skill else 'offer',
         'method_value': skill.method if skill else 'online',
+        'category_id_value': str(skill.category_id) if skill and skill.category_id else '',
         'location_type_value': skill.location_type if skill and skill.location_type else '',
         'location_area_value': skill.location_area if skill and skill.location_area else '',
         'location_detail_value': skill.location_detail if skill and skill.location_detail else '',
         'available_day_value': skill.available_day if skill and skill.available_day else '',
         'start_time_value': skill.start_time.strftime('%H:%M') if skill and skill.start_time else '',
         'end_time_value': skill.end_time.strftime('%H:%M') if skill and skill.end_time else '',
-        'location_value': skill.location if skill and skill.location else '',
-        'available_time_value': skill.available_time if skill and skill.available_time else '',
-        'selected_category_ids': [skill.category_id] if skill and skill.category_id else [],
     }
 
 
@@ -133,7 +118,9 @@ def skill_attachment(skill_id=None, filename=None):
 def skills():
     keyword = request.args.get("keyword", "").strip()
     category_id = request.args.get("category_id", "").strip()
+    skill_type = request.args.get("type", "").strip()
     method = request.args.get("method", "").strip()
+    location_type = request.args.get("location_type", "").strip()
     location_area = request.args.get("location_area", "").strip()
     available_day = request.args.get("available_day", "").strip()
     applied_skill_ids = set()
@@ -163,19 +150,25 @@ def skills():
         )
 
     if category_id:
-        query = query.filter_by(category_id=int(category_id))
+        query = query.filter(Skill.category_id == int(category_id))
+
+    if skill_type:
+        query = query.filter(Skill.type == skill_type)
 
     if method:
         query = query.filter_by(method=method)
 
+    if location_type:
+        query = query.filter(Skill.location_type == location_type)
+
     if location_area:
-        query = query.filter(Skill.location_area.contains(location_area))
+        query = query.filter(Skill.location_area == location_area)
 
     if available_day:
-        query = query.filter(Skill.available_day.contains(available_day))
+        query = query.filter(Skill.available_day == available_day)
 
     skills = query.order_by(Skill.created_at.desc()).all()
-    categories = SkillCategory.query.all()
+    categories = SkillCategory.query.order_by(SkillCategory.name.asc()).all()
 
     return render_template(
         "skills.html",
@@ -183,7 +176,9 @@ def skills():
         categories=categories,
         keyword=keyword,
         category_id=category_id,
+        type=skill_type,
         method=method,
+        location_type=location_type,
         location_area=location_area,
         available_day=available_day,
         applied_skill_ids=applied_skill_ids,
@@ -208,7 +203,7 @@ def add_skill():
     if added_default_category or not existing:
         db.session.commit()
 
-    categories = SkillCategory.query.all()
+    categories = SkillCategory.query.order_by(SkillCategory.name.asc()).all()
     form_values = build_skill_form_values()
 
     if request.method == "POST":
@@ -232,23 +227,13 @@ def add_skill():
             attachment_mime = attachment.mimetype or 'application/octet-stream'
             attachment_type = detect_attachment_type(attachment_name or attachment_mime)
 
-        # handle multiple category checkboxes
-        selected = [str(value) for value in form_values['selected_category_ids']]
-        if len(selected) > 4:
-            flash("分類最多只能選擇 4 個", "error")
-            return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
-        
-        primary_category = int(selected[0]) if selected else None
-        # append chosen category names as a prefix tag in description to preserve multi-select
-        category_names = []
-        if selected:
-            cats = SkillCategory.query.filter(SkillCategory.id.in_([int(x) for x in selected])).all()
-            category_names = [c.name for c in cats]
-
         title = form_values['title_value']
         description_text = form_values['description_value']
-        if category_names:
-            description_text = f"[分類] {', '.join(category_names)}\n" + description_text
+        category_id_raw = form_values['category_id_value']
+        location_type = form_values['location_type_value']
+        location_area = form_values['location_area_value']
+        location_detail = form_values['location_detail_value']
+        available_day = form_values['available_day_value']
 
         try:
             start_time = parse_time_input(form_values['start_time_value'])
@@ -257,21 +242,51 @@ def add_skill():
             flash("開始時間與結束時間格式不正確，請使用時間選擇器。", "error")
             return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
 
+        if not title:
+            flash("技能標題必填。", "error")
+            return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
+
+        if not description_text:
+            flash("技能描述必填。", "error")
+            return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
+
+        if len(title) > 50:
+            flash("技能標題最多 50 個字。", "error")
+            return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
+
+        if not category_id_raw.isdigit():
+            flash("請選擇分類。", "error")
+            return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
+
+        if not location_type:
+            flash("請選擇地點類型。", "error")
+            return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
+
+        if not location_area:
+            flash("請選擇地區。", "error")
+            return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
+
+        if not available_day:
+            flash("請選擇可配合星期。", "error")
+            return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
+
+        if start_time and end_time and end_time < start_time:
+            flash("結束時間不可早於開始時間。", "error")
+            return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
+
         skill = Skill(
             user_id=current_user.id,
-            category_id=primary_category,
+            category_id=int(category_id_raw),
             title=title,
             description=description_text,
             type=form_values['type_value'],
             method=form_values['method_value'],
-            location_type=form_values['location_type_value'],
-            location_area=form_values['location_area_value'],
-            location_detail=form_values['location_detail_value'],
-            available_day=form_values['available_day_value'],
+            location_type=location_type,
+            location_area=location_area,
+            location_detail=location_detail,
+            available_day=available_day,
             start_time=start_time,
             end_time=end_time,
-            location=form_values['location_value'],
-            available_time=form_values['available_time_value'],
             status="open",
             is_active=True,
             attachment_data=attachment_data,
@@ -280,21 +295,16 @@ def add_skill():
             attachment_type=attachment_type,
         )
 
-        if not skill.title or not skill.description:
-            flash("技能標題與描述必填。", "error")
-        elif len(skill.title) > 50:
-            flash("技能標題最多 50 個字。", "error")
-        else:
-            db.session.add(skill)
+        db.session.add(skill)
+        db.session.commit()
+        try:
+            log = ActivityLog(user_id=current_user.id, action='create_skill', detail=f'skill_id={skill.id}|title={skill.title}', ip_address=request.remote_addr)
+            db.session.add(log)
             db.session.commit()
-            try:
-                log = ActivityLog(user_id=current_user.id, action='create_skill', detail=f'skill_id={skill.id}|title={skill.title}', ip_address=request.remote_addr)
-                db.session.add(log)
-                db.session.commit()
-            except Exception:
-                db.session.rollback()
-            flash("技能已上架。", "success")
-            return redirect(url_for(".skills"))
+        except Exception:
+            db.session.rollback()
+        flash("技能已上架。", "success")
+        return redirect(url_for(".skills"))
 
     return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
 
@@ -307,7 +317,7 @@ def edit_skill(skill_id):
     if skill.user_id != current_user.id:
         abort(403)
 
-    categories = SkillCategory.query.all()
+    categories = SkillCategory.query.order_by(SkillCategory.name.asc()).all()
     form_values = build_skill_form_values(skill)
 
     if request.method == "POST":
@@ -331,21 +341,13 @@ def edit_skill(skill_id):
             attachment_mime = attachment.mimetype or 'application/octet-stream'
             attachment_type = detect_attachment_type(attachment_name or attachment_mime)
 
-        selected = [str(value) for value in form_values['selected_category_ids']] or ([str(skill.category_id)] if skill.category_id else [])
-        if len(selected) > 4:
-            flash("分類最多只能選擇 4 個", "error")
-            return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
-
-        primary_category = int(selected[0]) if selected else None
-        category_names = []
-        if selected:
-            cats = SkillCategory.query.filter(SkillCategory.id.in_([int(x) for x in selected])).all()
-            category_names = [c.name for c in cats]
-
         title = form_values['title_value']
         description_text = form_values['description_value']
-        if category_names:
-            description_text = f"[分類] {', '.join(category_names)}\n" + description_text
+        category_id_raw = form_values['category_id_value']
+        location_type = form_values['location_type_value']
+        location_area = form_values['location_area_value']
+        location_detail = form_values['location_detail_value']
+        available_day = form_values['available_day_value']
 
         try:
             start_time = parse_time_input(form_values['start_time_value'])
@@ -354,27 +356,49 @@ def edit_skill(skill_id):
             flash("開始時間與結束時間格式不正確，請使用時間選擇器。", "error")
             return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
 
-        if not title or not description_text:
-            flash("技能標題與描述必填。", "error")
+        if not title:
+            flash("技能標題必填。", "error")
+            return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
+
+        if not description_text:
+            flash("技能描述必填。", "error")
             return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
 
         if len(title) > 50:
             flash("技能標題最多 50 個字。", "error")
             return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
 
-        skill.category_id = primary_category
+        if not category_id_raw.isdigit():
+            flash("請選擇分類。", "error")
+            return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
+
+        if not location_type:
+            flash("請選擇地點類型。", "error")
+            return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
+
+        if not location_area:
+            flash("請選擇地區。", "error")
+            return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
+
+        if not available_day:
+            flash("請選擇可配合星期。", "error")
+            return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
+
+        if start_time and end_time and end_time < start_time:
+            flash("結束時間不可早於開始時間。", "error")
+            return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
+
+        skill.category_id = int(category_id_raw)
         skill.title = title
         skill.description = description_text
         skill.type = form_values['type_value']
         skill.method = form_values['method_value']
-        skill.location_type = form_values['location_type_value']
-        skill.location_area = form_values['location_area_value']
-        skill.location_detail = form_values['location_detail_value']
-        skill.available_day = form_values['available_day_value']
+        skill.location_type = location_type
+        skill.location_area = location_area
+        skill.location_detail = location_detail
+        skill.available_day = available_day
         skill.start_time = start_time
         skill.end_time = end_time
-        skill.location = form_values['location_value']
-        skill.available_time = form_values['available_time_value']
         skill.attachment_data = attachment_data
         skill.attachment_name = attachment_name
         skill.attachment_mime = attachment_mime

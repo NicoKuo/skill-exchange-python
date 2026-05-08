@@ -36,6 +36,36 @@ from routes import (
 
 load_dotenv()
 
+SKILL_LOCATION_TYPE_LABELS = {
+    'online': '線上',
+    'campus': '校內',
+    'off_campus': '校外',
+}
+
+SKILL_AVAILABLE_DAY_LABELS = {
+    'mon': '星期一',
+    'tue': '星期二',
+    'wed': '星期三',
+    'thu': '星期四',
+    'fri': '星期五',
+    'sat': '星期六',
+    'sun': '星期日',
+    'weekend': '週末',
+    'flexible': '彈性',
+}
+
+
+def skill_location_type_label(value):
+    return SKILL_LOCATION_TYPE_LABELS.get(value, '未設定')
+
+
+def skill_available_day_label(value):
+    return SKILL_AVAILABLE_DAY_LABELS.get(value, '未設定')
+
+
+def format_skill_time(value):
+    return value.strftime('%H:%M') if value else '未設定'
+
 # Endpoint mapping for backward compatibility
 ENDPOINT_ALIASES = {
     'index': 'main.index',
@@ -178,6 +208,9 @@ def create_app():
             format_taiwan_time=format_taiwan_time,
             render_skill_description=render_skill_description,
             user_pending_review_count=user_pending_review_count,
+            skill_location_type_label=skill_location_type_label,
+            skill_available_day_label=skill_available_day_label,
+            format_skill_time=format_skill_time,
             url_for=url_for_compat  # Override url_for with compatibility wrapper
         )
 

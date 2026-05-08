@@ -308,7 +308,7 @@ def skill_match_score(skill, user):
     if skill.method == 'both':
         score += 10
 
-    if skill.location and user.bio and skill.location in user.bio:
+    if skill.location_area and user.bio and skill.location_area in user.bio:
         score += 10
 
     if skill.type == 'offer':

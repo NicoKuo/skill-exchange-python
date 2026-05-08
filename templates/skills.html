@@ -3,17 +3,46 @@
     <form method="get" class="form-grid">
         <div class="field"><label>關鍵字</label><input name="keyword" value="{{ keyword }}" placeholder="英文、剪輯、設計"></div>
         <div class="field"><label>分類</label><select name="category_id">
-                <option value="">全部</option>{% for c in categories %}<option value="{{ c.id }}" {% if category_id and
-                    category_id|int==c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                <option value="">全部分類</option>{% for c in categories %}<option value="{{ c.id }}" {% if category_id and category_id|int == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+            </select></div>
+        <div class="field"><label>技能類型</label><select name="type">
+                <option value="">全部技能類型</option>
+                <option value="offer" {% if type=='offer' %}selected{% endif %}>我可以教</option>
+                <option value="learn" {% if type=='learn' %}selected{% endif %}>我想學</option>
             </select></div>
         <div class="field"><label>方式</label><select name="method">
-                <option value="">全部</option>
-                <option value="online" {% if method=='online' %}selected{% endif %}>online</option>
-                <option value="offline" {% if method=='offline' %}selected{% endif %}>offline</option>
-                <option value="both" {% if method=='both' %}selected{% endif %}>both</option>
+                <option value="">全部教學方式</option>
+                <option value="online" {% if method=='online' %}selected{% endif %}>線上</option>
+                <option value="offline" {% if method=='offline' %}selected{% endif %}>實體</option>
+                <option value="both" {% if method=='both' %}selected{% endif %}>皆可</option>
             </select></div>
-        <div class="field"><label>地區</label><input name="location_area" value="{{ location_area }}" placeholder="台北市、大安區"></div>
-        <div class="field"><label>可配合星期</label><input name="available_day" value="{{ available_day }}" placeholder="週一、週三、週末"></div>
+        <div class="field"><label>地點類型</label><select name="location_type">
+                <option value="">全部地點類型</option>
+                <option value="online" {% if location_type=='online' %}selected{% endif %}>線上</option>
+                <option value="campus" {% if location_type=='campus' %}selected{% endif %}>校內</option>
+                <option value="off_campus" {% if location_type=='off_campus' %}selected{% endif %}>校外</option>
+            </select></div>
+        <div class="field"><label>地區</label><select name="location_area">
+                <option value="">全部地區</option>
+                <option value="輔大校內" {% if location_area=='輔大校內' %}selected{% endif %}>輔大校內</option>
+                <option value="新北" {% if location_area=='新北' %}selected{% endif %}>新北</option>
+                <option value="台北" {% if location_area=='台北' %}selected{% endif %}>台北</option>
+                <option value="桃園" {% if location_area=='桃園' %}selected{% endif %}>桃園</option>
+                <option value="線上" {% if location_area=='線上' %}selected{% endif %}>線上</option>
+                <option value="其他" {% if location_area=='其他' %}selected{% endif %}>其他</option>
+            </select></div>
+        <div class="field"><label>可配合星期</label><select name="available_day">
+                <option value="">全部星期</option>
+                <option value="mon" {% if available_day=='mon' %}selected{% endif %}>星期一</option>
+                <option value="tue" {% if available_day=='tue' %}selected{% endif %}>星期二</option>
+                <option value="wed" {% if available_day=='wed' %}selected{% endif %}>星期三</option>
+                <option value="thu" {% if available_day=='thu' %}selected{% endif %}>星期四</option>
+                <option value="fri" {% if available_day=='fri' %}selected{% endif %}>星期五</option>
+                <option value="sat" {% if available_day=='sat' %}selected{% endif %}>星期六</option>
+                <option value="sun" {% if available_day=='sun' %}selected{% endif %}>星期日</option>
+                <option value="weekend" {% if available_day=='weekend' %}selected{% endif %}>週末</option>
+                <option value="flexible" {% if available_day=='flexible' %}selected{% endif %}>彈性</option>
+            </select></div>
         <div style="align-self:end"><button class="btn">搜尋</button></div>
     </form>
 </section>
@@ -39,10 +68,10 @@
             {% endif %}
         <div class="pill-list"><span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span><span
             class="tag tag-green">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span><span
-            class="tag tag-yellow">{{ skill.method }}</span></div>
-        <p class="kpi">發佈者：<a href="{{ url_for('profile.view_user', user_id=skill.user.id) }}" style="color:inherit;text-decoration:underline;text-underline-offset:2px;">{{ skill.user.name }}</a>{% if skill.user.department %}｜{{ skill.user.department }}{% endif %}{% if skill.user.grade %}｜{{ skill.user.grade }}{% endif %}｜時間：{{ skill.available_time or '未填' }}</p>
-        <p class="kpi" style="font-size:13px; margin-top:6px; color:#475569;">地點類型：{{ skill.location_type or '未填' }}｜地區：{{ skill.location_area or '未填' }}｜詳細地點：{{ skill.location_detail or '未填' }}</p>
-        <p class="kpi" style="font-size:13px; margin-top:6px; color:#475569;">可配合星期：{{ skill.available_day or '未填' }}｜時間：{{ skill.start_time.strftime('%H:%M') if skill.start_time else '未填' }} - {{ skill.end_time.strftime('%H:%M') if skill.end_time else '未填' }}｜舊地點：{{ skill.location or '未填' }}</p>
+            class="tag tag-yellow">{{ skill_location_type_label(skill.location_type) }}</span></div>
+        <p class="kpi">發佈者：<a href="{{ url_for('profile.view_user', user_id=skill.user.id) }}" style="color:inherit;text-decoration:underline;text-underline-offset:2px;">{{ skill.user.name }}</a>{% if skill.user.department %}｜{{ skill.user.department }}{% endif %}{% if skill.user.grade %}｜{{ skill.user.grade }}{% endif %}</p>
+        <p class="kpi" style="font-size:13px; margin-top:6px; color:#475569;">地點類型：{{ skill_location_type_label(skill.location_type) }}｜地區：{{ skill.location_area or '未設定' }}｜詳細地點：{{ skill.location_detail or '未設定' }}</p>
+        <p class="kpi" style="font-size:13px; margin-top:6px; color:#475569;">可配合星期：{{ skill_available_day_label(skill.available_day) }}｜時間：{{ format_skill_time(skill.start_time) }} - {{ format_skill_time(skill.end_time) }}</p>
         <p class="kpi" style="font-size:13px; margin-top:6px; color:#475569;">平均評分：{{ user_average_rating(skill.user.id) }} ｜ 完成交換：{{ user_completed_matches(skill.user.id) }} 次</p>
         {% if current_user.is_authenticated and current_user.id == skill.user_id %}
         <div style="margin-top:10px;">

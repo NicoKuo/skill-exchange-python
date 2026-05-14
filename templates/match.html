@@ -19,6 +19,32 @@
             {% endif %}
         <div class="pill-list"><span class="tag tag-green">成功率 {{ skill_match_score(selected_skill,current_user)
             }}%</span><span class="tag">{{ '我可以教' if selected_skill.type=='offer' else '我想學' }}</span></div>
+    {% if user_exchange_skills or other_exchange_skills %}
+    <div class="card" style="margin-top: 16px; border: 1px solid #c7d2fe; background: #eff6ff;">
+        <strong>雙向交換建議</strong>
+        <p class="muted" style="margin:8px 0 12px;">以下列出你與對方各自目前可提供/想學的技能，讓你更容易確認是否可以進行交換。</p>
+        {% if user_exchange_skills %}
+        <div style="margin-bottom: 12px;">
+            <strong>你的交換候選技能</strong>
+            <ul style="margin: 8px 0 0; padding-left: 18px;">
+                {% for skill in user_exchange_skills %}
+                <li>{{ skill.title }} <span class="tag tag-blue" style="margin-left:8px;">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span></li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% if other_exchange_skills %}
+        <div>
+            <strong>對方目前可交換/想要的技能</strong>
+            <ul style="margin: 8px 0 0; padding-left: 18px;">
+                {% for skill in other_exchange_skills %}
+                <li>{{ skill.title }} <span class="tag tag-green" style="margin-left:8px;">{{ '我可以教' if skill.type=='offer' else '我想學' }}</span></li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
     {% if pending_review_count > 0 %}
     <div class="card" style="margin-top: 16px; border: 1px solid #f59e0b; background: #fff7ed;">
         <strong>你還有 {{ pending_review_count }} 筆完成媒合尚未評價</strong>

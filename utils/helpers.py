@@ -317,6 +317,34 @@ def skill_match_score(skill, user):
     return min(score, 95)
 
 
+def exchange_candidate_skills(selected_skill, current_user):
+    if not selected_skill or selected_skill.user_id == current_user.id:
+        return [], []
+
+    if selected_skill.type == 'offer':
+        my_type = 'offer'
+        other_type = 'learn'
+    else:
+        my_type = 'learn'
+        other_type = 'offer'
+
+    my_skills = Skill.query.filter_by(
+        user_id=current_user.id,
+        type=my_type,
+        status='open',
+        is_active=True,
+    ).order_by(Skill.created_at.desc()).all()
+
+    other_skills = Skill.query.filter_by(
+        user_id=selected_skill.user_id,
+        type=other_type,
+        status='open',
+        is_active=True,
+    ).order_by(Skill.created_at.desc()).all()
+
+    return my_skills, other_skills
+
+
 def split_skill_description(description):
     if not description:
         return '', None

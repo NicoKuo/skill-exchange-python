@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 
 from models import db, Match, Skill, Message, Notification, ActivityLog, Report
-from utils import add_notification, user_pending_review_count
+from utils import add_notification, exchange_candidate_skills, user_pending_review_count
 
 matches_bp = Blueprint('matches', __name__)
 
@@ -103,6 +103,9 @@ def match_center():
 
     selected_skill = None
     selected_skill_has_match = False
+    user_exchange_skills = []
+    other_exchange_skills = []
+
     if request.args.get("skill_id"):
         selected_skill = Skill.query.get_or_404(int(request.args.get("skill_id")))
         if not selected_skill.is_active or selected_skill.status != 'open':
@@ -116,6 +119,9 @@ def match_center():
                 Match.receiver_id == current_user.id,
             )
         ).first() is not None
+
+        if current_user.is_authenticated and current_user.id != selected_skill.user_id:
+            user_exchange_skills, other_exchange_skills = exchange_candidate_skills(selected_skill, current_user)
 
     matches = Match.query.filter(
         or_(
@@ -138,6 +144,8 @@ def match_center():
         "match.html",
         selected_skill=selected_skill,
         selected_skill_has_match=selected_skill_has_match,
+        user_exchange_skills=user_exchange_skills,
+        other_exchange_skills=other_exchange_skills,
         matches=matches,
         pending_review_count=pending_review_count,
         unread_map=unread_map,

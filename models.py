@@ -149,9 +149,8 @@ class Report(db.Model):
     evidence_file_url = db.Column(db.String(500), nullable=True)
     evidence_file_name = db.Column(db.String(255), nullable=True)
     evidence_file_type = db.Column(db.String(20), nullable=True)
-    status = db.Column(db.String(20), default='pending', nullable=False, index=True)  # pending, reviewed, rejected, resolved, punished
+    status = db.Column(db.String(20), default='pending', nullable=False, index=True)  # pending, reviewed, rejected, resolved
     admin_note = db.Column(db.Text, nullable=True)
-    feedback = db.Column(db.Text, nullable=True)
     reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)

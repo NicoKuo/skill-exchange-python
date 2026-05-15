@@ -1,4 +1,6 @@
-# 管理後台 - 會員、技能、媒合與管理者管理
+# routes/admin.py: 管理後台路由
+# 功能：使用者管理、技能審核、媒合監督、管理員管理、活動日誌、檢舉處理
+# 存取控制：admin（一般管理員）可管理一般使用者；super_admin 可管理管理員
 from collections import Counter
 from datetime import datetime
 from functools import wraps
@@ -12,6 +14,7 @@ from utils import format_taiwan_time
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 
+# 檢舉狀態對應的回饋通知文字（發送給檢舉人）
 REPORT_FEEDBACK_MESSAGES = {
     'reviewed': '你的檢舉已被管理員受理，我們會進一步審查。',
     'rejected': '你的檢舉經審查後未發現明確違規。',
@@ -19,6 +22,7 @@ REPORT_FEEDBACK_MESSAGES = {
     'punished': '你檢舉的內容已確認違規，系統已採取處置。',
 }
 
+# 帳號處置狀態對應的通知文字（發送給被處置的使用者）
 ACCOUNT_ACTION_MESSAGES = {
     'active': '你的帳號限制已解除，目前可正常使用。',
     'suspended': '你的帳號因違反平台規範已被停權。',
@@ -27,11 +31,16 @@ ACCOUNT_ACTION_MESSAGES = {
 
 
 def _normalize_user_status(status):
+    """將帳號狀態規範化：將舊版的 'blocked' 統一轉換為 'banned'。"""
     status = (status or '').strip()
     return 'banned' if status == 'blocked' else status
 
 
 def _append_feedback_text(base_text, feedback):
+    """
+    將管理員的補充說明（feedback）附加到通知文字後方。
+    若總長度超過 255 字元上限，自動截斷並加上省略號。
+    """
     feedback = (feedback or '').strip()
     if not feedback:
         return base_text
@@ -41,6 +50,7 @@ def _append_feedback_text(base_text, feedback):
     if len(base_text) + len(suffix) <= max_content_length:
         return f'{base_text}{suffix}'
 
+    # 計算 feedback 可用的最大長度
     available = max_content_length - len(base_text) - len(' 處理說明：') - 3
     if available <= 0:
         return f'{base_text[:max_content_length - 3]}...'
@@ -49,6 +59,10 @@ def _append_feedback_text(base_text, feedback):
 
 
 def _build_report_feedback_message(status, feedback=''):
+    """
+    建立要發送給檢舉人的通知訊息。
+    根據檢舉狀態取得對應文字，並附加管理員說明。
+    """
     base_text = REPORT_FEEDBACK_MESSAGES.get(status)
     if not base_text:
         return ''
@@ -56,6 +70,10 @@ def _build_report_feedback_message(status, feedback=''):
 
 
 def _build_account_action_message(status, feedback=''):
+    """
+    建立要發送給被處置使用者的通知訊息。
+    根據新帳號狀態取得對應文字，並附加處置說明。
+    """
     base_text = ACCOUNT_ACTION_MESSAGES.get(status)
     if not base_text:
         return ''
@@ -63,6 +81,12 @@ def _build_account_action_message(status, feedback=''):
 
 
 def _can_manage_user_status(target_user):
+    """
+    判斷目前管理員是否有權限修改指定使用者的帳號狀態。
+    規則：
+    - super_admin 可以管理所有人
+    - admin 只能管理一般 user（無法管理 admin 或 super_admin）
+    """
     if not target_user:
         return False
 
@@ -73,6 +97,10 @@ def _can_manage_user_status(target_user):
 
 
 def super_admin_required(fn):
+    """
+    裝飾器：限制只有 super_admin 才能存取的路由。
+    非 super_admin 存取時回傳 403 Forbidden。
+    """
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if not current_user.is_authenticated or current_user.role != 'super_admin':
@@ -83,6 +111,10 @@ def super_admin_required(fn):
 
 
 def admin_required(fn):
+    """
+    裝飾器：限制只有 admin 或 super_admin 才能存取的路由。
+    一般使用者存取時回傳 403 Forbidden。
+    """
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if not current_user.is_authenticated or current_user.role not in ['admin', 'super_admin']:
@@ -93,6 +125,7 @@ def admin_required(fn):
 
 
 def _admin_counts():
+    """取得後台統計數字：使用者總數、技能總數、媒合總數。"""
     return {
         'users': User.query.count(),
         'skills': Skill.query.count(),
@@ -101,6 +134,10 @@ def _admin_counts():
 
 
 def _completed_exchange_counts():
+    """
+    計算每位使用者的已完成交換次數。
+    申請方和被申請方都各計一次，回傳 {user_id: 次數} 的 Counter 物件。
+    """
     counts = Counter()
     completed_matches = Match.query.filter(Match.status == 'completed').with_entities(
         Match.requester_id,
@@ -115,8 +152,13 @@ def _completed_exchange_counts():
 
 
 def _recent_activities(limit=8):
+    """
+    取得最近的平台活動列表（用於後台儀表板）。
+    混合新會員、新技能、新媒合三種類型的記錄，依時間倒序排列後取前 limit 筆。
+    """
     activities = []
 
+    # 新會員記錄
     for user in User.query.order_by(User.created_at.desc()).limit(limit).all():
         activities.append({
             'kind': '新會員',
@@ -126,6 +168,7 @@ def _recent_activities(limit=8):
             'created_at': user.created_at,
         })
 
+    # 新技能記錄
     for skill in Skill.query.order_by(Skill.created_at.desc()).limit(limit).all():
         activities.append({
             'kind': '新技能',
@@ -135,6 +178,7 @@ def _recent_activities(limit=8):
             'created_at': skill.created_at,
         })
 
+    # 新媒合記錄
     for match in Match.query.order_by(Match.created_at.desc()).limit(limit).all():
         activities.append({
             'kind': '交換申請',
@@ -144,11 +188,13 @@ def _recent_activities(limit=8):
             'created_at': match.created_at,
         })
 
+    # 依時間倒序排列（None 時間排最後）
     activities.sort(
         key=lambda item: item['created_at'] or datetime.min,
         reverse=True,
     )
 
+    # 將時間格式化為台灣時區字串
     for item in activities:
         item['created_at_text'] = format_taiwan_time(item['created_at'], '%Y-%m-%d %H:%M')
 
@@ -157,6 +203,11 @@ def _recent_activities(limit=8):
 
 @admin_bp.route('/entry', endpoint='entry')
 def entry():
+    """
+    管理後台入口路由。
+    已登入的管理員自動導向後台儀表板，
+    非管理員顯示無權限錯誤並導回首頁。
+    """
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
 
@@ -171,6 +222,10 @@ def entry():
 @login_required
 @admin_required
 def dashboard():
+    """
+    後台儀表板路由。需管理員以上權限。
+    顯示平台統計數字和最近的活動記錄。
+    """
     return render_template(
         'admin/dashboard.html',
         current_page='dashboard',
@@ -183,11 +238,18 @@ def dashboard():
 @login_required
 @admin_required
 def users():
+    """
+    使用者管理列表路由。需管理員以上權限。
+    顯示所有使用者，並計算各使用者的已完成交換次數。
+    manageable_user_ids：目前管理員有權限修改狀態的使用者 ID 集合
+    （super_admin 可管理 user 和 admin；admin 只能管理 user）。
+    """
     users = User.query.order_by(User.created_at.desc()).all()
     completed_counts = _completed_exchange_counts()
     manageable_user_ids = set()
 
     for user in users:
+        # 不能管理自己，也不能管理 super_admin
         if user.id == current_user.id or user.role == 'super_admin':
             continue
 
@@ -210,19 +272,32 @@ def users():
 @login_required
 @admin_required
 def update_user_status(user_id):
+    """
+    更新使用者帳號狀態路由（POST）。需管理員以上權限。
+    允許的狀態：active（正常）/ suspended（停權）/ banned（封禁）。
+    安全限制：
+    - 不能將自己停權或封禁
+    - admin 不能修改 admin 或 super_admin 的狀態
+    - 若狀態未變更，顯示警告訊息
+    操作記錄會寫入活動日誌。
+    """
     target_user = User.query.get_or_404(user_id)
     new_status = _normalize_user_status(request.form.get('status', ''))
     allowed_statuses = {'active', 'suspended', 'banned'}
 
+    # 驗證狀態值
     if new_status not in allowed_statuses:
         abort(400)
 
+    # 不能將自己的帳號停權或封禁
     if target_user.id == current_user.id and new_status in {'suspended', 'banned'}:
         abort(403)
 
+    # 權限檢查
     if not _can_manage_user_status(target_user):
         abort(403)
 
+    # 若狀態沒有變更，不需要更新
     current_status = _normalize_user_status(target_user.status)
     if current_status == new_status:
         flash('帳號狀態沒有變更。', 'warning')
@@ -230,7 +305,7 @@ def update_user_status(user_id):
 
     target_user.status = new_status
     db.session.commit()
-    # record admin action
+    # 記錄管理員操作日誌
     try:
         log = ActivityLog(user_id=current_user.id, action='admin_update_user_status', detail=f'target_user_id={target_user.id}|new_status={new_status}', ip_address=request.remote_addr)
         db.session.add(log)
@@ -245,6 +320,10 @@ def update_user_status(user_id):
 @login_required
 @admin_required
 def skills():
+    """
+    技能審核列表路由。需管理員以上權限。
+    顯示所有技能（含已下架），依建立時間倒序排列。
+    """
     skills = Skill.query.order_by(Skill.created_at.desc()).all()
     return render_template('admin/skills.html', current_page='skills', skills=skills, stats=_admin_counts())
 
@@ -253,6 +332,10 @@ def skills():
 @login_required
 @admin_required
 def deactivate_skill(skill_id):
+    """
+    技能下架路由（管理員操作）。需管理員以上權限。
+    將技能標記為下架（is_active=False），已下架的技能不允許重複操作。
+    """
     skill = Skill.query.get_or_404(skill_id)
 
     if not skill.is_active:
@@ -270,8 +353,14 @@ def deactivate_skill(skill_id):
 @login_required
 @admin_required
 def delete_skill(skill_id):
+    """
+    技能刪除路由（管理員操作）。需管理員以上權限。
+    若技能有關聯的媒合或檢舉記錄，不可直接刪除（改為下架）。
+    無關聯資料時才執行完整刪除。
+    """
     skill = Skill.query.get_or_404(skill_id)
 
+    # 檢查是否有關聯資料（有則只下架，不刪除）
     has_matches = Match.query.filter_by(skill_id=skill.id).count() > 0
     has_reports = Report.query.filter_by(skill_id=skill.id).count() > 0
 
@@ -292,6 +381,11 @@ def delete_skill(skill_id):
 @login_required
 @admin_required
 def skill_action(skill_id):
+    """
+    技能操作路由：根據 action 參數分派到對應的操作。
+    action='take_down'：下架技能
+    action='delete'：刪除技能
+    """
     action = request.form.get('action')
     if action == 'take_down':
         return deactivate_skill(skill_id)
@@ -305,6 +399,10 @@ def skill_action(skill_id):
 @login_required
 @admin_required
 def matches():
+    """
+    媒合監督列表路由。需管理員以上權限。
+    顯示所有媒合記錄，依更新時間倒序排列。
+    """
     matches = Match.query.order_by(Match.updated_at.desc()).all()
     return render_template('admin/matches.html', current_page='matches', matches=matches, stats=_admin_counts())
 
@@ -314,9 +412,15 @@ def matches():
 @admin_required
 @super_admin_required
 def managers():
+    """
+    管理員管理列表路由。只有 super_admin 才可存取。
+    顯示所有管理員和一般使用者的清單，支援姓名和 Email 搜尋。
+    從此頁面可以升級使用者為管理員或刪除管理員。
+    """
     search_query = request.args.get('search', '').strip()
-    
+
     if search_query:
+        # 模糊搜尋姓名或 Email
         users = User.query.filter(
             db.or_(
                 User.name.ilike(f'%{search_query}%'),
@@ -325,8 +429,8 @@ def managers():
         ).order_by(User.created_at.desc()).all()
     else:
         users = User.query.order_by(User.created_at.desc()).all()
-    
-    # Separate managers and regular users for display
+
+    # 分離管理員和一般使用者以分區顯示
     managers_list = [u for u in users if u.role in ['admin', 'super_admin']]
     regular_users = [u for u in users if u.role == 'user']
 
@@ -344,9 +448,13 @@ def managers():
 @login_required
 @admin_required
 def activity():
-    # show all activity logs
+    """
+    活動日誌路由。需管理員以上權限。
+    顯示最近 200 筆活動記錄，並預先載入相關使用者資料（避免 N+1 查詢）。
+    """
+    # 取得最近 200 筆日誌，依時間倒序
     logs = ActivityLog.query.order_by(ActivityLog.created_at.desc()).limit(200).all()
-    # eager load users
+    # 批次載入相關使用者，減少資料庫查詢次數
     user_ids = [l.user_id for l in logs]
     users = {u.id: u for u in User.query.filter(User.id.in_(user_ids)).all()} if user_ids else {}
     return render_template('admin/activity.html', logs=logs, users=users, stats=_admin_counts())
@@ -356,6 +464,10 @@ def activity():
 @login_required
 @admin_required
 def user_activity(user_id):
+    """
+    個別使用者活動日誌路由。需管理員以上權限。
+    顯示指定使用者的所有活動記錄（登入、上架技能、建立媒合等），依時間倒序。
+    """
     user = User.query.get_or_404(user_id)
     logs = ActivityLog.query.filter_by(user_id=user.id).order_by(ActivityLog.created_at.desc()).all()
     return render_template('admin/user_activity.html', user=user, logs=logs, stats=_admin_counts())
@@ -366,12 +478,20 @@ def user_activity(user_id):
 @admin_required
 @super_admin_required
 def delete_manager(user_id):
+    """
+    刪除管理員路由。只有 super_admin 才可存取。
+    安全限制：
+    - 不能刪除自己
+    - 只能刪除一般 admin，不能刪除 super_admin
+    """
     manager = User.query.get_or_404(user_id)
 
+    # 不能刪除自己
     if manager.id == current_user.id:
         flash('不能刪除自己。', 'error')
         return redirect(url_for('admin.managers'))
 
+    # 只能刪除 admin，不能刪除 super_admin
     if manager.role != 'admin':
         flash('只能刪除一般管理者，不能刪除 super_admin。', 'error')
         return redirect(url_for('admin.managers'))
@@ -387,30 +507,42 @@ def delete_manager(user_id):
 @admin_required
 @super_admin_required
 def promote_manager(user_id):
+    """
+    升級使用者為管理員路由。只有 super_admin 才可存取。
+    安全限制：
+    - 不能修改自己的角色
+    - 只能升級狀態正常（active）的使用者
+    - 已是管理員的使用者無需再升級
+    操作記錄會寫入活動日誌。
+    """
     user = User.query.get_or_404(user_id)
-    
+
+    # 不能修改自己的角色
     if user.id == current_user.id:
         flash('不能修改自己的角色。', 'error')
         return redirect(url_for('admin.managers'))
-    
+
+    # 停權或封禁中的使用者不能設為管理員
     if user.status != 'active':
         flash('停權或封鎖中的使用者不能設為管理者。', 'error')
         return redirect(url_for('admin.managers'))
-    
+
+    # 已是管理員則不需要升級
     if user.role in ['admin', 'super_admin']:
         flash('此使用者已經是管理者。', 'warning')
         return redirect(url_for('admin.managers'))
-    
+
     user.role = 'admin'
     db.session.commit()
-    
+
+    # 記錄升級操作日誌
     try:
         log = ActivityLog(user_id=current_user.id, action='promote_user_to_admin', detail=f'target_user_id={user.id}', ip_address=request.remote_addr)
         db.session.add(log)
         db.session.commit()
     except Exception:
         db.session.rollback()
-    
+
     flash(f'已將 {user.name} 升級為管理者。', 'success')
     return redirect(url_for('admin.managers'))
 
@@ -419,14 +551,18 @@ def promote_manager(user_id):
 @login_required
 @admin_required
 def reports():
+    """
+    檢舉列表路由。需管理員以上權限。
+    支援依狀態篩選（all / pending / reviewed / rejected / resolved / punished）。
+    """
     status_filter = request.args.get('status', 'all')
-    
+
     query = Report.query
     if status_filter != 'all':
         query = query.filter_by(status=status_filter)
-    
+
     reports_list = query.order_by(Report.created_at.desc()).all()
-    
+
     return render_template(
         'admin/reports.html',
         current_page='reports',
@@ -440,6 +576,10 @@ def reports():
 @login_required
 @admin_required
 def report_detail(report_id):
+    """
+    檢舉詳情路由。需管理員以上權限。
+    顯示單筆檢舉的完整資訊（包含被檢舉內容、附件、管理員備註等）。
+    """
     report = Report.query.get_or_404(report_id)
     return render_template(
         'admin/report_detail.html',
@@ -452,6 +592,13 @@ def report_detail(report_id):
 @login_required
 @admin_required
 def update_report(report_id):
+    """
+    更新檢舉狀態路由（POST）。需管理員以上權限。
+    可更新：狀態、管理員備註（admin_note）、回饋給使用者的說明（feedback）。
+    若狀態有變更，自動發送通知給檢舉人；
+    若狀態為 'punished'，另外通知被檢舉的使用者。
+    操作記錄會寫入活動日誌。
+    """
     report = Report.query.get_or_404(report_id)
 
     old_status = report.status
@@ -459,11 +606,13 @@ def update_report(report_id):
     admin_note = request.form.get('admin_note', '').strip()
     feedback = request.form.get('feedback', '').strip()
 
+    # 驗證狀態值
     if new_status not in ['pending', 'reviewed', 'rejected', 'resolved', 'punished']:
         abort(400)
 
     status_changed = old_status != new_status
 
+    # 更新檢舉記錄
     report.status = new_status
     report.admin_note = admin_note
     report.feedback = feedback
@@ -477,8 +626,10 @@ def update_report(report_id):
         flash('檢舉更新失敗，請稍後再試。', 'error')
         return redirect(url_for('admin.report_detail', report_id=report_id))
 
+    # 狀態有變更時，發送通知給相關使用者
     if status_changed:
         notifications = []
+        # 發送通知給檢舉人
         reporter_message = _build_report_feedback_message(new_status, feedback)
 
         if reporter_message:
@@ -491,6 +642,7 @@ def update_report(report_id):
                 )
             )
 
+        # 若狀態為 punished，另外通知被檢舉的使用者
         if new_status == 'punished' and report.reported_user_id and report.reported_user_id != report.reporter_id:
             punished_target_message = _append_feedback_text(
                 '你收到一則檢舉審核結果：經管理員審查確認違規，系統已對你的帳號或內容採取處置。',
@@ -512,6 +664,7 @@ def update_report(report_id):
             except Exception:
                 db.session.rollback()
 
+    # 記錄管理員操作日誌
     try:
         log = ActivityLog(
             user_id=current_user.id,
@@ -523,7 +676,7 @@ def update_report(report_id):
         db.session.commit()
     except Exception:
         db.session.rollback()
-    
+
     flash('檢舉已更新。', 'success')
     return redirect(url_for('admin.report_detail', report_id=report_id))
 
@@ -532,6 +685,15 @@ def update_report(report_id):
 @login_required
 @admin_required
 def account_action(report_id):
+    """
+    從檢舉詳情頁直接對被檢舉使用者採取帳號處置路由（POST）。需管理員以上權限。
+    允許的狀態：active（解除限制）/ suspended（停權）/ banned（封禁）。
+    安全限制：
+    - 遵循 _can_manage_user_status 的權限規則
+    - 不能對自己採取停權或封禁
+    - 狀態未變更時顯示警告
+    處置後自動通知被處置的使用者，並記錄活動日誌。
+    """
     report = Report.query.get_or_404(report_id)
     reported_user = report.reported_user
 
@@ -541,16 +703,20 @@ def account_action(report_id):
     requested_account_status = _normalize_user_status(request.form.get('account_status', ''))
     action_reason = request.form.get('action_reason', '').strip()
 
+    # 驗證狀態值
     if requested_account_status not in {'active', 'suspended', 'banned'}:
         flash('帳號狀態值不正確。', 'error')
         return redirect(url_for('admin.report_detail', report_id=report_id))
 
+    # 權限檢查
     if not _can_manage_user_status(reported_user):
         abort(403)
 
+    # 不能對自己停權或封禁
     if reported_user.id == current_user.id and requested_account_status in {'suspended', 'banned'}:
         abort(403)
 
+    # 若狀態沒有變更，不需要更新
     current_account_status = _normalize_user_status(reported_user.status)
     if current_account_status == requested_account_status:
         flash('帳號狀態沒有變更。', 'warning')
@@ -565,6 +731,7 @@ def account_action(report_id):
         flash('帳號處置失敗，請稍後再試。', 'error')
         return redirect(url_for('admin.report_detail', report_id=report_id))
 
+    # 發送通知給被處置的使用者
     account_message = _build_account_action_message(requested_account_status, action_reason)
     if account_message:
         try:
@@ -580,6 +747,7 @@ def account_action(report_id):
         except Exception:
             db.session.rollback()
 
+    # 記錄帳號處置的活動日誌
     try:
         log = ActivityLog(
             user_id=current_user.id,

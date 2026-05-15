@@ -1,5 +1,5 @@
-# 技能頁面 - 瀏覽與上架技能，支援多選類別和檔案附件
-# routes/skills.py: Blueprint for skill listing and creation routes
+# routes/skills.py: 技能管理路由
+# 功能：瀏覽技能列表、上架技能、編輯技能、下架技能、檢舉技能、下載附件
 import os
 from datetime import datetime
 from io import BytesIO
@@ -13,11 +13,18 @@ from werkzeug.utils import secure_filename
 from models import db, Skill, SkillCategory, Match, ActivityLog, Report
 
 skills_bp = Blueprint('skills', __name__)
+
+# 技能附件允許的副檔名（含文件格式）
 ALLOWED_ATTACHMENT_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt', 'doc', 'docx', 'ppt', 'pptx'}
+# 圖片類型的副檔名（用於檢舉附件驗證）
 ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 
 
 def file_size(file_storage):
+    """
+    取得 FileStorage 物件的檔案大小（位元組）。
+    透過移動 stream 游標到結尾來計算大小，完成後恢復原始位置。
+    """
     stream = file_storage.stream
     current_position = stream.tell()
     stream.seek(0, os.SEEK_END)
@@ -27,10 +34,15 @@ def file_size(file_storage):
 
 
 def allowed_attachment(filename):
+    """檢查附件副檔名是否在允許的清單中。"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_ATTACHMENT_EXTENSIONS
 
 
 def detect_attachment_type(filename_or_url):
+    """
+    判斷附件類型：'image'（圖片）/ 'pdf'（PDF）/ 'file'（其他文件）。
+    支援從 MIME 類型字串或副檔名判斷。
+    """
     if not filename_or_url:
         return 'file'
 
@@ -54,6 +66,10 @@ def detect_attachment_type(filename_or_url):
 
 
 def parse_time_input(value):
+    """
+    將 HH:MM 格式的時間字串解析為 time 物件。
+    若輸入為空則回傳 None，格式錯誤則拋出 ValueError。
+    """
     value = (value or '').strip()
     if not value:
         return None
@@ -62,6 +78,11 @@ def parse_time_input(value):
 
 
 def build_skill_form_values(skill=None):
+    """
+    建立技能表單的欄位初始值字典。
+    POST 請求時：從表單資料取值（用於驗證失敗後重新填入）。
+    GET 請求時：從 skill 物件取值（用於編輯現有技能），若 skill 為 None 則使用預設值。
+    """
     if request.method == 'POST':
         return {
             'title_value': request.form.get('title', '').strip(),
@@ -77,6 +98,7 @@ def build_skill_form_values(skill=None):
             'end_time_value': request.form.get('end_time', '').strip(),
         }
 
+    # 從現有技能物件取值（編輯模式），或使用空字串預設值（新增模式）
     return {
         'title_value': skill.title if skill else '',
         'description_value': skill.description if skill else '',
@@ -95,19 +117,27 @@ def build_skill_form_values(skill=None):
 @skills_bp.route('/skills/<int:skill_id>/attachment', endpoint='skill_attachment')
 @skills_bp.route('/skill-attachments/<path:filename>', endpoint='skill_attachment')
 def skill_attachment(skill_id=None, filename=None):
+    """
+    技能附件下載/預覽路由（支援兩種 URL 格式）。
+    若提供 skill_id：從資料庫 BLOB 中讀取附件資料並串流回傳（不強制下載）。
+    若提供 filename：從磁碟上的 skill_attachments 資料夾回傳檔案。
+    附件不存在時回傳 404。
+    """
     if skill_id is not None:
         skill = Skill.query.get_or_404(skill_id)
         if not skill.attachment_data:
             abort(404)
 
+        # 將 BLOB 資料包裝成 BytesIO 串流回傳
         return send_file(
             BytesIO(skill.attachment_data),
             mimetype=skill.attachment_mime or 'application/octet-stream',
             download_name=skill.attachment_name or f'skill-{skill.id}',
-            as_attachment=False,
+            as_attachment=False,  # 在瀏覽器中預覽（非強制下載）
         )
 
     if filename:
+        # 從 instance 資料夾的 skill_attachments 子目錄回傳檔案
         attachment_dir = os.path.join(current_app.instance_path, 'skill_attachments')
         return send_from_directory(attachment_dir, filename)
 
@@ -116,6 +146,12 @@ def skill_attachment(skill_id=None, filename=None):
 
 @skills_bp.route("/skills", endpoint='skills')
 def skills():
+    """
+    技能列表頁路由。
+    支援多維度搜尋篩選：關鍵字、分類、類型（offer/learn）、教學方式、地點類型、地區、可配合星期。
+    若已登入，同時標記使用者已申請媒合的技能（applied_skill_ids），讓介面可隱藏申請按鈕。
+    """
+    # 取得搜尋條件
     keyword = request.args.get("keyword", "").strip()
     category_id = request.args.get("category_id", "").strip()
     skill_type = request.args.get("type", "").strip()
@@ -123,8 +159,9 @@ def skills():
     location_type = request.args.get("location_type", "").strip()
     location_area = request.args.get("location_area", "").strip()
     available_day = request.args.get("available_day", "").strip()
-    applied_skill_ids = set()
 
+    # 取得已登入使用者的所有媒合申請過的技能 ID（避免重複申請）
+    applied_skill_ids = set()
     if current_user.is_authenticated:
         applied_skill_ids = {
             row[0]
@@ -139,8 +176,10 @@ def skills():
             .all()
         }
 
+    # 基礎查詢：只顯示上架中的技能
     query = Skill.query.filter_by(status="open", is_active=True)
 
+    # 套用各篩選條件
     if keyword:
         query = query.filter(
             or_(
@@ -167,6 +206,7 @@ def skills():
     if available_day:
         query = query.filter(Skill.available_day == available_day)
 
+    # 依建立時間倒序排列
     skills = query.order_by(Skill.created_at.desc()).all()
     categories = SkillCategory.query.order_by(SkillCategory.name.asc()).all()
 
@@ -188,7 +228,13 @@ def skills():
 @skills_bp.route("/add-skill", methods=["GET", "POST"], endpoint='add_skill')
 @login_required
 def add_skill():
-    # ensure default categories exist
+    """
+    新增技能路由。需登入才可存取。
+    GET：顯示新增技能表單，並確保預設分類存在。
+    POST：驗證表單資料（含附件），建立技能並記錄活動日誌，成功後導向技能列表。
+    附件限制：5MB 以下，支援 jpg/png/gif/webp/pdf/txt/doc/docx/ppt/pptx。
+    """
+    # 確保預設技能分類存在（首次使用時自動建立）
     default_names = [
         '學業課業', '語言學習', '科技與程式', '設計與創作', '藝術與音樂',
         '運動與健康', '生活技能', '社交與溝通', '商業與行銷', '其他'
@@ -207,6 +253,7 @@ def add_skill():
     form_values = build_skill_form_values()
 
     if request.method == "POST":
+        # 處理附件上傳
         attachment = request.files.get("attachment")
         attachment_data = None
         attachment_name = None
@@ -214,19 +261,23 @@ def add_skill():
         attachment_type = None
 
         if attachment and attachment.filename:
+            # 驗證副檔名
             if not allowed_attachment(attachment.filename):
                 flash("只支援 jpg、jpeg、png、gif、webp、pdf、txt、doc、docx、ppt、pptx 檔案。", "error")
                 return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
 
+            # 驗證檔案大小
             if file_size(attachment) > current_app.config.get('SKILL_ATTACHMENT_MAX_SIZE', 5 * 1024 * 1024):
                 flash("技能附件不能超過 5MB。", "error")
                 return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
 
+            # 讀取附件資料存入資料庫
             attachment_data = attachment.read()
             attachment_name = attachment.filename
             attachment_mime = attachment.mimetype or 'application/octet-stream'
             attachment_type = detect_attachment_type(attachment_name or attachment_mime)
 
+        # 從表單取得欄位值
         title = form_values['title_value']
         description_text = form_values['description_value']
         category_id_raw = form_values['category_id_value']
@@ -235,6 +286,7 @@ def add_skill():
         location_detail = form_values['location_detail_value']
         available_day = form_values['available_day_value']
 
+        # 解析時間輸入
         try:
             start_time = parse_time_input(form_values['start_time_value'])
             end_time = parse_time_input(form_values['end_time_value'])
@@ -242,6 +294,7 @@ def add_skill():
             flash("開始時間與結束時間格式不正確，請使用時間選擇器。", "error")
             return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
 
+        # 必填欄位驗證
         if not title:
             flash("技能標題必填。", "error")
             return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
@@ -270,10 +323,12 @@ def add_skill():
             flash("請選擇可配合星期。", "error")
             return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
 
+        # 時間邏輯驗證：結束時間不可早於開始時間
         if start_time and end_time and end_time < start_time:
             flash("結束時間不可早於開始時間。", "error")
             return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
 
+        # 建立技能物件並儲存
         skill = Skill(
             user_id=current_user.id,
             category_id=int(category_id_raw),
@@ -297,6 +352,7 @@ def add_skill():
 
         db.session.add(skill)
         db.session.commit()
+        # 記錄上架技能的活動日誌
         try:
             log = ActivityLog(user_id=current_user.id, action='create_skill', detail=f'skill_id={skill.id}|title={skill.title}', ip_address=request.remote_addr)
             db.session.add(log)
@@ -312,8 +368,15 @@ def add_skill():
 @skills_bp.route("/skills/<int:skill_id>/edit", methods=["GET", "POST"], endpoint='edit_skill')
 @login_required
 def edit_skill(skill_id):
+    """
+    編輯技能路由。需登入且只有技能擁有者才可存取。
+    GET：顯示預填現有資料的編輯表單。
+    POST：驗證並更新技能資料（含附件），成功後記錄日誌並導向技能列表。
+    若上傳新附件則替換舊附件，否則保留原附件。
+    """
     skill = Skill.query.get_or_404(skill_id)
 
+    # 權限檢查：只有技能擁有者才能編輯
     if skill.user_id != current_user.id:
         abort(403)
 
@@ -321,12 +384,14 @@ def edit_skill(skill_id):
     form_values = build_skill_form_values(skill)
 
     if request.method == "POST":
+        # 預設保留原有附件資料
         attachment = request.files.get("attachment")
         attachment_data = skill.attachment_data
         attachment_name = skill.attachment_name
         attachment_mime = skill.attachment_mime
         attachment_type = skill.attachment_type
 
+        # 若上傳新附件則覆蓋原本的
         if attachment and attachment.filename:
             if not allowed_attachment(attachment.filename):
                 flash("只支援 jpg、jpeg、png、gif、webp、pdf、txt、doc、docx、ppt、pptx 檔案。", "error")
@@ -341,6 +406,7 @@ def edit_skill(skill_id):
             attachment_mime = attachment.mimetype or 'application/octet-stream'
             attachment_type = detect_attachment_type(attachment_name or attachment_mime)
 
+        # 取得表單欄位值（與新增技能相同的驗證流程）
         title = form_values['title_value']
         description_text = form_values['description_value']
         category_id_raw = form_values['category_id_value']
@@ -356,6 +422,7 @@ def edit_skill(skill_id):
             flash("開始時間與結束時間格式不正確，請使用時間選擇器。", "error")
             return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
 
+        # 必填欄位驗證（同新增技能）
         if not title:
             flash("技能標題必填。", "error")
             return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
@@ -388,6 +455,7 @@ def edit_skill(skill_id):
             flash("結束時間不可早於開始時間。", "error")
             return render_template("add_skill.html", categories=categories, skill=skill, form_action=url_for(".edit_skill", skill_id=skill.id), **form_values)
 
+        # 更新技能欄位
         skill.category_id = int(category_id_raw)
         skill.title = title
         skill.description = description_text
@@ -405,6 +473,7 @@ def edit_skill(skill_id):
         skill.attachment_type = attachment_type
 
         db.session.commit()
+        # 記錄編輯活動日誌
         try:
             log = ActivityLog(user_id=current_user.id, action='edit_skill', detail=f'skill_id={skill.id}|title={skill.title}', ip_address=request.remote_addr)
             db.session.add(log)
@@ -421,8 +490,14 @@ def edit_skill(skill_id):
 @skills_bp.route("/skills/<int:skill_id>/deactivate", methods=["POST"], endpoint='deactivate_skill')
 @login_required
 def deactivate_skill(skill_id):
+    """
+    技能下架路由。需登入且只有技能擁有者才可存取。
+    將技能的 is_active 設為 False、status 設為 'closed'，使其不再顯示於列表。
+    若技能已是下架狀態，顯示警告訊息。
+    """
     skill = Skill.query.get_or_404(skill_id)
 
+    # 權限檢查
     if skill.user_id != current_user.id:
         abort(403)
 
@@ -439,8 +514,12 @@ def deactivate_skill(skill_id):
 
 @skills_bp.route("/skills/<int:skill_id>/report", methods=["POST"], endpoint='report_skill')
 def report_skill(skill_id):
-    """API endpoint: 檢舉技能"""
-
+    """
+    技能檢舉 API 路由（回傳 JSON）。
+    需登入才可使用，且不能檢舉自己的技能。
+    防止重複：同一使用者對同一技能只能有一個 pending 檢舉。
+    支援上傳圖片附件作為證據（限 5MB 以下的圖片格式）。
+    """
     if not current_user.is_authenticated:
         return jsonify({
             "success": False,
@@ -465,7 +544,7 @@ def report_skill(skill_id):
             "message": "你不能檢舉自己的技能。"
         }), 400
 
-    # 檢查是否已有 pending 檢舉
+    # 檢查是否已有待審的檢舉（防止重複送出）
     existing = Report.query.filter_by(
         reporter_id=current_user.id,
         skill_id=skill_id,
@@ -478,6 +557,7 @@ def report_skill(skill_id):
             "message": "你已檢舉過這個技能，請等待審核。"
         }), 400
 
+    # 驗證檢舉原因代碼
     valid_reasons = ['inappropriate_content', 'spam', 'scam', 'copyright', 'other']
     if reason not in valid_reasons:
         return jsonify({
@@ -485,11 +565,11 @@ def report_skill(skill_id):
             "message": "檢舉原因無效。"
         }), 400
 
-    # 處理檢舉附件
+    # 處理檢舉附件（證據圖片）
     evidence_url = None
     evidence_name = None
     evidence_type = None
-    
+
     if evidence and evidence.filename:
         # 只允許圖片格式
         ext = evidence.filename.rsplit('.', 1)[1].lower() if '.' in evidence.filename else ''
@@ -498,15 +578,15 @@ def report_skill(skill_id):
                 "success": False,
                 "message": "只支援圖片檔案（jpg、jpeg、png、gif、webp）。"
             }), 400
-        
-        # 檢查檔案大小（5MB）
+
+        # 檢查檔案大小（5MB 上限）
         if file_size(evidence) > 5 * 1024 * 1024:
             return jsonify({
                 "success": False,
                 "message": "檢舉附件不能超過 5MB。"
             }), 400
-        
-        # 保存檔案
+
+        # 用 UUID 前綴避免檔名衝突，儲存到 static/uploads/report/
         upload_dir = os.path.join(current_app.static_folder, 'uploads', 'report')
         os.makedirs(upload_dir, exist_ok=True)
         original_name = secure_filename(evidence.filename)
@@ -516,6 +596,7 @@ def report_skill(skill_id):
         evidence_name = original_name
         evidence_type = 'image'
 
+    # 建立檢舉記錄
     report = Report(
         reporter_id=current_user.id,
         reported_user_id=skill.user_id,
@@ -537,6 +618,7 @@ def report_skill(skill_id):
             "message": "檢舉送出失敗，請稍後再試。"
         }), 500
 
+    # 記錄活動日誌
     try:
         log = ActivityLog(
             user_id=current_user.id,

@@ -1,4 +1,6 @@
-# Shim: 保持向後相容，轉導到 utils/helpers.py
+# helpers.py: 向後相容的 shim（轉接層）
+# 此檔案僅作為舊版引用的相容橋接，實際函數定義在 utils/helpers.py
+# 若新程式碼請直接從 utils 匯入
 from utils.helpers import (
     user_average_rating,
     user_completed_matches,
@@ -18,4 +20,3 @@ __all__ = [
     'add_notification',
     'skill_match_score',
 ]
-

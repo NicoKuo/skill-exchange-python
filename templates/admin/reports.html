@@ -17,6 +17,7 @@
         <a class="btn btn-muted{% if status_filter == 'reviewed' %} active{% endif %}" href="{{ url_for('admin.reports', status='reviewed') }}">已審 (reviewed)</a>
         <a class="btn btn-muted{% if status_filter == 'rejected' %} active{% endif %}" href="{{ url_for('admin.reports', status='rejected') }}">駁回 (rejected)</a>
         <a class="btn btn-muted{% if status_filter == 'resolved' %} active{% endif %}" href="{{ url_for('admin.reports', status='resolved') }}">已解決 (resolved)</a>
+        <a class="btn btn-muted{% if status_filter == 'punished' %} active{% endif %}" href="{{ url_for('admin.reports', status='punished') }}">已懲處 (punished)</a>
     </div>
 
     <div class="table-wrap">
@@ -97,6 +98,8 @@
                     <span class="tag tag-blue">已審</span>
                     {% elif report.status == 'rejected' %}
                     <span class="tag tag-gray">駁回</span>
+                    {% elif report.status == 'punished' %}
+                    <span class="tag tag-red">已懲處</span>
                     {% else %}
                     <span class="tag tag-green">已解決</span>
                     {% endif %}

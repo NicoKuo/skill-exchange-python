@@ -57,9 +57,18 @@ def login():
         user = User.query.filter_by(email=email).first()
 
         if user:
-            # 帳號已被停權（非鎖定）
-            if user.status != 'active':
-                flash("此帳號已被停權，請聯絡管理員。", "error")
+            account_status = (user.status or 'active').strip()
+
+            if account_status == 'suspended':
+                flash("帳號已被停權，請聯繫管理員", "error")
+                return render_template("login.html")
+
+            if account_status in {'banned', 'blocked'}:
+                flash("帳號已被封禁，無法登入", "error")
+                return render_template("login.html")
+
+            if account_status != 'active':
+                flash("此帳號無法登入，請聯繫管理員。", "error")
                 return render_template("login.html")
 
             # 檢查是否在鎖定期間

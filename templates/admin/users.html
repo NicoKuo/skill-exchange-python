@@ -10,8 +10,8 @@
     <h1>會員管理</h1>
     <p class="muted">可檢視所有使用者，並調整一般帳號的狀態。</p>
 
-    <div class="table-wrap">
-        <table class="table">
+    <div class="table-responsive">
+        <table class="admin-table">
             <thead>
                 <tr>
                     <th>姓名</th>
@@ -43,8 +43,8 @@
                         <span class="tag tag-green">active</span>
                         {% elif user.status == 'suspended' %}
                         <span class="tag tag-yellow">suspended</span>
-                        {% elif user.status == 'blocked' %}
-                        <span class="tag tag-red">blocked</span>
+                        {% elif user.status in ['banned', 'blocked'] %}
+                        <span class="tag tag-red">banned</span>
                         {% else %}
                         <span class="tag tag-gray">{{ user.status or 'unknown' }}</span>
                         {% endif %}
@@ -73,10 +73,10 @@
                                 <button class="btn btn-sm btn-muted" type="submit">停權</button>
                             </form>
                             {% endif %}
-                            {% if user.status != 'blocked' %}
+                            {% if user.status not in ['banned', 'blocked'] %}
                             <form method="post" action="{{ url_for('admin.update_user_status', user_id=user.id) }}" style="display:inline">
-                                <input type="hidden" name="status" value="blocked">
-                                <button class="btn btn-sm btn-danger" type="submit">封鎖</button>
+                                <input type="hidden" name="status" value="banned">
+                                <button class="btn btn-sm btn-danger" type="submit">封禁</button>
                             </form>
                             {% endif %}
                         </div>

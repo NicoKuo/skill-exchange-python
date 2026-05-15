@@ -16,8 +16,8 @@
 
     {% if users %}
     <h3>一般使用者</h3>
-    <div class="table-wrap">
-        <table class="table" style="min-width: 860px;">
+    <div class="table-responsive">
+        <table class="admin-table" style="min-width: 860px;">
             <tr>
                 <th>姓名</th>
                 <th>Email</th>
@@ -31,8 +31,8 @@
                     <span class="tag tag-green">active</span>
                     {% elif user.status == 'suspended' %}
                     <span class="tag tag-yellow">suspended</span>
-                    {% elif user.status == 'blocked' %}
-                    <span class="tag tag-red">blocked</span>
+                    {% elif user.status in ['banned', 'blocked'] %}
+                    <span class="tag tag-red">banned</span>
                     {% else %}
                     <span class="tag tag-gray">{{ user.status or 'unknown' }}</span>
                     {% endif %}
@@ -43,7 +43,7 @@
                         <button class="btn btn-sm btn-success" type="submit">設為管理者</button>
                     </form>
                     {% else %}
-                    <span class="tag tag-gray">停權或封鎖</span>
+                    <span class="tag tag-gray">停權或封禁</span>
                     {% endif %}
                 </td>
             </tr>{% endfor %}
@@ -53,8 +53,8 @@
 
     {% if managers %}
     <h3 style="margin-top: 32px;">現有管理者</h3>
-    <div class="table-wrap">
-        <table class="table" style="min-width: 860px;">
+    <div class="table-responsive">
+        <table class="admin-table" style="min-width: 860px;">
             <tr>
                 <th>姓名</th>
                 <th>Email</th>

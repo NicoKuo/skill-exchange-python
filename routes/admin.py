@@ -19,6 +19,17 @@ REPORT_FEEDBACK_MESSAGES = {
     'punished': '你檢舉的內容已確認違規，系統已採取處置。',
 }
 
+ACCOUNT_ACTION_MESSAGES = {
+    'active': '你的帳號限制已解除，目前可正常使用。',
+    'suspended': '你的帳號因違反平台規範已被停權。',
+    'banned': '你的帳號因嚴重違規已被封禁。',
+}
+
+
+def _normalize_user_status(status):
+    status = (status or '').strip()
+    return 'banned' if status == 'blocked' else status
+
 
 def _append_feedback_text(base_text, feedback):
     feedback = (feedback or '').strip()
@@ -42,6 +53,23 @@ def _build_report_feedback_message(status, feedback=''):
     if not base_text:
         return ''
     return _append_feedback_text(base_text, feedback)
+
+
+def _build_account_action_message(status, feedback=''):
+    base_text = ACCOUNT_ACTION_MESSAGES.get(status)
+    if not base_text:
+        return ''
+    return _append_feedback_text(base_text, feedback)
+
+
+def _can_manage_user_status(target_user):
+    if not target_user:
+        return False
+
+    if current_user.role == 'super_admin':
+        return True
+
+    return current_user.role == 'admin' and target_user.role == 'user'
 
 
 def super_admin_required(fn):
@@ -183,25 +211,20 @@ def users():
 @admin_required
 def update_user_status(user_id):
     target_user = User.query.get_or_404(user_id)
-    new_status = request.form.get('status', '').strip()
-    allowed_statuses = {'active', 'suspended', 'blocked'}
+    new_status = _normalize_user_status(request.form.get('status', ''))
+    allowed_statuses = {'active', 'suspended', 'banned'}
 
     if new_status not in allowed_statuses:
         abort(400)
 
-    if target_user.id == current_user.id:
+    if target_user.id == current_user.id and new_status in {'suspended', 'banned'}:
         abort(403)
 
-    if target_user.role == 'super_admin':
+    if not _can_manage_user_status(target_user):
         abort(403)
 
-    if current_user.role == 'admin' and target_user.role != 'user':
-        abort(403)
-
-    if current_user.role == 'super_admin' and target_user.role not in {'user', 'admin'}:
-        abort(403)
-
-    if target_user.status == new_status:
+    current_status = _normalize_user_status(target_user.status)
+    if current_status == new_status:
         flash('帳號狀態沒有變更。', 'warning')
         return redirect(url_for('admin.users'))
 
@@ -502,4 +525,72 @@ def update_report(report_id):
         db.session.rollback()
     
     flash('檢舉已更新。', 'success')
+    return redirect(url_for('admin.report_detail', report_id=report_id))
+
+
+@admin_bp.route('/reports/<int:report_id>/account-action', methods=['POST'], endpoint='account_action')
+@login_required
+@admin_required
+def account_action(report_id):
+    report = Report.query.get_or_404(report_id)
+    reported_user = report.reported_user
+
+    if not reported_user:
+        abort(400)
+
+    requested_account_status = _normalize_user_status(request.form.get('account_status', ''))
+    action_reason = request.form.get('action_reason', '').strip()
+
+    if requested_account_status not in {'active', 'suspended', 'banned'}:
+        flash('帳號狀態值不正確。', 'error')
+        return redirect(url_for('admin.report_detail', report_id=report_id))
+
+    if not _can_manage_user_status(reported_user):
+        abort(403)
+
+    if reported_user.id == current_user.id and requested_account_status in {'suspended', 'banned'}:
+        abort(403)
+
+    current_account_status = _normalize_user_status(reported_user.status)
+    if current_account_status == requested_account_status:
+        flash('帳號狀態沒有變更。', 'warning')
+        return redirect(url_for('admin.report_detail', report_id=report_id))
+
+    reported_user.status = requested_account_status
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        flash('帳號處置失敗，請稍後再試。', 'error')
+        return redirect(url_for('admin.report_detail', report_id=report_id))
+
+    account_message = _build_account_action_message(requested_account_status, action_reason)
+    if account_message:
+        try:
+            db.session.add(
+                Notification(
+                    user_id=reported_user.id,
+                    type='account_action',
+                    content=account_message,
+                    related_id=report.id,
+                )
+            )
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    try:
+        log = ActivityLog(
+            user_id=current_user.id,
+            action='account_action',
+            detail=f'report_id={report.id}|target_user_id={reported_user.id}|new_status={requested_account_status}',
+            ip_address=request.remote_addr,
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    flash('帳號處置已更新。', 'success')
     return redirect(url_for('admin.report_detail', report_id=report_id))

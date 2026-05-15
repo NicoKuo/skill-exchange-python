@@ -1,6 +1,10 @@
 {# 管理後台檢舉詳情 - 審查單筆檢舉 #}
 {% extends 'base.html' %}
 {% set title='檢舉詳情' %}
+{% set reported_user_status = report.reported_user.status if report.reported_user else '' %}
+{% if reported_user_status == 'blocked' %}
+{% set reported_user_status = 'banned' %}
+{% endif %}
 
 {% block content %}
 <section class="section">
@@ -11,8 +15,8 @@
     <h1>檢舉詳情</h1>
     
     <h2>報告內容</h2>
-    <div class="table-wrap" style="margin-bottom: 24px;">
-        <table class="table" style="width: 100%; table-layout: fixed;">
+    <div class="table-responsive" style="margin-bottom: 24px;">
+        <table class="admin-table">
             {% if report.message_id and report.message %}
             <tr>
                 <td style="width: 150px; font-weight: 600;">報告類型</td>
@@ -133,9 +137,51 @@
         </table>
     </div>
 
+    <h2>被檢舉者資料</h2>
+    <div class="table-responsive" style="margin-bottom: 24px;">
+        <table class="admin-table">
+            <tr>
+                <td style="width: 150px; font-weight: 600;">使用者 ID</td>
+                <td>{{ report.reported_user.id if report.reported_user else '—' }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">姓名</td>
+                <td>{{ report.reported_user.name if report.reported_user else '—' }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">Email</td>
+                <td>{{ report.reported_user.email if report.reported_user else '—' }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">目前帳號狀態</td>
+                <td>
+                    {% if reported_user_status == 'active' %}
+                    <span class="tag tag-green">active</span>
+                    {% elif reported_user_status == 'suspended' %}
+                    <span class="tag tag-yellow">suspended</span>
+                    {% elif reported_user_status == 'banned' %}
+                    <span class="tag tag-red">banned</span>
+                    {% else %}
+                    <span class="tag tag-gray">{{ report.reported_user.status if report.reported_user else 'unknown' }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">角色 role</td>
+                <td>
+                    {% if report.reported_user %}
+                    <span class="tag {% if report.reported_user.role == 'super_admin' %}tag-red{% elif report.reported_user.role == 'admin' %}tag-teal{% else %}tag-gray{% endif %}">{{ report.reported_user.role }}</span>
+                    {% else %}
+                    —
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
     <h2>檢舉詳情</h2>
-    <div class="table-wrap" style="margin-bottom: 24px;">
-        <table class="table" style="width: 100%; table-layout: fixed;">
+    <div class="table-responsive" style="margin-bottom: 24px;">
+        <table class="admin-table">
             <tr>
                 <td style="width: 150px; font-weight: 600;">檢舉時間</td>
                 <td>{{ format_taiwan_time(report.created_at, '%Y-%m-%d %H:%M:%S') }}</td>
@@ -243,6 +289,27 @@
         <div style="grid-column: 1/-1;">
             <button class="btn" type="submit">更新檢舉</button>
             <a class="btn btn-muted" href="{{ url_for('admin.reports') }}">返回列表</a>
+        </div>
+    </form>
+
+    <h2 style="margin-top: 32px;">帳號處置</h2>
+    <form method="post" action="{{ url_for('admin.account_action', report_id=report.id) }}" class="form-grid">
+        <div class="field" style="grid-column: 1/-1;">
+            <label>帳號狀態</label>
+            <select name="account_status" required>
+                <option value="active" {% if reported_user_status == 'active' %}selected{% endif %}>解除限制 / active</option>
+                <option value="suspended" {% if reported_user_status == 'suspended' %}selected{% endif %}>停權 / suspended</option>
+                <option value="banned" {% if reported_user_status == 'banned' %}selected{% endif %}>封禁 / banned</option>
+            </select>
+        </div>
+
+        <div class="field" style="grid-column: 1/-1;">
+            <label>處置原因（顯示於通知）</label>
+            <textarea name="action_reason" rows="4" placeholder="例如：違反社群規範，散布不當內容。"></textarea>
+        </div>
+
+        <div style="grid-column: 1/-1;">
+            <button class="btn" type="submit">更新帳號狀態</button>
         </div>
     </form>
 </section>

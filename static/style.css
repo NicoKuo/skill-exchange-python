@@ -624,31 +624,86 @@ h1, h2, h3, h4, h5 {
 .field textarea { min-height: 120px; resize: vertical; }
 
 /* ─── Table ───────────────────────────────── */
-.table-wrap { overflow: auto; border-radius: var(--radius-lg); border: 1px solid var(--line); }
+.table-wrap,
+.table-responsive {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--card);
+}
 
-.table {
+.table,
+.admin-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 14.5px;
 }
-.table thead { background: var(--surface); }
-.table th {
-  padding: 14px 18px;
+.table thead,
+.admin-table thead { background: var(--surface); }
+.table th,
+.table td,
+.admin-table th,
+.admin-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  text-align: left;
+  min-width: 0;
+}
+.table th,
+.admin-table th {
   color: var(--muted);
   font-weight: 600;
   font-size: 12.5px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1.5px solid var(--line);
   white-space: nowrap;
 }
-.table td {
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--line);
-  vertical-align: middle;
+.table td,
+.admin-table td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
-.table tbody tr:last-child td { border-bottom: none; }
-.table tbody tr:hover { background: var(--accent); }
+.table tbody tr:last-child td,
+.admin-table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:hover,
+.admin-table tbody tr:hover { background: var(--accent); }
+
+.table td .actions,
+.table td .table-actions,
+.admin-table td .actions,
+.admin-table td .table-actions,
+.admin-table .actions,
+.admin-table td.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.table td .actions .btn,
+.table td .table-actions .btn,
+.admin-table td .actions .btn,
+.admin-table td .table-actions .btn,
+.admin-table .action-buttons .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.admin-table .actions,
+.admin-table td.actions {
+  width: 180px;
+  white-space: normal;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 
 .empty { text-align: center; color: var(--muted); padding: 48px; font-size: 15px; }
 

@@ -19,7 +19,7 @@ class User(UserMixin, db.Model):
     grade = db.Column(db.String(50), nullable=True)
     offered_skills_intro = db.Column(db.Text, nullable=True)
     wanted_skills_intro = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(20), default='active')
+    status = db.Column(db.String(20), default='active', nullable=False)
     failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
     locked_until = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

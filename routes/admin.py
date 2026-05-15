@@ -6,10 +6,42 @@ from functools import wraps
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from models import db, Match, Skill, User, ActivityLog, Report
+from models import db, Match, Skill, User, ActivityLog, Notification, Report
 from utils import format_taiwan_time
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+
+REPORT_FEEDBACK_MESSAGES = {
+    'reviewed': '你的檢舉已被管理員受理，我們會進一步審查。',
+    'rejected': '你的檢舉經審查後未發現明確違規。',
+    'resolved': '你的檢舉已完成處理，感謝你的回報。',
+    'punished': '你檢舉的內容已確認違規，系統已採取處置。',
+}
+
+
+def _append_feedback_text(base_text, feedback):
+    feedback = (feedback or '').strip()
+    if not feedback:
+        return base_text
+
+    suffix = f' 處理說明：{feedback}'
+    max_content_length = 255
+    if len(base_text) + len(suffix) <= max_content_length:
+        return f'{base_text}{suffix}'
+
+    available = max_content_length - len(base_text) - len(' 處理說明：') - 3
+    if available <= 0:
+        return f'{base_text[:max_content_length - 3]}...'
+
+    return f'{base_text} 處理說明：{feedback[:available]}...'
+
+
+def _build_report_feedback_message(status, feedback=''):
+    base_text = REPORT_FEEDBACK_MESSAGES.get(status)
+    if not base_text:
+        return ''
+    return _append_feedback_text(base_text, feedback)
 
 
 def super_admin_required(fn):
@@ -398,24 +430,70 @@ def report_detail(report_id):
 @admin_required
 def update_report(report_id):
     report = Report.query.get_or_404(report_id)
-    
+
+    old_status = report.status
     new_status = request.form.get('status', '').strip()
     admin_note = request.form.get('admin_note', '').strip()
-    
-    if new_status not in ['pending', 'reviewed', 'rejected', 'resolved']:
+    feedback = request.form.get('feedback', '').strip()
+
+    if new_status not in ['pending', 'reviewed', 'rejected', 'resolved', 'punished']:
         abort(400)
-    
+
+    status_changed = old_status != new_status
+
     report.status = new_status
     report.admin_note = admin_note
+    report.feedback = feedback
     report.reviewed_by = current_user.id
     report.updated_at = datetime.utcnow()
-    db.session.commit()
-    
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        flash('檢舉更新失敗，請稍後再試。', 'error')
+        return redirect(url_for('admin.report_detail', report_id=report_id))
+
+    if status_changed:
+        notifications = []
+        reporter_message = _build_report_feedback_message(new_status, feedback)
+
+        if reporter_message:
+            notifications.append(
+                Notification(
+                    user_id=report.reporter_id,
+                    type='report_feedback',
+                    content=reporter_message,
+                    related_id=report.id,
+                )
+            )
+
+        if new_status == 'punished' and report.reported_user_id and report.reported_user_id != report.reporter_id:
+            punished_target_message = _append_feedback_text(
+                '你收到一則檢舉審核結果：經管理員審查確認違規，系統已對你的帳號或內容採取處置。',
+                feedback,
+            )
+            notifications.append(
+                Notification(
+                    user_id=report.reported_user_id,
+                    type='report_feedback',
+                    content=punished_target_message,
+                    related_id=report.id,
+                )
+            )
+
+        if notifications:
+            try:
+                db.session.add_all(notifications)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
     try:
         log = ActivityLog(
             user_id=current_user.id,
             action='update_report',
-            detail=f'report_id={report.id}|new_status={new_status}',
+            detail=f'report_id={report.id}|old_status={old_status}|new_status={new_status}',
             ip_address=request.remote_addr
         )
         db.session.add(log)

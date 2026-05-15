@@ -189,6 +189,8 @@
                     <span class="tag tag-blue">已審</span>
                     {% elif report.status == 'rejected' %}
                     <span class="tag tag-gray">駁回</span>
+                    {% elif report.status == 'punished' %}
+                    <span class="tag tag-red">已懲處</span>
                     {% else %}
                     <span class="tag tag-green">已解決</span>
                     {% endif %}
@@ -206,6 +208,12 @@
                 <td>{{ report.admin_note }}</td>
             </tr>
             {% endif %}
+            {% if report.feedback %}
+            <tr>
+                <td style="font-weight: 600;">回覆使用者說明</td>
+                <td style="white-space: pre-wrap; word-break: break-word;">{{ report.feedback }}</td>
+            </tr>
+            {% endif %}
         </table>
     </div>
 
@@ -218,12 +226,18 @@
                 <option value="reviewed" {% if report.status == 'reviewed' %}selected{% endif %}>已審 (reviewed)</option>
                 <option value="rejected" {% if report.status == 'rejected' %}selected{% endif %}>駁回 (rejected)</option>
                 <option value="resolved" {% if report.status == 'resolved' %}selected{% endif %}>已解決 (resolved)</option>
+                <option value="punished" {% if report.status == 'punished' %}selected{% endif %}>已懲處 (punished)</option>
             </select>
         </div>
         
         <div class="field" style="grid-column: 1/-1;">
             <label>管理者備註</label>
             <textarea name="admin_note" rows="5">{{ report.admin_note or '' }}</textarea>
+        </div>
+
+        <div class="field" style="grid-column: 1/-1;">
+            <label>回覆使用者說明（會顯示在通知）</label>
+            <textarea name="feedback" rows="4" placeholder="例如：已確認違規內容，已停權 7 天。">{{ report.feedback or '' }}</textarea>
         </div>
         
         <div style="grid-column: 1/-1;">

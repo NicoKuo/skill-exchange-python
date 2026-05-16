@@ -3,12 +3,13 @@
 # 存取控制：admin（一般管理員）可管理一般使用者；super_admin 可管理管理員
 from collections import Counter
 from datetime import datetime
+from sqlalchemy import and_, or_
 from functools import wraps
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from models import db, Match, Skill, User, ActivityLog, Notification, Report
+from models import db, Match, Skill, User, ActivityLog, Notification, Report, Message, Review
 from utils import format_taiwan_time
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -401,10 +402,121 @@ def skill_action(skill_id):
 def matches():
     """
     媒合監督列表路由。需管理員以上權限。
-    顯示所有媒合記錄，依更新時間倒序排列。
+    支援篩選：狀態、技能關鍵字、使用者名稱/email、時間區間。
+    顯示統計卡片和媒合記錄表，避免 N+1 查詢。
     """
-    matches = Match.query.order_by(Match.updated_at.desc()).all()
-    return render_template('admin/matches.html', current_page='matches', matches=matches, stats=_admin_counts())
+    # 取得篩選參數
+    status_filter = request.args.get('status', 'all').strip()
+    skill_keyword = request.args.get('skill_keyword', '').strip()
+    user_keyword = request.args.get('user_keyword', '').strip()
+    date_from_str = request.args.get('date_from', '').strip()
+    date_to_str = request.args.get('date_to', '').strip()
+    
+    # 構建查詢
+    query = Match.query.outerjoin(Skill).outerjoin(User, Match.requester_id == User.id)
+    
+    # 狀態篩選
+    if status_filter != 'all':
+        query = query.filter(Match.status == status_filter)
+    
+    # 技能關鍵字篩選
+    if skill_keyword:
+        query = query.filter(Skill.title.ilike(f'%{skill_keyword}%'))
+    
+    # 使用者名稱或 Email 篩選
+    if user_keyword:
+        query = query.filter(
+            or_(
+                User.name.ilike(f'%{user_keyword}%'),
+                User.email.ilike(f'%{user_keyword}%')
+            )
+        )
+    
+    # 時間區間篩選
+    if date_from_str:
+        try:
+            date_from = datetime.strptime(date_from_str, '%Y-%m-%d')
+            query = query.filter(Match.created_at >= date_from)
+        except ValueError:
+            pass
+    
+    if date_to_str:
+        try:
+            from datetime import timedelta
+            date_to = datetime.strptime(date_to_str, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Match.created_at < date_to)
+        except ValueError:
+            pass
+    
+    # 排序並執行查詢
+    matches_list = query.order_by(Match.updated_at.desc()).all()
+    
+    # 計算統計數字
+    all_matches_count = Match.query.count()
+    pending_count = Match.query.filter_by(status='pending').count()
+    accepted_count = Match.query.filter_by(status='accepted').count()
+    completed_count = Match.query.filter_by(status='completed').count()
+    cancelled_rejected_count = Match.query.filter(
+        Match.status.in_(['cancelled', 'rejected'])
+    ).count()
+    
+    stats_data = {
+        'all': all_matches_count,
+        'pending': pending_count,
+        'accepted': accepted_count,
+        'completed': completed_count,
+        'cancelled_rejected': cancelled_rejected_count,
+    }
+    
+    return render_template(
+        'admin/matches.html',
+        current_page='matches',
+        matches=matches_list,
+        stats=_admin_counts(),
+        match_stats=stats_data,
+        status_filter=status_filter,
+        skill_keyword=skill_keyword,
+        user_keyword=user_keyword,
+        date_from=date_from_str,
+        date_to=date_to_str,
+    )
+
+
+@admin_bp.route('/matches/<int:match_id>', endpoint='match_detail')
+@login_required
+@admin_required
+def match_detail(match_id):
+    """
+    媒合詳情路由。需管理員以上權限。
+    顯示媒合的完整資訊，包含技能、雙方使用者、聊天記錄、評價、檢舉等相關資料。
+    """
+    match = Match.query.get_or_404(match_id)
+    
+    # 取得相關資料
+    skill = match.skill
+    requester = match.requester
+    receiver = match.receiver
+    
+    # 取得該媒合的所有聊天訊息
+    messages = Message.query.filter_by(match_id=match.id).order_by(Message.created_at.asc()).all()
+    
+    # 取得該媒合的所有評價
+    reviews = Review.query.filter_by(match_id=match.id).all()
+    
+    # 取得該媒合的所有檢舉
+    reports = Report.query.filter_by(match_id=match.id).all()
+    
+    return render_template(
+        'admin/match_detail.html',
+        match=match,
+        skill=skill,
+        requester=requester,
+        receiver=receiver,
+        messages=messages,
+        reviews=reviews,
+        reports=reports,
+        stats=_admin_counts(),
+    )
 
 
 @admin_bp.route('/managers', methods=['GET', 'POST'], endpoint='managers')

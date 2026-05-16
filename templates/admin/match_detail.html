@@ -1,0 +1,407 @@
+{% extends 'base.html' %}
+{% set title='媒合詳情' %}
+
+{% block content %}
+<section class="section">
+    {% include 'admin/_admin_nav_card.html' %}
+</section>
+
+<!-- 媒合基本資訊 -->
+<section class="card section">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>媒合詳情 #{{ match.id }}</h2>
+        <span class="tag {% if match.status == 'pending' %}tag-yellow{% elif match.status == 'accepted' %}tag-blue{% elif match.status == 'completed' %}tag-green{% elif match.status in ['rejected', 'cancelled'] %}tag-red{% endif %}">
+            {{ match.status }}
+        </span>
+    </div>
+    
+    <div class="detail-grid">
+        <div class="detail-item">
+            <div class="detail-label">媒合 ID</div>
+            <div class="detail-value">{{ match.id }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">建立時間</div>
+            <div class="detail-value">{{ format_taiwan_time(match.created_at, '%Y-%m-%d %H:%M:%S') }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">更新時間</div>
+            <div class="detail-value">{{ format_taiwan_time(match.updated_at, '%Y-%m-%d %H:%M:%S') }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">申請訊息</div>
+            <div class="detail-value">{{ match.message or '(無訊息)' }}</div>
+        </div>
+    </div>
+</section>
+
+<!-- 技能資訊 -->
+<section class="card section">
+    <h3>技能資訊</h3>
+    {% if skill %}
+    <div class="detail-grid">
+        <div class="detail-item">
+            <div class="detail-label">技能 ID</div>
+            <div class="detail-value">{{ skill.id }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">技能名稱</div>
+            <div class="detail-value">{{ skill.title }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">技能類型</div>
+            <div class="detail-value">{{ '提供' if skill.type == 'offer' else '想學' }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">技能狀態</div>
+            <div class="detail-value">
+                <span class="tag" style="background-color: {% if skill.is_active and skill.status == 'open' %}#d4edda{% else %}#f8d7da{% endif %}; color: {% if skill.is_active and skill.status == 'open' %}#155724{% else %}#721c24{% endif %};">
+                    {{ 'active' if skill.is_active else 'inactive' }} / {{ skill.status }}
+                </span>
+            </div>
+        </div>
+        <div class="detail-item" style="grid-column: 1 / -1;">
+            <div class="detail-label">技能描述</div>
+            <div class="detail-value" style="white-space: pre-wrap;">{{ skill.description }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">教學方式</div>
+            <div class="detail-value">{{ skill.method or '未設定' }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">地點類型</div>
+            <div class="detail-value">{{ skill.location_type or '未設定' }}</div>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty">此技能已被刪除</div>
+    {% endif %}
+</section>
+
+<!-- 申請者資訊 -->
+<section class="card section">
+    <h3>申請者資訊</h3>
+    {% if requester %}
+    <div class="detail-grid">
+        <div class="detail-item">
+            <div class="detail-label">使用者 ID</div>
+            <div class="detail-value">{{ requester.id }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">姓名</div>
+            <div class="detail-value">{{ requester.name }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Email</div>
+            <div class="detail-value">{{ requester.email }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">角色</div>
+            <div class="detail-value">{{ requester.role }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">帳號狀態</div>
+            <div class="detail-value">
+                <span class="tag" style="background-color: {% if requester.status == 'active' %}#d4edda{% else %}#f8d7da{% endif %}; color: {% if requester.status == 'active' %}#155724{% else %}#721c24{% endif %};">
+                    {{ requester.status }}
+                </span>
+            </div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">系所</div>
+            <div class="detail-value">{{ requester.department or '未設定' }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">年級</div>
+            <div class="detail-value">{{ requester.grade or '未設定' }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">帳號建立時間</div>
+            <div class="detail-value">{{ format_taiwan_time(requester.created_at, '%Y-%m-%d %H:%M') }}</div>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty">申請者已被刪除</div>
+    {% endif %}
+</section>
+
+<!-- 技能發布者 (接收者) 資訊 -->
+<section class="card section">
+    <h3>技能發布者資訊</h3>
+    {% if receiver %}
+    <div class="detail-grid">
+        <div class="detail-item">
+            <div class="detail-label">使用者 ID</div>
+            <div class="detail-value">{{ receiver.id }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">姓名</div>
+            <div class="detail-value">{{ receiver.name }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Email</div>
+            <div class="detail-value">{{ receiver.email }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">角色</div>
+            <div class="detail-value">{{ receiver.role }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">帳號狀態</div>
+            <div class="detail-value">
+                <span class="tag" style="background-color: {% if receiver.status == 'active' %}#d4edda{% else %}#f8d7da{% endif %}; color: {% if receiver.status == 'active' %}#155724{% else %}#721c24{% endif %};">
+                    {{ receiver.status }}
+                </span>
+            </div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">系所</div>
+            <div class="detail-value">{{ receiver.department or '未設定' }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">年級</div>
+            <div class="detail-value">{{ receiver.grade or '未設定' }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">帳號建立時間</div>
+            <div class="detail-value">{{ format_taiwan_time(receiver.created_at, '%Y-%m-%d %H:%M') }}</div>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty">技能發布者已被刪除</div>
+    {% endif %}
+</section>
+
+<!-- 聊天訊息 -->
+<section class="card section">
+    <h3>聊天訊息 ({{ messages|length }})</h3>
+    {% if messages %}
+    <div class="messages-container">
+        {% for msg in messages %}
+        <div class="message-item">
+            <div class="message-header">
+                <strong>{{ msg.sender.name if msg.sender else '(已刪除)' }}</strong>
+                <span class="message-time">{{ format_taiwan_time(msg.created_at, '%Y-%m-%d %H:%M:%S') }}</span>
+            </div>
+            <div class="message-content">{{ msg.content }}</div>
+            {% if msg.file_name %}
+            <div class="message-file">📎 {{ msg.file_name }} ({{ msg.file_type }})</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">尚無聊天訊息</div>
+    {% endif %}
+</section>
+
+<!-- 評價資料 -->
+<section class="card section">
+    <h3>評價資料 ({{ reviews|length }})</h3>
+    {% if reviews %}
+    <div class="reviews-container">
+        {% for review in reviews %}
+        <div class="review-item">
+            <div class="review-header">
+                <strong>{{ review.reviewer.name if review.reviewer else '(已刪除)' }} 評價 {{ review.reviewee.name if review.reviewee else '(已刪除)' }}</strong>
+                <span class="review-rating">
+                    {% for i in range(1, 6) %}
+                        {% if i <= review.rating %}⭐{% else %}☆{% endif %}
+                    {% endfor %}
+                    ({{ review.rating }}/5)
+                </span>
+            </div>
+            <div class="review-comment">{{ review.comment or '(無評論)' }}</div>
+            <div class="review-time">{{ format_taiwan_time(review.created_at, '%Y-%m-%d %H:%M:%S') }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">尚無評價資料</div>
+    {% endif %}
+</section>
+
+<!-- 檢舉資料 -->
+<section class="card section">
+    <h3>相關檢舉 ({{ reports|length }})</h3>
+    {% if reports %}
+    <div class="reports-container">
+        {% for report in reports %}
+        <div class="report-item">
+            <div class="report-header">
+                <strong>檢舉 #{{ report.id }}</strong>
+                <span class="tag" style="background-color: {% if report.status == 'pending' %}#fff3cd{% elif report.status == 'reviewed' %}#d1ecf1{% elif report.status == 'resolved' or report.status == 'punished' %}#d4edda{% else %}#f8d7da{% endif %};">
+                    {{ report.status }}
+                </span>
+            </div>
+            <div class="detail-grid" style="font-size: 0.9rem;">
+                <div class="detail-item">
+                    <div class="detail-label">檢舉者</div>
+                    <div class="detail-value">{{ report.reporter.name if report.reporter else '(已刪除)' }}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">被檢舉者</div>
+                    <div class="detail-value">{{ report.reported_user.name if report.reported_user else '(已刪除)' }}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">原因</div>
+                    <div class="detail-value">{{ report.reason }}</div>
+                </div>
+                <div class="detail-item" style="grid-column: 1 / -1;">
+                    <div class="detail-label">描述</div>
+                    <div class="detail-value">{{ report.description or '(無)' }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">尚無檢舉資料</div>
+    {% endif %}
+</section>
+
+<style>
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1rem;
+    }
+    
+    .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .detail-label {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #666;
+    }
+    
+    .detail-value {
+        color: #333;
+        word-break: break-word;
+    }
+    
+    .tag {
+        display: inline-block;
+        padding: 0.3rem 0.6rem;
+        border-radius: 3px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+        width: fit-content;
+    }
+    
+    .tag-yellow { background-color: #fff3cd; color: #856404; }
+    .tag-blue { background-color: #d1ecf1; color: #0c5460; }
+    .tag-green { background-color: #d4edda; color: #155724; }
+    .tag-red { background-color: #f8d7da; color: #721c24; }
+    
+    .messages-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .message-item {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 1rem;
+    }
+    
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .message-time {
+        color: #999;
+        font-size: 0.85rem;
+    }
+    
+    .message-content {
+        margin: 0.5rem 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #333;
+    }
+    
+    .message-file {
+        color: #007bff;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+    }
+    
+    .reviews-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .review-item {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 1rem;
+    }
+    
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .review-rating {
+        font-size: 0.9rem;
+        color: #ff9800;
+    }
+    
+    .review-comment {
+        margin: 0.5rem 0;
+        color: #333;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    
+    .review-time {
+        font-size: 0.85rem;
+        color: #999;
+    }
+    
+    .reports-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .report-item {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 1rem;
+    }
+    
+    .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .empty {
+        text-align: center;
+        padding: 2rem;
+        color: #999;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+    }
+</style>
+{% endblock %}

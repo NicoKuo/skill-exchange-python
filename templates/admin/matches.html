@@ -1,25 +1,221 @@
-{# 管理後台媒合管理 - 檢視所有媒合紀錄 #}
+{% extends 'base.html' %}
+{% set title='媒合紀錄管理' %}
+
+{% block content %}
 <section class="section">
     {% include 'admin/_admin_nav_card.html' %}
 </section>
 
+<!-- 統計卡片 -->
+<section class="stats section" style="grid-template-columns: repeat(5, 1fr);">
+    <div class="stat">
+        <div class="num">{{ match_stats.all }}</div>
+        <div>全部媒合</div>
+    </div>
+    <div class="stat" style="background-color: #fffbf0;">
+        <div class="num">{{ match_stats.pending }}</div>
+        <div>待處理</div>
+    </div>
+    <div class="stat" style="background-color: #f0f7ff;">
+        <div class="num">{{ match_stats.accepted }}</div>
+        <div>進行中</div>
+    </div>
+    <div class="stat" style="background-color: #f0fff4;">
+        <div class="num">{{ match_stats.completed }}</div>
+        <div>已完成</div>
+    </div>
+    <div class="stat" style="background-color: #fef0f0;">
+        <div class="num">{{ match_stats.cancelled_rejected }}</div>
+        <div>已取消/拒絕</div>
+    </div>
+</section>
+
+<!-- 篩選表單 -->
 <section class="card section">
-    <h1>媒合紀錄</h1>
-    <div class="table-wrap">
-        <table class="table" style="min-width: 980px;">
-            <tr>
-                <th style="width: 180px;">技能</th>
-                <th style="width: 180px;">雙方</th>
-                <th style="width: 260px;">訊息</th>
-                <th style="width: 120px;">狀態</th>
-                <th style="width: 180px;">更新時間</th>
-            </tr>{% for match in matches %}<tr>
-                <td>{{ match.skill.title if match.skill else '已刪除技能' }}</td>
-                <td>{{ match.requester.name }} ↔ {{ match.receiver.name }}</td>
-                <td>{{ match.message }}</td>
-                <td><span class="tag">{{ match.status }}</span></td>
-                <td>{{ format_taiwan_time(match.updated_at, '%Y-%m-%d %H:%M') }}</td>
-            </tr>{% else %}<tr><td colspan="5" class="empty">目前沒有媒合紀錄。</td></tr>{% endfor %}
+    <h2>篩選條件</h2>
+    <form method="GET" class="filter-form">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>狀態</label>
+                <select name="status">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>全部</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>待處理 (pending)</option>
+                    <option value="accepted" {% if status_filter == 'accepted' %}selected{% endif %}>進行中 (accepted)</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>已完成 (completed)</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>已拒絕 (rejected)</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>已取消 (cancelled)</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>技能關鍵字</label>
+                <input type="text" name="skill_keyword" value="{{ skill_keyword }}" placeholder="輸入技能標題...">
+            </div>
+            <div class="filter-group">
+                <label>使用者</label>
+                <input type="text" name="user_keyword" value="{{ user_keyword }}" placeholder="姓名或 Email...">
+            </div>
+            <div class="filter-group">
+                <label>建立時間從</label>
+                <input type="date" name="date_from" value="{{ date_from }}">
+            </div>
+            <div class="filter-group">
+                <label>到</label>
+                <input type="date" name="date_to" value="{{ date_to }}">
+            </div>
+            <button type="submit" class="btn btn-primary">篩選</button>
+            <a href="{{ url_for('admin.matches') }}" class="btn btn-secondary">重置</a>
+        </div>
+    </form>
+    <style>
+        .filter-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .filter-group label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #333;
+        }
+        .filter-group input,
+        .filter-group select {
+            padding: 0.6rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+        }
+    </style>
+</section>
+
+<!-- 媒合列表 -->
+<section class="card section">
+    <h2>媒合紀錄</h2>
+    {% if matches %}
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>媒合 ID</th>
+                    <th>技能</th>
+                    <th>申請者</th>
+                    <th>技能發布者</th>
+                    <th>狀態</th>
+                    <th>建立時間</th>
+                    <th>更新時間</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for match in matches %}
+                <tr>
+                    <td>{{ match.id }}</td>
+                    <td>{{ match.skill.title if match.skill else '已刪除技能' }}</td>
+                    <td>
+                        <div>{{ match.requester.name if match.requester else '已刪除帳號' }}</div>
+                        <div class="muted" style="font-size: 0.85rem;">{{ match.requester.email if match.requester else '' }}</div>
+                    </td>
+                    <td>
+                        <div>{{ match.receiver.name if match.receiver else '已刪除帳號' }}</div>
+                        <div class="muted" style="font-size: 0.85rem;">{{ match.receiver.email if match.receiver else '' }}</div>
+                    </td>
+                    <td>
+                        <span class="tag {% if match.status == 'pending' %}tag-yellow{% elif match.status == 'accepted' %}tag-blue{% elif match.status == 'completed' %}tag-green{% elif match.status in ['rejected', 'cancelled'] %}tag-red{% endif %}">
+                            {{ match.status }}
+                        </span>
+                    </td>
+                    <td>{{ format_taiwan_time(match.created_at, '%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ format_taiwan_time(match.updated_at, '%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        <a href="{{ url_for('admin.match_detail', match_id=match.id) }}" class="btn btn-small">查看詳情</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
-</section>{% endblock %}
+    {% else %}
+    <div class="empty">目前沒有符合條件的媒合紀錄。</div>
+    {% endif %}
+</section>
+
+<style>
+    .tag {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .tag-yellow { background-color: #fff3cd; color: #856404; }
+    .tag-blue { background-color: #d1ecf1; color: #0c5460; }
+    .tag-green { background-color: #d4edda; color: #155724; }
+    .tag-red { background-color: #f8d7da; color: #721c24; }
+    
+    .table-responsive {
+        overflow-x: auto;
+    }
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+    }
+    .admin-table thead {
+        background-color: #f8f9fa;
+    }
+    .admin-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .admin-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .admin-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    .muted {
+        color: #6c757d;
+    }
+    
+    .btn-small {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .btn-small:hover {
+        background-color: #0056b3;
+    }
+    
+    .empty {
+        text-align: center;
+        padding: 2rem;
+        color: #999;
+    }
+</style>
+{% endblock %}

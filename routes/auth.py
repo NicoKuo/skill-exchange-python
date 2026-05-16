@@ -1,11 +1,11 @@
 # routes/auth.py: 認證路由（登入、註冊、登出）
 # 包含暴力破解防護：連續失敗 5 次後鎖定帳號 30 分鐘
 from datetime import datetime, timedelta
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import IntegrityError
 
-from models import db, User, ActivityLog
+from models import db, User, ActivityLog, Skill
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -122,6 +122,19 @@ def login():
                     db.session.commit()
                 except Exception:
                     db.session.rollback()
+
+                # 檢查使用者是否有已上架的技能
+                has_active_skills = Skill.query.filter_by(
+                    user_id=user.id, 
+                    is_active=True,
+                    status='open'
+                ).first() is not None
+                
+                # 如果沒有已上架的技能，設置 session 標記以顯示公告
+                if not has_active_skills:
+                    session['show_skill_announcement'] = True
+                else:
+                    session['show_skill_announcement'] = False
 
                 flash("登入成功。", "success")
                 # 管理員導向後台，一般使用者導向儀表板

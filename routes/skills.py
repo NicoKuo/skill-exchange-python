@@ -5,7 +5,7 @@ from datetime import datetime
 from io import BytesIO
 from uuid import uuid4
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory, send_file, abort, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory, send_file, abort, jsonify, session
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from werkzeug.utils import secure_filename
@@ -635,3 +635,26 @@ def report_skill(skill_id):
         "success": True,
         "message": "檢舉已送出，將由管理者審查。"
     })
+
+
+@skills_bp.route("/skills/announcement", methods=["GET", "POST"], endpoint='announcement')
+@login_required
+def skill_announcement():
+    """
+    技能上架提醒頁面。
+    使用者可選擇是否要前往新增技能頁面。
+    GET：顯示選擇頁面。
+    POST：根據使用者的選擇進行導向。
+    """
+    if request.method == "POST":
+        choice = request.form.get("choice", "").strip()
+        
+        if choice == "add_skill":
+            # 使用者選擇上架技能
+            return redirect(url_for("skills.add_skill"))
+        else:
+            # 使用者選擇暫時不要，清除 session 標記
+            session.pop('show_skill_announcement', None)
+            return redirect(url_for("profile.dashboard"))
+    
+    return render_template("skill_announcement.html")

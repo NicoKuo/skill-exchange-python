@@ -8,7 +8,7 @@ from app import app
 from models import db, User
 
 
-# 超級管理員帳號的預設設定（正式部署後請修改密碼）
+# 超級管理員帳號的預設設定
 TARGET_EMAIL = 'admin@gmail.com'
 TARGET_PASSWORD = 'admin123456'
 TARGET_ROLE = 'super_admin'

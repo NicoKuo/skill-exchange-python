@@ -198,7 +198,7 @@ def send_message_ajax(match_id):
     """
     AJAX 發送訊息 API（回傳 JSON）。
     用於前端即時更新聊天介面，不重新載入頁面。
-    防重複：若與最後一則訊息完全相同且 2 秒內，回傳 429 錯誤。
+    防重複：若與最後一則訊息完全相同且 2 秒內，回傳錯誤。
     成功後通知對方並回傳新訊息的 JSON 資料。
     """
     m = Match.query.get_or_404(match_id)

@@ -12,9 +12,7 @@
             {% if current_user.avatar %}
                 <img src="{{ current_user.avatar }}" class="avatar-lg" alt="頭像">
             {% else %}
-                <div class="avatar-placeholder">
-                    {{ current_user.name[0] }}
-                </div>
+                <div class="avatar-placeholder">{{ current_user.name[0] }}</div>
             {% endif %}
             <div>
                 <h3>{{ current_user.name }}</h3>
@@ -65,7 +63,6 @@
 
     <div class="card">
         <h2>信譽與遊戲化</h2>
-
         <div class="stats" style="grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px">
             <div class="stat" style="margin-bottom:0">
                 <div class="num">{{ user_average_rating(current_user.id) }}</div>
@@ -100,7 +97,6 @@
 
         <h3 style="font-size:14px; font-weight:600; margin:0 0 10px">解鎖條件</h3>
         <div style="display:flex; flex-direction:column; gap:6px; font-size:13px">
-
             <p style="margin:4px 0; font-weight:600; color:#888">— 忠誠類 —</p>
             <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(180,120,60,.12);color:#7c4a1e;border:1px solid rgba(180,120,60,.35)">📅</span><span><strong>老朋友</strong> <span class="muted">— 加入滿 7 天</span></span></div>
             <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:rgba(148,163,184,.15);color:#475569;border:1px solid rgba(148,163,184,.4)">🗓️</span><span><strong>月老會員</strong> <span class="muted">— 加入滿 30 天</span></span></div>
@@ -130,15 +126,77 @@
 
 </div>
 
+<!-- 作品集編輯區 -->
+<section class="card portfolio-editor-card">
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+        <h2 style="margin:0;">🗂️ 個人作品集</h2>
+        <button type="button" class="btn btn-muted" id="addPortfolioItem" style="font-size:13px; padding:7px 16px;">
+            <span class="material-icons-round icon-inline" style="font-size:16px;">add</span> 新增作品
+        </button>
+    </div>
+    <p class="muted" style="font-size:13px; margin:-8px 0 20px;">最多 10 筆。填好後點「儲存作品集」送出。</p>
+
+    <form method="post" id="portfolioForm">
+        <div id="portfolioList" style="display:flex; flex-direction:column; gap:16px;">
+            {% for item in portfolio %}
+            <div class="portfolio-item-row" style="opacity:1;transform:none;">
+                <div class="portfolio-item-inner">
+                    <div class="portfolio-item-thumb" id="thumb_{{ loop.index0 }}">
+                        {% if item.image_url %}
+                            <img src="{{ item.image_url }}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                            <div class="thumb-placeholder" style="display:none;">🖼️</div>
+                        {% else %}
+                            <div class="thumb-placeholder">🖼️</div>
+                        {% endif %}
+                    </div>
+                    <div class="portfolio-item-fields">
+                        <div class="portfolio-fields-grid">
+                            <div class="field">
+                                <label>作品標題 <span style="color:var(--danger)">*</span></label>
+                                <input name="portfolio_title" value="{{ item.title }}" placeholder="例：設計作品集網站">
+                            </div>
+                            <div class="field">
+                                <label>作品連結</label>
+                                <input name="portfolio_link" value="{{ item.link_url }}" placeholder="https://..." type="url">
+                            </div>
+                            <div class="field" style="grid-column:1/-1;">
+                                <label>圖片網址</label>
+                                <input name="portfolio_image" value="{{ item.image_url }}" placeholder="貼上圖片網址（顯示預覽）"
+                                    oninput="updateThumb(this)" data-index="{{ loop.index0 }}">
+                            </div>
+                            <div class="field" style="grid-column:1/-1;">
+                                <label>作品說明</label>
+                                <textarea name="portfolio_desc" rows="2" placeholder="簡短說明這個作品的內容…">{{ item.desc }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="portfolio-delete-btn" onclick="removePortfolioItem(this)" title="刪除">
+                        <span class="material-icons-round" style="font-size:18px;">delete_outline</span>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if not portfolio %}
+        <div id="portfolioEmpty" style="text-align:center; padding:32px 0; color:var(--muted); font-size:14px;">
+            <span style="font-size:36px; display:block; margin-bottom:8px;">📂</span>
+            還沒有作品，點「新增作品」開始建立吧！
+        </div>
+        {% else %}
+        <div id="portfolioEmpty" style="display:none;"></div>
+        {% endif %}
+
+        <div style="margin-top:20px;">
+            <button class="btn" type="submit">💾 儲存作品集</button>
+        </div>
+    </form>
+</section>
+
 <section class="card">
     <h2>歷史評價紀錄</h2>
     <table class="table">
-        <tr>
-            <th>技能</th>
-            <th>評價者</th>
-            <th>分數</th>
-            <th>評論</th>
-        </tr>
+        <tr><th>技能</th><th>評價者</th><th>分數</th><th>評論</th></tr>
         {% for review in reviews %}
         <tr>
             <td>{{ review.match.skill.title }}</td>
@@ -147,11 +205,86 @@
             <td>{{ review.comment }}</td>
         </tr>
         {% else %}
-        <tr>
-            <td colspan="4" class="empty">目前尚無評價紀錄</td>
-        </tr>
+        <tr><td colspan="4" class="empty">目前尚無評價紀錄</td></tr>
         {% endfor %}
     </table>
 </section>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MAX_ITEMS = 10;
+
+function getItemCount() {
+    return document.querySelectorAll('#portfolioList .portfolio-item-row').length;
+}
+
+function refreshEmpty() {
+    document.getElementById('portfolioEmpty').style.display = getItemCount() === 0 ? 'block' : 'none';
+}
+
+function updateThumb(input) {
+    const idx = input.dataset.index;
+    const thumb = document.getElementById('thumb_' + idx);
+    if (!thumb) return;
+    const url = input.value.trim();
+    if (url) {
+        thumb.innerHTML = `<img src="${url}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                           <div class="thumb-placeholder" style="display:none;">🖼️</div>`;
+    } else {
+        thumb.innerHTML = '<div class="thumb-placeholder">🖼️</div>';
+    }
+}
+
+function removePortfolioItem(btn) {
+    btn.closest('.portfolio-item-row').remove();
+    refreshEmpty();
+}
+
+document.getElementById('addPortfolioItem').addEventListener('click', function () {
+    if (getItemCount() >= MAX_ITEMS) {
+        alert('最多只能新增 10 筆作品。');
+        return;
+    }
+    const idx = Date.now();
+    const row = document.createElement('div');
+    row.className = 'portfolio-item-row';
+    row.style.opacity = '1';
+    row.innerHTML = `
+        <div class="portfolio-item-inner">
+            <div class="portfolio-item-thumb" id="thumb_${idx}">
+                <div class="thumb-placeholder">🖼️</div>
+            </div>
+            <div class="portfolio-item-fields">
+                <div class="portfolio-fields-grid">
+                    <div class="field">
+                        <label>作品標題 <span style="color:var(--danger)">*</span></label>
+                        <input name="portfolio_title" placeholder="例：設計作品集網站">
+                    </div>
+                    <div class="field">
+                        <label>作品連結</label>
+                        <input name="portfolio_link" placeholder="https://..." type="url">
+                    </div>
+                    <div class="field" style="grid-column:1/-1;">
+                        <label>圖片網址</label>
+                        <input name="portfolio_image" placeholder="貼上圖片網址（顯示預覽）"
+                            oninput="updateThumb(this)" data-index="${idx}">
+                    </div>
+                    <div class="field" style="grid-column:1/-1;">
+                        <label>作品說明</label>
+                        <textarea name="portfolio_desc" rows="2" placeholder="簡短說明這個作品…"></textarea>
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="portfolio-delete-btn" onclick="removePortfolioItem(this)" title="刪除">
+                <span class="material-icons-round" style="font-size:18px;">delete_outline</span>
+            </button>
+        </div>
+    `;
+    document.getElementById('portfolioList').appendChild(row);
+    refreshEmpty();
+    row.querySelector('input[name="portfolio_title"]').focus();
+});
+</script>
 {% endblock %}

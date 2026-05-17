@@ -1138,3 +1138,28 @@ h1, h2, h3, h4, h5 {
   transition: background .15s;
 }
 .portfolio-link-btn:hover { background: #d0e4ff; }
+
+/* ─── 推薦區域和小按鈕樣式 ───── */
+.btn-small {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.btn-small:hover {
+  transform: translateY(-1px);
+}
+
+/* 推薦區域卡片樣式調整 */
+.grid-4 .card {
+  position: relative;
+}
+
+.grid-4 .card h4 {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.grid-4 .card > .muted {
+  flex: 1;
+}

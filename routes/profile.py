@@ -1,9 +1,43 @@
+# routes/profile.py: 個人資料與儀表板路由
 import json
+import os
+import uuid
+import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
+
 from models import db, User, Skill, Review, ActivityLog
 
 profile_bp = Blueprint('profile', __name__)
+
+SUPABASE_URL = "https://ksyivufbznpmziyehjpo.supabase.co"
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzeWl2dWZiem5wbXppeWVoanBvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NzM3Mjk3MSwiZXhwIjoyMDkyOTQ4OTcxfQ.ddbXzrRTrdQqSEitox2RGekly-3MdTtNs-x0A2PRCfg")
+BUCKET = "portfolio"
+
+
+def upload_pdf_to_supabase(file, user_id):
+    """上傳 PDF 到 Supabase Storage，回傳公開 URL 或 None"""
+    if not file or file.filename == '':
+        return None
+    if not file.filename.lower().endswith('.pdf'):
+        return None
+
+    filename = f"{user_id}/{uuid.uuid4().hex}.pdf"
+    upload_url = f"{SUPABASE_URL}/storage/v1/object/{BUCKET}/{filename}"
+
+    headers = {
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/pdf",
+        "x-upsert": "true",
+    }
+
+    try:
+        resp = requests.put(upload_url, data=file.read(), headers=headers, timeout=30)
+        if resp.status_code in (200, 201):
+            return f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET}/{filename}"
+    except Exception as e:
+        print(f"[Supabase upload error] {e}")
+    return None
 
 
 @profile_bp.route("/dashboard", endpoint='dashboard')
@@ -26,15 +60,29 @@ def profile():
         current_user.wanted_skills_intro = request.form.get("wanted_skills_intro", "").strip() or None
 
         # 作品集
-        titles = request.form.getlist("portfolio_title")
-        descs  = request.form.getlist("portfolio_desc")
-        imgs   = request.form.getlist("portfolio_image")
-        links  = request.form.getlist("portfolio_link")
+        titles   = request.form.getlist("portfolio_title")
+        descs    = request.form.getlist("portfolio_desc")
+        links    = request.form.getlist("portfolio_link")
+        old_pdfs = request.form.getlist("portfolio_pdf_existing")
+        new_pdfs = request.files.getlist("portfolio_pdf")
+
         portfolio_items = []
-        for t, d, i, l in zip(titles, descs, imgs, links):
+        for i, t in enumerate(titles):
             t = t.strip()
-            if t:
-                portfolio_items.append({"title": t, "desc": d.strip(), "image_url": i.strip(), "link_url": l.strip()})
+            if not t:
+                continue
+            pdf_url = None
+            if i < len(new_pdfs) and new_pdfs[i].filename:
+                pdf_url = upload_pdf_to_supabase(new_pdfs[i], current_user.id)
+            if not pdf_url and i < len(old_pdfs):
+                pdf_url = old_pdfs[i].strip() or None
+            portfolio_items.append({
+                "title": t,
+                "desc": descs[i].strip() if i < len(descs) else "",
+                "pdf_url": pdf_url or "",
+                "link_url": links[i].strip() if i < len(links) else "",
+            })
+
         current_user.portfolio = json.dumps(portfolio_items, ensure_ascii=False) if portfolio_items else None
 
         new_password = request.form.get("new_password", "").strip()

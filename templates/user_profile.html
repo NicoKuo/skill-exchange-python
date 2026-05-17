@@ -96,21 +96,24 @@
             <div class="portfolio-showcase-grid">
                 {% for item in portfolio %}
                 <div class="portfolio-showcase-item">
-                    {% if item.image_url %}
-                    <div class="portfolio-showcase-img">
-                        <img src="{{ item.image_url }}" alt="{{ item.title }}"
-                             onerror="this.closest('.portfolio-showcase-img').style.display='none'">
-                    </div>
-                    {% endif %}
                     <div class="portfolio-showcase-body">
                         <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
                             <strong style="font-size:14px; line-height:1.4;">{{ item.title }}</strong>
-                            {% if item.link_url %}
-                            <a href="{{ item.link_url }}" target="_blank" rel="noopener"
-                               class="portfolio-link-btn" title="查看作品">
-                                <span class="material-icons-round" style="font-size:16px;">open_in_new</span>
-                            </a>
-                            {% endif %}
+                            <div style="display:flex;gap:6px;flex-shrink:0;">
+                                {% if item.pdf_url %}
+                                <a href="{{ item.pdf_url }}" target="_blank" rel="noopener"
+                                   class="portfolio-link-btn" title="查看 PDF"
+                                   style="background:rgba(220,38,38,.1);color:#dc2626;">
+                                    <span class="material-icons-round" style="font-size:16px;">picture_as_pdf</span>
+                                </a>
+                                {% endif %}
+                                {% if item.link_url %}
+                                <a href="{{ item.link_url }}" target="_blank" rel="noopener"
+                                   class="portfolio-link-btn" title="查看連結">
+                                    <span class="material-icons-round" style="font-size:16px;">open_in_new</span>
+                                </a>
+                                {% endif %}
+                            </div>
                         </div>
                         {% if item.desc %}
                         <p class="muted" style="font-size:13px; margin:6px 0 0; line-height:1.5;">{{ item.desc }}</p>

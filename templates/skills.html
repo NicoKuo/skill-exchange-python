@@ -46,6 +46,77 @@
         <div style="align-self:end"><button class="btn">搜尋</button></div>
     </form>
 </section>
+
+<!-- 推薦媒合技能區域 -->
+{% if current_user.is_authenticated and (recommendations.wanted_matches or recommendations.offered_matches) %}
+<section class="section">
+    <h2>🎯 推薦媒合</h2>
+    <p class="muted" style="margin-bottom: 16px;">根據你的個人檔案，以下技能可能與你進行媒合：</p>
+    
+    <!-- 你想學的技能 -->
+    {% if recommendations.wanted_matches %}
+    <div style="margin-bottom: 24px;">
+        <h3 style="margin-bottom: 12px;">📚 你想學的技能</h3>
+        <p class="muted" style="font-size: 13px; margin-bottom: 12px;">其他使用者可以教你這些技能 (共 {{ recommendations.total_wanted }} 個)</p>
+        <div class="grid grid-4">
+            {% for skill in recommendations.wanted_matches %}
+            <div class="card">
+                <h4 style="margin: 0 0 8px 0;">{{ skill.title }}</h4>
+                <div class="muted" style="font-size: 13px; line-height: 1.4; margin-bottom: 10px;">{{ skill.description[:60] }}{% if skill.description|length > 60 %}...{% endif %}</div>
+                <div class="pill-list" style="margin-bottom: 10px;">
+                    <span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span>
+                    <span class="tag tag-green">我可以教</span>
+                </div>
+                <p class="kpi" style="font-size: 12px; margin-bottom: 8px;">
+                    <a href="{{ url_for('profile.view_user', user_id=skill.user.id) }}" style="color:inherit;text-decoration:underline;">{{ skill.user.name }}</a>
+                </p>
+                {% if skill.id in applied_skill_ids %}
+                    <a class="btn btn-small btn-muted" href="{{ url_for('matches.match_center', skill_id=skill.id) }}">查看媒合</a>
+                {% else %}
+                    <a class="btn btn-small" href="{{ url_for('matches.match_center', skill_id=skill.id) }}">開始媒合</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 你能提供的技能 -->
+    {% if recommendations.offered_matches %}
+    <div>
+        <h3 style="margin-bottom: 12px;">🎁 你能提供的技能</h3>
+        <p class="muted" style="font-size: 13px; margin-bottom: 12px;">其他使用者想學你擁有的技能 (共 {{ recommendations.total_offered }} 個)</p>
+        <div class="grid grid-4">
+            {% for skill in recommendations.offered_matches %}
+            <div class="card">
+                <h4 style="margin: 0 0 8px 0;">{{ skill.title }}</h4>
+                <div class="muted" style="font-size: 13px; line-height: 1.4; margin-bottom: 10px;">{{ skill.description[:60] }}{% if skill.description|length > 60 %}...{% endif %}</div>
+                <div class="pill-list" style="margin-bottom: 10px;">
+                    <span class="tag">{{ skill.category.name if skill.category else '未分類' }}</span>
+                    <span class="tag tag-blue">我想學</span>
+                </div>
+                <p class="kpi" style="font-size: 12px; margin-bottom: 8px;">
+                    <a href="{{ url_for('profile.view_user', user_id=skill.user.id) }}" style="color:inherit;text-decoration:underline;">{{ skill.user.name }}</a>
+                </p>
+                {% if skill.id in applied_skill_ids %}
+                    <a class="btn btn-small btn-muted" href="{{ url_for('matches.match_center', skill_id=skill.id) }}">查看媒合</a>
+                {% else %}
+                    <a class="btn btn-small" href="{{ url_for('matches.match_center', skill_id=skill.id) }}">開始媒合</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</section>
+{% elif current_user.is_authenticated %}
+<section class="section card" style="background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 16px;">
+    <p style="margin: 0; color: #1e40af;">
+        💡 完善你的個人檔案，在你的技能和想要學習的技能中新增資料，系統會自動為你推薦合適的媒合對象！
+    </p>
+</section>
+{% endif %}
+
 <section class="grid grid-3 section">{% for skill in skills %}<div class="card">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <h3 style="flex:1; margin:0;">{{ skill.title }}</h3>

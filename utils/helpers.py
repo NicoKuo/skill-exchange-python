@@ -608,3 +608,141 @@ def format_taiwan_time(value, format_string='%Y-%m-%d %H:%M'):
         return value.astimezone(TAIWAN_TIMEZONE).strftime(format_string)
 
     return value
+
+
+# -----------------------------------------------
+# 技能推薦輔助函數
+# -----------------------------------------------
+
+def get_skill_recommendations(user_id, limit=6):
+    """
+    根據使用者的個人檔案，推薦可進行媒合的技能。
+
+    推薦邏輯：
+    1. 獲取當前使用者的已發佈技能並分類為：
+       - offered_skills: 使用者能提供的技能（type='offer'）
+       - wanted_skills: 使用者想要學的技能（type='learn'）
+    
+    2. 根據分類和標籤進行匹配，推薦其他使用者的技能：
+       - 推薦「我想學」對應類型：其他使用者提供的相同分類技能（type='offer'）
+       - 推薦「我能教」對應的需求：其他使用者想學的相同分類技能（type='learn'）
+
+    參數：
+      user_id - 當前使用者 ID
+      limit   - 返回推薦的最多技能數量，預設 6 個
+
+    回傳：
+      dict 物件，包含：
+        - 'wanted_matches': 當前使用者想學，而其他使用者提供的技能清單
+        - 'offered_matches': 當前使用者提供，而其他使用者想學的技能清單
+        - 'total_wanted': 第一類推薦的總數
+        - 'total_offered': 第二類推薦的總數
+    """
+    # 獲取當前使用者的技能
+    user_offered = apply_common_skill_filters(
+        Skill.query,
+        user_id=user_id,
+        skill_type='offer'
+    ).all()
+
+    user_wanted = apply_common_skill_filters(
+        Skill.query,
+        user_id=user_id,
+        skill_type='learn'
+    ).all()
+
+    # 沒有個人技能檔案時，無法推薦
+    if not user_offered and not user_wanted:
+        return {
+            'wanted_matches': [],
+            'offered_matches': [],
+            'total_wanted': 0,
+            'total_offered': 0,
+        }
+
+    # 蒐集已申請過媒合的技能 ID（避免推薦已申請的）
+    applied_skill_ids = {
+        row[0]
+        for row in db.session.query(Match.skill_id)
+        .filter(
+            or_(
+                Match.requester_id == user_id,
+                Match.receiver_id == user_id,
+            )
+        )
+        .distinct()
+        .all()
+    }
+
+    # 基礎查詢：只顯示上架中的技能，不包括自己的技能，也不包括已申請過的
+    base_query = Skill.query.filter(
+        Skill.status == 'open',
+        Skill.is_active.is_(True),
+        Skill.user_id != user_id,
+        Skill.id.notin_(applied_skill_ids) if applied_skill_ids else True
+    )
+
+    # 推薦類型 1：當前使用者「想學」的，而其他使用者「提供」的
+    # （按分類和標籤匹配）
+    wanted_matches = []
+    if user_wanted:
+        wanted_categories = set()
+        wanted_tags = set()
+
+        for skill in user_wanted:
+            if skill.category_id:
+                wanted_categories.add(skill.category_id)
+            if skill.tags:
+                wanted_tags.update(split_tags(skill.tags))
+
+        # 基於分類匹配
+        if wanted_categories:
+            category_query = base_query.filter(
+                Skill.type == 'offer',
+                Skill.category_id.in_(wanted_categories)
+            )
+            wanted_matches = category_query.order_by(Skill.created_at.desc()).limit(limit).all()
+
+    # 推薦類型 2：當前使用者「能提供」的，而其他使用者「想學」的
+    # （按分類和標籤匹配）
+    offered_matches = []
+    if user_offered:
+        offered_categories = set()
+        offered_tags = set()
+
+        for skill in user_offered:
+            if skill.category_id:
+                offered_categories.add(skill.category_id)
+            if skill.tags:
+                offered_tags.update(split_tags(skill.tags))
+
+        # 基於分類匹配
+        if offered_categories:
+            category_query = base_query.filter(
+                Skill.type == 'learn',
+                Skill.category_id.in_(offered_categories)
+            )
+            offered_matches = category_query.order_by(Skill.created_at.desc()).limit(limit).all()
+
+    # 獲取推薦的總數（不計 limit）
+    total_wanted = 0
+    total_offered = 0
+
+    if user_wanted and wanted_categories:
+        total_wanted = base_query.filter(
+            Skill.type == 'offer',
+            Skill.category_id.in_(wanted_categories)
+        ).count()
+
+    if user_offered and offered_categories:
+        total_offered = base_query.filter(
+            Skill.type == 'learn',
+            Skill.category_id.in_(offered_categories)
+        ).count()
+
+    return {
+        'wanted_matches': wanted_matches,
+        'offered_matches': offered_matches,
+        'total_wanted': total_wanted,
+        'total_offered': total_offered,
+    }

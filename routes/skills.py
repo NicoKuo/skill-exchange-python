@@ -11,6 +11,7 @@ from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 
 from models import db, Skill, SkillCategory, Match, ActivityLog, Report
+from utils.helpers import get_skill_recommendations
 
 skills_bp = Blueprint('skills', __name__)
 
@@ -150,6 +151,7 @@ def skills():
     技能列表頁路由。
     支援多維度搜尋篩選：關鍵字、分類、類型（offer/learn）、教學方式、地點類型、地區、可配合星期。
     若已登入，同時標記使用者已申請媒合的技能（applied_skill_ids），讓介面可隱藏申請按鈕。
+    同時為已登入使用者推薦基於個人檔案的媒合技能。
     """
     # 取得搜尋條件
     keyword = request.args.get("keyword", "").strip()
@@ -162,6 +164,13 @@ def skills():
 
     # 取得已登入使用者的所有媒合申請過的技能 ID（避免重複申請）
     applied_skill_ids = set()
+    recommendations = {
+        'wanted_matches': [],
+        'offered_matches': [],
+        'total_wanted': 0,
+        'total_offered': 0,
+    }
+
     if current_user.is_authenticated:
         applied_skill_ids = {
             row[0]
@@ -175,6 +184,9 @@ def skills():
             .distinct()
             .all()
         }
+
+        # 獲取推薦技能（只有已登入且有個人檔案的使用者才能獲得）
+        recommendations = get_skill_recommendations(current_user.id, limit=6)
 
     # 基礎查詢：只顯示上架中的技能
     query = Skill.query.filter_by(status="open", is_active=True)
@@ -222,6 +234,7 @@ def skills():
         location_area=location_area,
         available_day=available_day,
         applied_skill_ids=applied_skill_ids,
+        recommendations=recommendations,
     )
 
 

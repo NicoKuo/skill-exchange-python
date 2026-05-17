@@ -8,7 +8,8 @@ from utils.helpers import (
     user_badges,
     unread_notifications_count,
     add_notification,
-    skill_match_score
+    skill_match_score,
+    get_skill_recommendations
 )
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     'unread_notifications_count',
     'add_notification',
     'skill_match_score',
+    'get_skill_recommendations',
 ]

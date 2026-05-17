@@ -53,6 +53,9 @@
             {% else %}
             <span class="tag tag-gray">已下架</span>
             {% endif %}
+            <form method="post" action="{{ url_for('skills.delete_skill', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要刪除這項技能嗎？此操作無法復原。');">
+                <button class="btn btn-danger btn-sm" type="submit">刪除</button>
+            </form>
         </div>
         <hr>
     </div>{% else %}<p>你目前還沒有上架任何技能。</p>{% endfor %}
@@ -62,4 +65,28 @@
     <div class="actions"><a class="btn" href="{{ url_for('add_skill') }}">上架新技能</a><a class="btn btn-muted"
             href="{{ url_for('skills') }}">查看技能列表</a><a class="btn btn-muted"
             href="{{ url_for('matches.match_center') }}">媒合中心</a></div>
-</div>{% endblock %}
+</div>
+
+<style>
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s ease;
+    }
+    .btn-danger:hover {
+        background-color: #c82333;
+    }
+    .inline-form {
+        display: inline;
+        margin-left: 0.5rem;
+    }
+</style>
+
+{% endblock %}

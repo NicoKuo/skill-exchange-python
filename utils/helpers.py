@@ -614,7 +614,7 @@ def format_taiwan_time(value, format_string='%Y-%m-%d %H:%M'):
 # 技能推薦輔助函數
 # -----------------------------------------------
 
-def get_skill_recommendations(user_id, limit=6):
+def get_skill_recommendations(user_id, limit=6, debug=False):
     """
     根據使用者的個人檔案，推薦可進行媒合的技能。
 
@@ -651,14 +651,56 @@ def get_skill_recommendations(user_id, limit=6):
         skill_type='learn'
     ).all()
 
-    # 沒有個人技能檔案時，無法推薦
-    if not user_offered and not user_wanted:
-        return {
-            'wanted_matches': [],
-            'offered_matches': [],
-            'total_wanted': 0,
-            'total_offered': 0,
-        }
+    # 從使用者個人檔案文字（offered_skills_intro / wanted_skills_intro）抽取關鍵字，作為補充匹配來源
+    def extract_profile_keywords(text):
+        if not text:
+            return set()
+
+        kws = set()
+
+        # 先以標籤分割（支援中文/英文逗號等）
+        parts = TAG_SPLIT_RE.split(text)
+
+        # CJK 連續字元（長度 >=2）與 ASCII 文字（長度 >=2）都視為關鍵字
+        cjk_re = re.compile(r'[\u4e00-\u9fff]{2,}')
+        ascii_re = re.compile(r'[A-Za-z0-9]{2,}')
+
+        for p in parts:
+            p = p.strip()
+            if not p:
+                continue
+
+            # 先找 CJK 片段
+            for m in cjk_re.findall(p):
+                kws.add(m)
+
+            # 再找英文/數字 token
+            for m in ascii_re.findall(p):
+                kws.add(m.lower())
+
+            # 若沒有透過上面抓到任何 token，退回以非字元分割並取長度 >=2 的片段
+            if not cjk_re.search(p) and not ascii_re.search(p):
+                for token in re.split(r"\W+", p):
+                    t = token.strip()
+                    if len(t) >= 2:
+                        kws.add(t)
+
+        return kws
+
+    profile_offered_keywords = set()
+    profile_wanted_keywords = set()
+    user = None
+    try:
+        user = User.query.get(user_id)
+        if user:
+            profile_offered_keywords = extract_profile_keywords(getattr(user, 'offered_skills_intro', '') or '')
+            profile_wanted_keywords = extract_profile_keywords(getattr(user, 'wanted_skills_intro', '') or '')
+    except Exception:
+        profile_offered_keywords = set()
+        profile_wanted_keywords = set()
+
+    # 如果使用者沒有技能，但有在個人檔案填寫關鍵字，我們仍然嘗試用關鍵字做回退推薦
+    has_user_skills = bool(user_offered or user_wanted)
 
     # 蒐集已申請過媒合的技能 ID（避免推薦已申請的）
     applied_skill_ids = {
@@ -679,8 +721,14 @@ def get_skill_recommendations(user_id, limit=6):
         Skill.status == 'open',
         Skill.is_active.is_(True),
         Skill.user_id != user_id,
-        Skill.id.notin_(applied_skill_ids) if applied_skill_ids else True
     )
+    if applied_skill_ids:
+        base_query = base_query.filter(~Skill.id.in_(applied_skill_ids))
+
+    # 取得類型欄位的相容 column（避免不同 schema 命名造成的錯誤）
+    type_col = skill_type_column()
+
+    debug_info = {'profile_offered_keywords': list(profile_offered_keywords), 'profile_wanted_keywords': list(profile_wanted_keywords)} if debug else None
 
     # 推薦類型 1：當前使用者「想學」的，而其他使用者「提供」的
     # （按分類和標籤匹配）
@@ -697,11 +745,40 @@ def get_skill_recommendations(user_id, limit=6):
 
         # 基於分類匹配
         if wanted_categories:
-            category_query = base_query.filter(
-                Skill.type == 'offer',
-                Skill.category_id.in_(wanted_categories)
-            )
+            if type_col is not None:
+                category_query = base_query.filter(type_col == 'offer', Skill.category_id.in_(wanted_categories))
+            else:
+                category_query = base_query.filter(Skill.type == 'offer', Skill.category_id.in_(wanted_categories))
+
             wanted_matches = category_query.order_by(Skill.created_at.desc()).limit(limit).all()
+
+    # 如果使用者沒有想學/提供技能，但在個人檔案有關鍵字，allow fallback later
+
+    # 若分類匹配結果不足，使用個人檔案文字關鍵字做補充搜尋（例如使用者在 wanted_skills_intro 提到的關鍵詞）
+    if (not wanted_matches or len(wanted_matches) < limit) and profile_wanted_keywords:
+        kw_conds = []
+        for kw in profile_wanted_keywords:
+            kw = kw.strip()
+            if not kw:
+                continue
+            kw_conds.append(or_(
+                Skill.title.ilike(f"%{kw}%"),
+                Skill.description.ilike(f"%{kw}%"),
+                Skill.tags.ilike(f"%{kw}%")
+            ))
+
+        if kw_conds:
+            if type_col is not None:
+                query_with_kw = base_query.filter(type_col == 'offer', or_(*kw_conds)).order_by(Skill.created_at.desc()).limit(limit).all()
+            else:
+                query_with_kw = base_query.filter(Skill.type == 'offer', or_(*kw_conds)).order_by(Skill.created_at.desc()).limit(limit).all()
+
+            # 合併並去重（保留先前的 category-based matches 優先）
+            seen = {s.id for s in wanted_matches}
+            for s in query_with_kw:
+                if s.id not in seen and len(wanted_matches) < limit:
+                    wanted_matches.append(s)
+                    seen.add(s.id)
 
     # 推薦類型 2：當前使用者「能提供」的，而其他使用者「想學」的
     # （按分類和標籤匹配）
@@ -718,31 +795,85 @@ def get_skill_recommendations(user_id, limit=6):
 
         # 基於分類匹配
         if offered_categories:
-            category_query = base_query.filter(
-                Skill.type == 'learn',
-                Skill.category_id.in_(offered_categories)
-            )
+            if type_col is not None:
+                category_query = base_query.filter(type_col == 'learn', Skill.category_id.in_(offered_categories))
+            else:
+                category_query = base_query.filter(Skill.type == 'learn', Skill.category_id.in_(offered_categories))
+
             offered_matches = category_query.order_by(Skill.created_at.desc()).limit(limit).all()
+
+        # 若分類匹配結果不足，使用個人檔案文字關鍵字做補充搜尋（例如使用者在 offered_skills_intro 提到的關鍵詞）
+        if (not offered_matches or len(offered_matches) < limit) and profile_offered_keywords:
+            kw_conds = []
+            for kw in profile_offered_keywords:
+                kw = kw.strip()
+                if not kw:
+                    continue
+                kw_conds.append(or_(
+                    Skill.title.ilike(f"%{kw}%"),
+                    Skill.description.ilike(f"%{kw}%"),
+                    Skill.tags.contains(kw)
+                ))
+
+            if kw_conds:
+                if type_col is not None:
+                    query_with_kw = base_query.filter(type_col == 'learn', or_(*kw_conds)).order_by(Skill.created_at.desc()).limit(limit).all()
+                else:
+                    query_with_kw = base_query.filter(Skill.type == 'learn', or_(*kw_conds)).order_by(Skill.created_at.desc()).limit(limit).all()
+
+                seen = {s.id for s in offered_matches}
+                for s in query_with_kw:
+                    if s.id not in seen and len(offered_matches) < limit:
+                        offered_matches.append(s)
+                        seen.add(s.id)
+
+    # 如果使用者本身沒有技能，但有 profile 關鍵字，使用關鍵字做回退搜尋填充推薦
+    if not has_user_skills and (profile_wanted_keywords or profile_offered_keywords):
+        # 搜尋其他人提供的技能（用 wanted 關鍵字）
+        if profile_wanted_keywords and not wanted_matches:
+            kw_conds = [or_(Skill.title.ilike(f"%{kw}%"), Skill.description.ilike(f"%{kw}%"), Skill.tags.ilike(f"%{kw}%")) for kw in profile_wanted_keywords]
+            if kw_conds:
+                if type_col is not None:
+                    wanted_matches = base_query.filter(type_col == 'offer', or_(*kw_conds)).order_by(Skill.created_at.desc()).limit(limit).all()
+                else:
+                    wanted_matches = base_query.filter(Skill.type == 'offer', or_(*kw_conds)).order_by(Skill.created_at.desc()).limit(limit).all()
+
+        # 搜尋其他人想學的技能（用 offered 關鍵字）
+        if profile_offered_keywords and not offered_matches:
+            kw_conds = [or_(Skill.title.ilike(f"%{kw}%"), Skill.description.ilike(f"%{kw}%"), Skill.tags.ilike(f"%{kw}%")) for kw in profile_offered_keywords]
+            if kw_conds:
+                if type_col is not None:
+                    offered_matches = base_query.filter(type_col == 'learn', or_(*kw_conds)).order_by(Skill.created_at.desc()).limit(limit).all()
+                else:
+                    offered_matches = base_query.filter(Skill.type == 'learn', or_(*kw_conds)).order_by(Skill.created_at.desc()).limit(limit).all()
 
     # 獲取推薦的總數（不計 limit）
     total_wanted = 0
     total_offered = 0
 
     if user_wanted and wanted_categories:
-        total_wanted = base_query.filter(
-            Skill.type == 'offer',
-            Skill.category_id.in_(wanted_categories)
-        ).count()
+        if type_col is not None:
+            total_wanted = base_query.filter(type_col == 'offer', Skill.category_id.in_(wanted_categories)).count()
+        else:
+            total_wanted = base_query.filter(Skill.type == 'offer', Skill.category_id.in_(wanted_categories)).count()
 
     if user_offered and offered_categories:
-        total_offered = base_query.filter(
-            Skill.type == 'learn',
-            Skill.category_id.in_(offered_categories)
-        ).count()
+        if type_col is not None:
+            total_offered = base_query.filter(type_col == 'learn', Skill.category_id.in_(offered_categories)).count()
+        else:
+            total_offered = base_query.filter(Skill.type == 'learn', Skill.category_id.in_(offered_categories)).count()
 
-    return {
+    if debug and debug_info is not None:
+        debug_info.update({'wanted_count': len(wanted_matches), 'offered_count': len(offered_matches)})
+
+    result = {
         'wanted_matches': wanted_matches,
         'offered_matches': offered_matches,
         'total_wanted': total_wanted,
         'total_offered': total_offered,
     }
+
+    if debug and debug_info is not None:
+        result['debug'] = debug_info
+
+    return result

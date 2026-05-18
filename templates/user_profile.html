@@ -11,9 +11,7 @@
             {% if user.avatar %}
                 <img src="{{ user.avatar }}" class="avatar-lg" alt="頭像">
             {% else %}
-                <div class="avatar-placeholder">
-                    {{ user.name[0] }}
-                </div>
+                <div class="avatar-placeholder">{{ user.name[0] }}</div>
             {% endif %}
             <div>
                 <h3>{{ user.name }}</h3>
@@ -90,8 +88,43 @@
         {% endif %}
     </div>
 
-    <!-- 右側：技能列表 -->
+    <!-- 右側 -->
     <div>
+        {% if portfolio %}
+        <div class="card portfolio-showcase-card" style="margin-bottom: 16px;">
+            <h2 style="margin-bottom:16px;">🗂️ 個人作品集</h2>
+            <div class="portfolio-showcase-grid">
+                {% for item in portfolio %}
+                <div class="portfolio-showcase-item">
+                    <div class="portfolio-showcase-body">
+                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+                            <strong style="font-size:14px; line-height:1.4;">{{ item.title }}</strong>
+                            <div style="display:flex;gap:6px;flex-shrink:0;">
+                                {% if item.pdf_url %}
+                                <a href="{{ item.pdf_url }}" target="_blank" rel="noopener"
+                                   class="portfolio-link-btn" title="查看 PDF"
+                                   style="background:rgba(220,38,38,.1);color:#dc2626;">
+                                    <span class="material-icons-round" style="font-size:16px;">picture_as_pdf</span>
+                                </a>
+                                {% endif %}
+                                {% if item.link_url %}
+                                <a href="{{ item.link_url }}" target="_blank" rel="noopener"
+                                   class="portfolio-link-btn" title="查看連結">
+                                    <span class="material-icons-round" style="font-size:16px;">open_in_new</span>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if item.desc %}
+                        <p class="muted" style="font-size:13px; margin:6px 0 0; line-height:1.5;">{{ item.desc }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <div class="card" style="margin-bottom: 16px;">
             <h2>開放技能（{{ skills | length }}）</h2>
             {% if skills %}
@@ -126,31 +159,19 @@
 
 </div>
 
-<!-- 評價紀錄 -->
 <section class="card">
     <h2>歷史評價（{{ reviews | length }}）</h2>
     <table class="table">
-        <tr>
-            <th>技能</th>
-            <th>評價者</th>
-            <th>分數</th>
-            <th>評論</th>
-        </tr>
+        <tr><th>技能</th><th>評價者</th><th>分數</th><th>評論</th></tr>
         {% for review in reviews %}
         <tr>
             <td>{{ review.match.skill.title }}</td>
-            <td>
-                <a href="{{ url_for('profile.view_user', user_id=review.reviewer.id) }}">
-                    {{ review.reviewer.name }}
-                </a>
-            </td>
+            <td><a href="{{ url_for('profile.view_user', user_id=review.reviewer.id) }}">{{ review.reviewer.name }}</a></td>
             <td>{{ review.rating }}/5</td>
             <td>{{ review.comment or '—' }}</td>
         </tr>
         {% else %}
-        <tr>
-            <td colspan="4" class="empty">目前尚無評價紀錄</td>
-        </tr>
+        <tr><td colspan="4" class="empty">目前尚無評價紀錄</td></tr>
         {% endfor %}
     </table>
 </section>

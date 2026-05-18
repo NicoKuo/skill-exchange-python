@@ -1,5 +1,8 @@
 # routes/profile.py: 個人資料與儀表板路由
-# 功能：個人儀表板、編輯個人資料、查看他人公開資料頁
+import json
+import os
+import uuid
+import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
 
@@ -7,15 +10,39 @@ from models import db, User, Skill, Review, ActivityLog
 
 profile_bp = Blueprint('profile', __name__)
 
+SUPABASE_URL = "https://ksyivufbznpmziyehjpo.supabase.co"
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzeWl2dWZiem5wbXppeWVoanBvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NzM3Mjk3MSwiZXhwIjoyMDkyOTQ4OTcxfQ.ddbXzrRTrdQqSEitox2RGekly-3MdTtNs-x0A2PRCfg")
+BUCKET = "portfolio"
+
+
+def upload_pdf_to_supabase(file, user_id):
+    """上傳 PDF 到 Supabase Storage，回傳公開 URL 或 None"""
+    if not file or file.filename == '':
+        return None
+    if not file.filename.lower().endswith('.pdf'):
+        return None
+
+    filename = f"{user_id}/{uuid.uuid4().hex}.pdf"
+    upload_url = f"{SUPABASE_URL}/storage/v1/object/{BUCKET}/{filename}"
+
+    headers = {
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/pdf",
+        "x-upsert": "true",
+    }
+
+    try:
+        resp = requests.put(upload_url, data=file.read(), headers=headers, timeout=30)
+        if resp.status_code in (200, 201):
+            return f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET}/{filename}"
+    except Exception as e:
+        print(f"[Supabase upload error] {e}")
+    return None
+
 
 @profile_bp.route("/dashboard", endpoint='dashboard')
 @login_required
 def dashboard():
-    """
-    個人儀表板路由。
-    顯示目前登入使用者上架的所有技能（包含下架的），依建立時間倒序排列。
-    需登入才可存取。
-    """
     my_skills = Skill.query.filter_by(user_id=current_user.id).order_by(Skill.created_at.desc()).all()
     return render_template("dashboard.html", my_skills=my_skills)
 
@@ -23,37 +50,51 @@ def dashboard():
 @profile_bp.route("/profile", methods=["GET", "POST"], endpoint='profile')
 @login_required
 def profile():
-    """
-    個人資料編輯路由。
-    GET：顯示個人資料表單（含使用者收到的評價列表）。
-    POST：更新個人資料，可修改姓名、自我介紹、頭像、系所、年級、技能簡介，
-          若填寫新密碼（至少 6 碼）則一併更新密碼。
-    成功儲存後記錄活動日誌並導回此頁。
-    """
     if request.method == "POST":
-        # 更新基本資料
         current_user.name = request.form.get("name", "").strip()
         current_user.bio = request.form.get("bio", "").strip()
         current_user.avatar = request.form.get("avatar", "").strip() or None
-        # 更新學生身份欄位
         current_user.department = request.form.get("department", "").strip() or None
         current_user.grade = request.form.get("grade", "").strip() or None
         current_user.offered_skills_intro = request.form.get("offered_skills_intro", "").strip() or None
         current_user.wanted_skills_intro = request.form.get("wanted_skills_intro", "").strip() or None
 
+        # 作品集
+        titles   = request.form.getlist("portfolio_title")
+        descs    = request.form.getlist("portfolio_desc")
+        links    = request.form.getlist("portfolio_link")
+        old_pdfs = request.form.getlist("portfolio_pdf_existing")
+        new_pdfs = request.files.getlist("portfolio_pdf")
+
+        portfolio_items = []
+        for i, t in enumerate(titles):
+            t = t.strip()
+            if not t:
+                continue
+            pdf_url = None
+            if i < len(new_pdfs) and new_pdfs[i].filename:
+                pdf_url = upload_pdf_to_supabase(new_pdfs[i], current_user.id)
+            if not pdf_url and i < len(old_pdfs):
+                pdf_url = old_pdfs[i].strip() or None
+            portfolio_items.append({
+                "title": t,
+                "desc": descs[i].strip() if i < len(descs) else "",
+                "pdf_url": pdf_url or "",
+                "link_url": links[i].strip() if i < len(links) else "",
+            })
+
+        current_user.portfolio = json.dumps(portfolio_items, ensure_ascii=False) if portfolio_items else None
+
         new_password = request.form.get("new_password", "").strip()
 
-        # 表單驗證
         if not current_user.name:
             flash("姓名不能空白。", "error")
         elif new_password and len(new_password) < 6:
             flash("新密碼至少 6 碼。", "error")
         else:
-            # 若使用者輸入新密碼，一併更新密碼雜湊
             if new_password:
                 current_user.set_password(new_password)
             db.session.commit()
-            # 記錄資料更新的活動日誌
             try:
                 log = ActivityLog(user_id=current_user.id, action='update_profile', detail='profile updated', ip_address=request.remote_addr)
                 db.session.add(log)
@@ -63,25 +104,17 @@ def profile():
             flash("個人資料已更新。", "success")
             return redirect(url_for(".profile"))
 
-    # 取得此使用者收到的所有評價，依時間倒序顯示
     reviews = Review.query.filter_by(reviewee_id=current_user.id).order_by(Review.created_at.desc()).all()
-    return render_template("profile.html", reviews=reviews)
+    portfolio = json.loads(current_user.portfolio) if current_user.portfolio else []
+    return render_template("profile.html", reviews=reviews, portfolio=portfolio)
 
 
 @profile_bp.route("/user/<int:user_id>", endpoint='view_user')
 def view_user(user_id):
-    """
-    查看他人公開個人資料頁路由。
-    顯示指定使用者的技能列表與收到的評價。
-    若使用者帳號非 active 狀態（停權或封禁），回傳 404 以保護被封帳號隱私。
-    不需登入即可查看。
-    """
     user = User.query.get_or_404(user_id)
-    # 非正常狀態的帳號不公開顯示
     if user.status != 'active':
         abort(404)
-    # 只顯示上架中的技能
     skills = Skill.query.filter_by(user_id=user.id, status="open", is_active=True).order_by(Skill.created_at.desc()).all()
-    # 取得此使用者收到的所有評價
     reviews = Review.query.filter_by(reviewee_id=user.id).order_by(Review.created_at.desc()).all()
-    return render_template("user_profile.html", user=user, skills=skills, reviews=reviews)
+    portfolio = json.loads(user.portfolio) if user.portfolio else []
+    return render_template("user_profile.html", user=user, skills=skills, reviews=reviews, portfolio=portfolio)

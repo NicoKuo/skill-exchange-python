@@ -546,25 +546,7 @@ h1, h2, h3, h4, h5 {
 .tag-orange { background: rgba(251,146,60,.1); color: #9a3412; border-color: rgba(251,146,60,.15); }
 .tag-purple { background: rgba(168,85,247,.1); color: #6b21a8; border-color: rgba(168,85,247,.15); }
 
-.match-chat-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.match-chat-action .inline-form {
-  display: inline-flex;
-  align-items: center;
-  margin: 0;
-}
-
-.match-chat-action .btn,
-.match-chat-action .inline-form button {
-  min-height: 34px;
-  padding: 7px 14px;
-  font-size: 13px;
-}
+/* legacy match-chat-action styles removed */
 
 .match-unread-badge {
   display: inline-flex;
@@ -720,17 +702,18 @@ h1, h2, h3, h4, h5 {
 }
 
 .match-chat-action {
-  display: grid;
-  grid-template-columns: minmax(140px, max-content) minmax(120px, max-content);
-  gap: 10px;
-  align-items: start;
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  align-items: flex-start;
   padding-right: 16px;
+  max-width: 100%;
 }
 
 .match-chat-column,
 .match-report-column {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .match-chat-action .inline-form {
@@ -738,16 +721,17 @@ h1, h2, h3, h4, h5 {
   margin: 0;
 }
 
-.match-chat-action .btn,
-.match-chat-action .inline-form button {
-  min-width: 140px;
+.match-chat-column .btn,
+.match-chat-column .inline-form button {
+  width: 140px;
   padding: 10px 16px;
+  white-space: nowrap;
 }
 
 .match-report-column .btn,
 .match-report-column .inline-form button {
-  min-width: 120px;
-  max-width: 140px;
+  min-width: 110px;
+  max-width: 130px;
   width: 100%;
 }
 

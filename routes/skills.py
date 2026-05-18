@@ -185,16 +185,11 @@ def skills():
             .all()
         }
 
-<<<<<<< HEAD
-    # 基礎查詢：只顯示上架中的技能（排除已下架和已刪除的技能）
-    query = Skill.query.filter_by(is_active=True).filter(Skill.status == "open")
-=======
         # 獲取推薦技能（只有已登入且有個人檔案的使用者才能獲得）
         recommendations = get_skill_recommendations(current_user.id, limit=6)
 
     # 基礎查詢：只顯示上架中的技能
     query = Skill.query.filter_by(status="open", is_active=True)
->>>>>>> e0ee1976f2a0df7998d2cfa12dae8d7273e364ee
 
     # 套用各篩選條件
     if keyword:

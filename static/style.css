@@ -704,10 +704,10 @@ h1, h2, h3, h4, h5 {
 .match-chat-action {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 6px;
   align-items: flex-start;
   padding-right: 12px;
-  max-width: 200px;
+  max-width: 180px;
   min-width: 0;
 }
 
@@ -724,15 +724,15 @@ h1, h2, h3, h4, h5 {
 
 .match-chat-column .btn,
 .match-chat-column .inline-form button {
-  width: 112px;
-  padding: 7px 12px;
+  width: 104px;
+  padding: 6px 10px;
   white-space: nowrap;
 }
 
 .match-report-column .btn,
 .match-report-column .inline-form button {
-  width: 98px;
-  padding: 7px 10px;
+  width: 88px;
+  padding: 6px 8px;
 }
 
 .action-buttons {

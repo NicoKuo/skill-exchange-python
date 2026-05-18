@@ -665,7 +665,6 @@ h1, h2, h3, h4, h5 {
 .admin-table th,
 .admin-table td {
   padding: 14px 16px;
-  border-bottom: 1px solid var(--line);
   vertical-align: middle;
   text-align: left;
   min-width: 0;
@@ -684,6 +683,10 @@ h1, h2, h3, h4, h5 {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+.table tbody tr,
+.admin-table tbody tr { border-bottom: 1px solid var(--line); }
+.table tbody tr:last-child,
+.admin-table tbody tr:last-child { border-bottom: none; }
 .table tbody tr:last-child td,
 .admin-table tbody tr:last-child td { border-bottom: none; }
 .table tbody tr:hover,
@@ -714,6 +717,29 @@ h1, h2, h3, h4, h5 {
 .admin-table td.actions {
   width: 180px;
   white-space: normal;
+}
+
+.match-chat-action {
+  display: grid;
+  grid-template-columns: minmax(120px, max-content) minmax(120px, max-content);
+  gap: 12px;
+  align-items: start;
+}
+
+.match-chat-column,
+.match-report-column {
+  display: grid;
+  gap: 8px;
+}
+
+.match-chat-action .inline-form {
+  display: block;
+  margin: 0;
+}
+
+.match-chat-action .btn,
+.match-chat-action .inline-form button {
+  width: 100%;
 }
 
 .action-buttons {

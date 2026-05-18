@@ -535,6 +535,7 @@ h1, h2, h3, h4, h5 {
   font-weight: 600;
   letter-spacing: 0.01em;
   border: 1px solid rgba(0,82,204,.12);
+  white-space: nowrap;
 }
 .tag-green { background: rgba(5,150,105,.1); color: #065f46; border-color: rgba(5,150,105,.15); }
 .tag-teal  { background: var(--secondary-light); color: #0a7b65; border-color: rgba(46,196,165,.2); }
@@ -550,6 +551,19 @@ h1, h2, h3, h4, h5 {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.match-chat-action .inline-form {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+}
+
+.match-chat-action .btn,
+.match-chat-action .inline-form button {
+  min-height: 34px;
+  padding: 7px 14px;
+  font-size: 13px;
 }
 
 .match-unread-badge {
@@ -632,12 +646,15 @@ h1, h2, h3, h4, h5 {
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   background: var(--card);
+  overflow: hidden;
 }
 
 .table,
 .admin-table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
+  border-spacing: 0;
   table-layout: fixed;
   font-size: 14.5px;
 }
@@ -795,7 +812,11 @@ h1, h2, h3, h4, h5 {
 .footer a:hover { text-decoration: underline; }
 
 /* ─── Misc Helpers ────────────────────────── */
-.inline-form  { display: inline; }
+.inline-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
 .shadow-soft  { box-shadow: var(--shadow-md); }
 .rounded-full { border-radius: 999px; }
 .text-center  { text-align: center; }

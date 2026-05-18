@@ -722,8 +722,9 @@ h1, h2, h3, h4, h5 {
 .match-chat-action {
   display: grid;
   grid-template-columns: minmax(120px, max-content) minmax(120px, max-content);
-  gap: 12px;
+  gap: 10px;
   align-items: start;
+  padding-right: 10px;
 }
 
 .match-chat-column,
@@ -739,7 +740,9 @@ h1, h2, h3, h4, h5 {
 
 .match-chat-action .btn,
 .match-chat-action .inline-form button {
-  width: 100%;
+  width: auto;
+  min-width: 110px;
+  padding: 8px 14px;
 }
 
 .action-buttons {

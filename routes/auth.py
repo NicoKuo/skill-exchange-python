@@ -1,8 +1,9 @@
 # routes/auth.py: 認證路由（登入、註冊、登出）
 # 包含暴力破解防護：連續失敗 5 次後鎖定帳號 30 分鐘
 from datetime import datetime, timedelta
+import os
 import random
-import requests
+import resend
 
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
@@ -24,20 +25,26 @@ REGISTRATION_CODE_MAX_ATTEMPTS = 5
 
 
 def create_verification_code(email, purpose='register'):
-    EmailVerification.query.filter_by(
-        email=email, purpose=purpose, is_used=False
-    ).update({'is_used': True})
-    db.session.commit()
-    code = str(random.randint(100000, 999999))
-    record = EmailVerification(
-        email=email,
-        code=code,
-        purpose=purpose,
-        expires_at=datetime.utcnow() + timedelta(minutes=10)
-    )
-    db.session.add(record)
-    db.session.commit()
-    return code
+    return str(random.randint(100000, 999999))
+
+
+def store_verification_code(email, code, purpose='register'):
+    try:
+        EmailVerification.query.filter_by(
+            email=email, purpose=purpose, is_used=False
+        ).update({'is_used': True})
+        record = EmailVerification(
+            email=email,
+            code=code,
+            purpose=purpose,
+            expires_at=datetime.utcnow() + timedelta(minutes=REGISTRATION_CODE_TTL_MINUTES)
+        )
+        db.session.add(record)
+        db.session.commit()
+        return code
+    except Exception:
+        db.session.rollback()
+        raise
 
 
 def verify_code(email, code, purpose='register'):
@@ -67,10 +74,29 @@ def _get_registration_verification():
     return session.get('register_verification')
 
 
+def _is_registration_debug_mode():
+    return current_app.debug or os.getenv('FLASK_ENV') == 'development'
+
+
+def _remove_registration_verification(email, purpose='register'):
+    record = EmailVerification.query.filter_by(
+        email=email, purpose=purpose, is_used=False
+    ).order_by(EmailVerification.created_at.desc()).first()
+    if record:
+        db.session.delete(record)
+        db.session.commit()
+
+
 def _send_registration_verification_email(email, name, code):
     """寄送註冊驗證碼；若未設定 RESEND_API_KEY，則只寫入 log。"""
-    api_key = current_app.config.get('RESEND_API_KEY')
-    mail_from = current_app.config.get('MAIL_FROM', 'onboarding@resend.dev')
+    api_key = current_app.config.get('RESEND_API_KEY') or os.getenv('RESEND_API_KEY')
+    mail_from = (
+        current_app.config.get('RESEND_FROM')
+        or os.getenv('RESEND_FROM')
+        or current_app.config.get('MAIL_FROM')
+        or os.getenv('MAIL_FROM')
+        or 'onboarding@resend.dev'
+    )
 
     if not api_key:
         current_app.logger.warning(
@@ -78,29 +104,23 @@ def _send_registration_verification_email(email, name, code):
         )
         return False
 
-    response = requests.post(
-        'https://api.resend.com/emails',
-        headers={
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json',
-        },
-        json={
-            'from': mail_from,
-            'to': [email],
-            'subject': 'SkillSwap 註冊驗證碼',
-            'text': (
-                f'{name} 您好,\n\n'
-                f'您的 SkillSwap 註冊驗證碼是：{code}\n\n'
-                f'此驗證碼將於 {REGISTRATION_CODE_TTL_MINUTES} 分鐘後失效。\n'
-                f'若這不是您本人操作，請忽略此郵件。'
-            ),
-        },
-    )
+    resend.api_key = api_key
+    response = resend.Emails.send({
+        'from': mail_from,
+        'to': [email],
+        'subject': 'SkillSwap 註冊驗證碼',
+        'text': (
+            f'{name} 您好,\n\n'
+            f'您的 SkillSwap 註冊驗證碼是：{code}\n\n'
+            f'此驗證碼將於 {REGISTRATION_CODE_TTL_MINUTES} 分鐘後失效。\n'
+            f'若這不是您本人操作，請忽略此郵件。'
+        ),
+    })
 
-    if response.status_code == 200:
+    if response:
         return True
 
-    current_app.logger.error('Resend 寄信失敗：%s %s', response.status_code, response.text)
+    current_app.logger.error('Resend 寄信失敗：%s', response)
     return False
 
 
@@ -170,6 +190,7 @@ def register():
                 flash('請先完成註冊資料填寫。', 'error')
                 return render_template('register.html', pending_verification=None)
 
+            api_key = current_app.config.get('RESEND_API_KEY') or os.getenv('RESEND_API_KEY')
             verification_code = create_verification_code(
                 pending_verification['email'],
                 purpose='register'
@@ -182,12 +203,34 @@ def register():
                     verification_code,
                 )
                 if sent:
-                    flash('新的驗證碼已重新寄出。', 'success')
+                    try:
+                        store_verification_code(pending_verification['email'], verification_code, purpose='register')
+                        flash('新的驗證碼已重新寄出。', 'success')
+                    except Exception:
+                        current_app.logger.exception('儲存重新寄送的驗證碼失敗')
+                        flash('驗證碼已寄出，但儲存失敗，請重新寄送。', 'error')
                 else:
-                    flash(f'Resend 未設定，開發驗證碼為：{verification_code}', 'warning')
+                    if _is_registration_debug_mode() and not api_key:
+                        try:
+                            store_verification_code(pending_verification['email'], verification_code, purpose='register')
+                            flash(f'Resend 未設定，開發驗證碼為：{verification_code}', 'warning')
+                        except Exception:
+                            current_app.logger.exception('儲存開發模式驗證碼失敗')
+                            flash('開發驗證碼儲存失敗，請稍後再試。', 'error')
+                    else:
+                        flash('Resend 寄信失敗，請稍後再試。', 'error')
             except Exception:
                 current_app.logger.exception('重新寄送註冊驗證碼失敗')
-                flash('驗證碼寄送失敗，請稍後再試。', 'error')
+                db.session.rollback()
+                if _is_registration_debug_mode() and not api_key:
+                    try:
+                        store_verification_code(pending_verification['email'], verification_code, purpose='register')
+                        flash(f'Resend 未設定，開發驗證碼為：{verification_code}', 'warning')
+                    except Exception:
+                        current_app.logger.exception('儲存開發模式驗證碼失敗')
+                        flash('開發驗證碼儲存失敗，請稍後再試。', 'error')
+                else:
+                    flash('驗證碼寄送失敗，請稍後再試。', 'error')
 
             return render_template('register.html', pending_verification=pending_verification)
 
@@ -204,6 +247,7 @@ def register():
             if existing_user:
                 flash("此 Email 已被註冊，請直接登入或使用其他 Email。", "error")
             else:
+                api_key = current_app.config.get('RESEND_API_KEY') or os.getenv('RESEND_API_KEY')
                 verification_code = create_verification_code(email, purpose='register')
                 pending_verification = {
                     'name': name,
@@ -214,13 +258,39 @@ def register():
                 try:
                     sent = _send_registration_verification_email(email, name, verification_code)
                     if sent:
-                        flash('驗證碼已寄到 {email}，請輸入完成驗證。', 'success')
+                        try:
+                            store_verification_code(email, verification_code, purpose='register')
+                            flash('驗證碼已寄到 {email}，請輸入完成驗證。', 'success')
+                        except Exception:
+                            current_app.logger.exception('儲存註冊驗證碼失敗')
+                            _clear_registration_verification()
+                            flash('驗證碼已寄出，但儲存失敗，請重新註冊。', 'error')
                     else:
-                        flash(f'Resend 未設定，開發驗證碼為：{verification_code}', 'warning')
+                        if _is_registration_debug_mode() and not api_key:
+                            try:
+                                store_verification_code(email, verification_code, purpose='register')
+                                flash(f'Resend 未設定，開發驗證碼為：{verification_code}', 'warning')
+                            except Exception:
+                                current_app.logger.exception('儲存開發模式驗證碼失敗')
+                                _clear_registration_verification()
+                                flash('開發驗證碼儲存失敗，請稍後再試。', 'error')
+                        else:
+                            _clear_registration_verification()
+                            flash('Resend 寄信失敗，請稍後再試。', 'error')
                 except Exception:
                     current_app.logger.exception('寄送註冊驗證碼失敗')
-                    _clear_registration_verification()
-                    flash('驗證碼寄送失敗，請稍後再試。', 'error')
+                    db.session.rollback()
+                    if _is_registration_debug_mode() and not api_key:
+                        try:
+                            store_verification_code(email, verification_code, purpose='register')
+                            flash(f'Resend 未設定，開發驗證碼為：{verification_code}', 'warning')
+                        except Exception:
+                            current_app.logger.exception('儲存開發模式驗證碼失敗')
+                            _clear_registration_verification()
+                            flash('開發驗證碼儲存失敗，請稍後再試。', 'error')
+                    else:
+                        _clear_registration_verification()
+                        flash('驗證碼寄送失敗，請稍後再試。', 'error')
 
     return render_template("register.html", pending_verification=_get_registration_verification())
 

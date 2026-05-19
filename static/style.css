@@ -1203,3 +1203,40 @@ h1, h2, h3, h4, h5 {
 .grid-4 .card > .muted {
   flex: 1;
 }
+
+/* ─── Skill Management Table Action Buttons ──── */
+.skill-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.skill-action-buttons .inline-form {
+  margin: 0;
+}
+
+.skill-action-buttons .btn {
+  flex: 0 0 auto;
+  width: 88px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1;
+  box-sizing: border-box;
+  font-weight: 600;
+}
+
+.skill-action-buttons .btn-restore {
+  font-size: 12px;
+}
+
+.skill-action-buttons .btn-sm {
+  padding: 0;
+  height: 40px;
+}

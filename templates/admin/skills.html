@@ -33,14 +33,14 @@
                 </td>
                 <td>{{ skill.method }}</td>
                 <td>
-                    <div class="actions">
+                    <div class="skill-action-buttons">
                         {% if skill.is_active and skill.status == 'open' %}
                         <form method="post" action="{{ url_for('admin.deactivate_skill', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要下架這個技能嗎？');">
                             <button class="btn btn-sm" type="submit" title="將技能下架，前台搜尋不到">下架</button>
                         </form>
                         {% elif not skill.is_active %}
                         <form method="post" action="{{ url_for('admin.restore_skill', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要重新上架這個技能嗎？');">
-                            <button class="btn btn-sm btn-success" type="submit" title="重新上架，前台將可搜尋到">重新上架</button>
+                            <button class="btn btn-sm btn-success btn-restore" type="submit" title="重新上架，前台將可搜尋到">重新上架</button>
                         </form>
                         {% endif %}
                         <form method="post" action="{{ url_for('admin.delete_skill', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要刪除這筆技能嗎？\n\n若已有媒合或檢舉，將改為下架。');">

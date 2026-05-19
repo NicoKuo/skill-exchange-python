@@ -2,8 +2,7 @@
 # 包含暴力破解防護：連續失敗 5 次後鎖定帳號 30 分鐘
 from datetime import datetime, timedelta
 import random
-import smtplib
-from email.message import EmailMessage
+import requests
 
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
@@ -69,45 +68,40 @@ def _get_registration_verification():
 
 
 def _send_registration_verification_email(email, name, code):
-    """寄送註冊驗證碼；若未設定 SMTP，則只寫入 log。"""
-    smtp_server = current_app.config.get('SMTP_SERVER')
-    smtp_port = int(current_app.config.get('SMTP_PORT', 587))
-    smtp_user = current_app.config.get('SMTP_USER', '')
-    smtp_password = current_app.config.get('SMTP_PASSWORD', '')
-    mail_from = current_app.config.get('MAIL_FROM') or smtp_user or 'noreply@skillswap.local'
+    """寄送註冊驗證碼；若未設定 RESEND_API_KEY，則只寫入 log。"""
+    api_key = current_app.config.get('RESEND_API_KEY')
+    mail_from = current_app.config.get('MAIL_FROM', 'onboarding@resend.dev')
 
-    message = EmailMessage()
-    message['Subject'] = 'SkillSwap 註冊驗證碼'
-    message['From'] = mail_from
-    message['To'] = email
-    message.set_content(
-        f"""{name} 您好，
-
-您的 SkillSwap 註冊驗證碼是：{code}
-
-此驗證碼將於 {REGISTRATION_CODE_TTL_MINUTES} 分鐘後失效。
-若這不是您本人操作，請忽略此郵件。
-"""
-    )
-
-    if not smtp_server:
-        current_app.logger.warning('SMTP_SERVER 未設定，驗證碼未實際寄送：%s -> %s', email, code)
+    if not api_key:
+        current_app.logger.warning(
+            'RESEND_API_KEY 未設定，驗證碼未實際寄送：%s -> %s', email, code
+        )
         return False
 
-    smtp = smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=10) if smtp_port == 465 else smtplib.SMTP(smtp_server, smtp_port, timeout=10)
-    with smtp as server:
-        server.ehlo()
-        if smtp_port != 465:
-            try:
-                server.starttls()
-                server.ehlo()
-            except smtplib.SMTPException:
-                current_app.logger.warning('SMTP STARTTLS 啟動失敗，改以未加密通道寄送驗證信。')
-        if smtp_user and smtp_password:
-            server.login(smtp_user, smtp_password)
-        server.send_message(message)
+    response = requests.post(
+        'https://api.resend.com/emails',
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'from': mail_from,
+            'to': [email],
+            'subject': 'SkillSwap 註冊驗證碼',
+            'text': (
+                f'{name} 您好,\n\n'
+                f'您的 SkillSwap 註冊驗證碼是：{code}\n\n'
+                f'此驗證碼將於 {REGISTRATION_CODE_TTL_MINUTES} 分鐘後失效。\n'
+                f'若這不是您本人操作，請忽略此郵件。'
+            ),
+        },
+    )
 
-    return True
+    if response.status_code == 200:
+        return True
+
+    current_app.logger.error('Resend 寄信失敗：%s %s', response.status_code, response.text)
+    return False
 
 
 @auth_bp.route("/register", methods=["GET", "POST"], endpoint='register')

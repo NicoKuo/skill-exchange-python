@@ -226,7 +226,7 @@ def report_user(user_id):
             reported_user_id=reported_user.id,
             report_type='profile',
             reason=reason,
-            description=description,
+            description=description if description else None,
             status='pending'
         )
         db.session.add(report)
@@ -235,7 +235,10 @@ def report_user(user_id):
         return redirect(url_for('.view_user', user_id=user_id))
     except Exception as e:
         db.session.rollback()
-        flash(f'送出檢舉時發生錯誤：{str(e)}', 'error')
+        print(f'[Report Error] {str(e)}')
+        import traceback
+        traceback.print_exc()
+        flash('送出檢舉時發生錯誤，請稍後再試。', 'error')
         return render_template(
             'report_profile.html',
             reported_user=reported_user,

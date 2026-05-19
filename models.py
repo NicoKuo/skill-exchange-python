@@ -149,11 +149,11 @@ class Report(db.Model):
     __tablename__ = 'reports'
     id = db.Column(db.Integer, primary_key=True)
     reporter_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
-    reported_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    reported_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=True)
     skill_id = db.Column(db.Integer, db.ForeignKey('skills.id'), nullable=True)
     message_id = db.Column(db.Integer, db.ForeignKey('messages.id'), nullable=True)
-    report_type = db.Column(db.String(20), default='profile', nullable=False)
+    report_type = db.Column(db.String(20), default='message', nullable=False)
     reason = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text)
     evidence_file_url = db.Column(db.String(500), nullable=True)

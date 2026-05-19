@@ -101,6 +101,7 @@ def _can_manage_user_status(target_user):
 def _normalize_report_type(report):
     """
     正規化檢舉類型。根據 report_type 和 ForeignKey 推斷真正的檢舉類型。
+    優先級：訊息 > 媒合（如果同時有 message_id 和 match_id，優先判定為訊息檢舉）
     回傳：'skill', 'message', 'match', 'profile', 或 'unknown'
     """
     raw = (report.report_type or "").strip().lower()
@@ -109,7 +110,7 @@ def _normalize_report_type(report):
     if raw in ["skill", "skills", "技能", "skill_report"] or report.skill_id:
         return "skill"
 
-    # 訊息檢舉
+    # 訊息檢舉（優先於媒合）
     if raw in ["message", "chat", "訊息", "聊天"] or report.message_id:
         return "message"
 
@@ -801,17 +802,25 @@ def reports():
                 )
             )
         elif type_filter == 'message':
+            # 訊息檢舉：有 message_id，但不是媒合中的訊息（沒有 match_id）
             query = query.filter(
-                db.or_(
-                    Report.report_type.in_(['message', 'chat', '訊息', '聊天']),
-                    Report.message_id.isnot(None)
+                db.and_(
+                    db.or_(
+                        Report.report_type.in_(['message', 'chat', '訊息', '聊天']),
+                        Report.message_id.isnot(None)
+                    ),
+                    Report.match_id.is_(None)
                 )
             )
         elif type_filter == 'match':
+            # 媒合檢舉：有 match_id，但不是訊息檢舉（沒有 message_id）
             query = query.filter(
-                db.or_(
-                    Report.report_type.in_(['match', 'matching', '媒合']),
-                    Report.match_id.isnot(None)
+                db.and_(
+                    db.or_(
+                        Report.report_type.in_(['match', 'matching', '媒合']),
+                        Report.match_id.isnot(None)
+                    ),
+                    Report.message_id.is_(None)
                 )
             )
         elif type_filter == 'profile':

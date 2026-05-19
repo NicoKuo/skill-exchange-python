@@ -6,28 +6,45 @@
 
 <section class="card section">
     <h1>技能管理</h1>
+    <p class="muted">顯示所有技能，包括已下架和已刪除的技能。前台使用者只能搜尋到「活躍」技能。</p>
     <div class="table-wrap">
         <table class="table" style="min-width: 980px;">
             <tr>
                 <th style="width: 180px;">技能</th>
                 <th style="width: 160px;">發布者</th>
                 <th style="width: 120px;">分類</th>
-                <th style="width: 100px;">狀態</th>
+                <th style="width: 120px;">狀態</th>
                 <th style="width: 160px;">方式</th>
                 <th style="width: 220px;">操作</th>
             </tr>{% for skill in skills %}<tr>
                 <td>{{ skill.title }}</td>
                 <td>{{ skill.user.name }}</td>
                 <td>{{ skill.category.name if skill.category else '未分類' }}</td>
-                <td><span class="tag{% if skill.status != 'open' %} tag-gray{% endif %}">{{ skill.status }}</span></td>
+                <td>
+                    {% if not skill.is_active %}
+                    <span class="tag tag-gray">已下架</span>
+                    {% elif skill.status == 'open' %}
+                    <span class="tag tag-green">活躍</span>
+                    {% elif skill.status == 'closed' %}
+                    <span class="tag tag-yellow">已關閉</span>
+                    {% else %}
+                    <span class="tag tag-gray">{{ skill.status }}</span>
+                    {% endif %}
+                </td>
                 <td>{{ skill.method }}</td>
                 <td>
                     <div class="actions">
-                        <form method="post" action="{{ url_for('admin.deactivate_skill', skill_id=skill.id) }}" class="inline-form">
-                            <button class="btn btn-sm" type="submit">下架</button>
+                        {% if skill.is_active and skill.status == 'open' %}
+                        <form method="post" action="{{ url_for('admin.deactivate_skill', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要下架這個技能嗎？');">
+                            <button class="btn btn-sm" type="submit" title="將技能下架，前台搜尋不到">下架</button>
                         </form>
-                        <form method="post" action="{{ url_for('admin.delete_skill', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要刪除這筆技能嗎？');">
-                            <button class="btn btn-danger btn-sm" type="submit">刪除</button>
+                        {% elif not skill.is_active %}
+                        <form method="post" action="{{ url_for('admin.restore_skill', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要重新上架這個技能嗎？');">
+                            <button class="btn btn-sm btn-success" type="submit" title="重新上架，前台將可搜尋到">重新上架</button>
+                        </form>
+                        {% endif %}
+                        <form method="post" action="{{ url_for('admin.delete_skill', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要刪除這筆技能嗎？\n\n若已有媒合或檢舉，將改為下架。');">
+                            <button class="btn btn-danger btn-sm" type="submit" title="永久刪除或改為下架（如有關聯資料）">刪除</button>
                         </form>
                     </div>
                 </td>

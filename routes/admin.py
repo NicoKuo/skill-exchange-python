@@ -323,7 +323,15 @@ def update_user_status(user_id):
 def skills():
     """
     技能審核列表路由。需管理員以上權限。
-    顯示所有技能（含已下架），依建立時間倒序排列。
+    
+    顯示內容：
+    - 所有技能：活躍、已下架、已刪除（軟刪除）
+    - 前台使用者只能搜尋到「活躍」技能（is_active=True 且 status='open'）
+    - 已下架的技能（is_active=False）前台搜尋不到
+    
+    操作：
+    - 下架：將技能標記為已下架（is_active=False），前台看不到，但資料保留
+    - 刪除：若無關聯資料則永久刪除；若有關聯資料則改為下架
     """
     skills = Skill.query.order_by(Skill.created_at.desc()).all()
     return render_template('admin/skills.html', current_page='skills', skills=skills, stats=_admin_counts())
@@ -350,32 +358,88 @@ def deactivate_skill(skill_id):
     return redirect(url_for('admin.skills'))
 
 
+@admin_bp.route('/skills/<int:skill_id>/restore', methods=['POST'], endpoint='restore_skill')
+@login_required
+@admin_required
+def restore_skill(skill_id):
+    """
+    技能重新上架路由（管理員操作）。需管理員以上權限。
+    將已下架的技能重新上架（is_active=True）。
+    """
+    try:
+        skill = Skill.query.get_or_404(skill_id)
+
+        # 如果已經是上架狀態，提示使用者但不報錯
+        if skill.is_active:
+            flash('此技能已經是上架狀態。', 'warning')
+            return redirect(url_for('admin.skills'))
+
+        # 重新上架（恢復 is_active 為 True）
+        skill.is_active = True
+        db.session.commit()
+        flash('技能已重新上架。', 'success')
+
+        return redirect(url_for('admin.skills'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'重新上架技能時發生錯誤：{str(e)}', 'error')
+        return redirect(url_for('admin.skills'))
+
+
 @admin_bp.route('/skills/<int:skill_id>/delete', methods=['POST'], endpoint='delete_skill')
 @login_required
 @admin_required
 def delete_skill(skill_id):
     """
     技能刪除路由（管理員操作）。需管理員以上權限。
-    若技能有關聯的媒合或檢舉記錄，不可直接刪除（改為下架）。
-    無關聯資料時才執行完整刪除。
+    
+    刪除邏輯：
+    1. 若技能有關聯的媒合或檢舉記錄，不可直接刪除（改為下架）
+    2. 若技能無關聯資料，執行硬刪除（從資料庫永久刪除）
+    3. 被下架的技能前台搜尋不到（is_active=False）
+    
+    已下架技能仍會在後台顯示供管理員檢查。
     """
     skill = Skill.query.get_or_404(skill_id)
 
-    # 檢查是否有關聯資料（有則只下架，不刪除）
-    has_matches = Match.query.filter_by(skill_id=skill.id).count() > 0
-    has_reports = Report.query.filter_by(skill_id=skill.id).count() > 0
+    try:
+        # 檢查是否有關聯資料（有則軟刪除，不可硬刪除）
+        has_matches = Match.query.filter_by(skill_id=skill.id).count() > 0
+        has_reports = Report.query.filter_by(skill_id=skill.id).count() > 0
+        
+        # 統計關聯數量，用於反饋訊息
+        match_count = Match.query.filter_by(skill_id=skill.id).count()
+        report_count = Report.query.filter_by(skill_id=skill.id).count()
 
-    if has_matches or has_reports:
-        skill.is_active = False
+        if has_matches or has_reports:
+            # 有關聯資料 → 軟刪除（改為下架）
+            skill.is_active = False
+            db.session.commit()
+            
+            # 構建詳細訊息
+            details = []
+            if match_count > 0:
+                details.append(f'{match_count} 筆媒合')
+            if report_count > 0:
+                details.append(f'{report_count} 筆檢舉')
+            detail_msg = '、'.join(details) if details else '相關'
+            
+            flash(f'此技能已有 {detail_msg} 紀錄，已改為下架。前台使用者搜尋不到，後台仍可查看。', 'warning')
+            return redirect(url_for('admin.skills'))
+
+        # 無關聯資料 → 硬刪除
+        skill_title = skill.title  # 保存技能名稱用於 flash
+        db.session.delete(skill)
         db.session.commit()
-        flash('此技能已有關聯資料，已改為下架，無法直接刪除。', 'warning')
+        flash(f'技能「{skill_title}」已永久刪除。', 'success')
+
         return redirect(url_for('admin.skills'))
-
-    db.session.delete(skill)
-    db.session.commit()
-    flash('技能已刪除。', 'success')
-
-    return redirect(url_for('admin.skills'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'刪除技能時發生錯誤：{str(e)}', 'error')
+        return redirect(url_for('admin.skills'))
 
 
 @admin_bp.route('/skills/<int:skill_id>/action', methods=['POST'], endpoint='skill_action')

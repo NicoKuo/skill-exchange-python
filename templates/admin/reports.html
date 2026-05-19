@@ -37,17 +37,11 @@
             </tr>
             {% for report in reports %}
             <tr>
-                <td style="text-align: center; vertical-align: middle;">
+                <td style="text-align: center;">
                     {% if report.status == 'pending' %}
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                        <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background-color: #f59e0b;"></span>
-                        <span style="font-size: 11px; color: #f59e0b; font-weight: 500;">未審核</span>
-                    </div>
+                    <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: #f59e0b;" title="未審核"></span>
                     {% else %}
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                        <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background-color: #10b981;"></span>
-                        <span style="font-size: 11px; color: #10b981; font-weight: 500;">已審核</span>
-                    </div>
+                    <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: #10b981;" title="已審核"></span>
                     {% endif %}
                 </td>
                 <td>{{ format_taiwan_time(report.created_at, '%Y-%m-%d %H:%M') }}</td>

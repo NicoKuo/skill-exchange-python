@@ -675,6 +675,7 @@ def report_skill(skill_id):
         reporter_id=current_user.id,
         reported_user_id=skill.user_id,
         skill_id=skill_id,
+        report_type='skill',
         reason=reason,
         description=description,
         evidence_file_url=evidence_url,

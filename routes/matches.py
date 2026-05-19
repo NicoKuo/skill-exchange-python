@@ -228,6 +228,7 @@ def create_report():
         reporter_id=current_user.id,
         reported_user_id=reported_user_id,
         match_id=match_id,
+        report_type='match',
         reason=reason,
         description=description,
         status='pending'

@@ -32,10 +32,35 @@ ACCOUNT_ACTION_MESSAGES = {
 }
 
 
-def _normalize_user_status(status):
-    """將帳號狀態規範化：將舊版的 'blocked' 統一轉換為 'banned'。"""
-    status = (status or '').strip()
-    return 'banned' if status == 'blocked' else status
+def _normalize_report_status(status):
+    """
+    正規化檢舉狀態。支援舊的狀態值對應到標準狀態。
+    回傳：'pending', 'reviewed', 'rejected', 'resolved', 'punished', 或原值
+    """
+    status = (status or '').strip().lower()
+    
+    # 待審狀態的別名
+    if status in ['pending', '待審', '待審查', 'reviewing']:
+        return 'pending'
+    
+    # 已審狀態的別名
+    if status in ['reviewed', '已審', '已審查', 'review']:
+        return 'reviewed'
+    
+    # 駁回狀態的別名
+    if status in ['rejected', '駁回', 'reject']:
+        return 'rejected'
+    
+    # 已解決狀態的別名
+    if status in ['resolved', '已解決', '解決', 'resolve']:
+        return 'resolved'
+    
+    # 已懲處狀態的別名
+    if status in ['punished', '已懲處', '懲處', 'punish']:
+        return 'punished'
+    
+    return status
+
 
 
 def _append_feedback_text(base_text, feedback):
@@ -96,6 +121,34 @@ def _can_manage_user_status(target_user):
         return True
 
     return current_user.role == 'admin' and target_user.role == 'user'
+
+
+def _normalize_report_type(report):
+    """
+    正規化檢舉類型。根據 report_type 和 ForeignKey 推斷真正的檢舉類型。
+    優先級：訊息 > 媒合（如果同時有 message_id 和 match_id，優先判定為訊息檢舉）
+    回傳：'skill', 'message', 'match', 'profile', 或 'unknown'
+    """
+    raw = (report.report_type or "").strip().lower()
+
+    # 技能檢舉
+    if raw in ["skill", "skills", "技能", "skill_report"] or report.skill_id:
+        return "skill"
+
+    # 訊息檢舉（優先於媒合）
+    if raw in ["message", "chat", "訊息", "聊天"] or report.message_id:
+        return "message"
+
+    # 媒合檢舉
+    if raw in ["match", "matching", "媒合"] or report.match_id:
+        return "match"
+
+    # 個人檔案檢舉：reported_user_id 有值，但沒有 skill/message/match
+    if (report.reported_user_id and not report.skill_id 
+        and not report.message_id and not report.match_id):
+        return "profile"
+
+    return "unknown"
 
 
 def super_admin_required(fn):
@@ -750,29 +803,79 @@ def reports():
     """
     檢舉列表路由。需管理員以上權限。
     支援依狀態和類型篩選。
-    report_type: all / profile / message / skill / match
-    status_filter: all / pending / reviewed / rejected / resolved / punished
+    支援正規化的檢舉類型，可根據 ForeignKey 識別舊資料。
+    type: all / profile / message / skill / match
+    status: all / pending / reviewed / rejected / resolved / punished
     """
     # 規範化參數：空字串或 None 都視為 'all'
     status_filter = request.args.get('status', 'all') or 'all'
-    report_type_filter = request.args.get('report_type', 'all') or 'all'
+    type_filter = request.args.get('type', 'all') or 'all'
 
     query = Report.query
     
+    # 狀態篩選：支援多個舊狀態值
     if status_filter and status_filter != 'all':
-        query = query.filter_by(status=status_filter)
+        normalized_status = _normalize_report_status(status_filter)
+        query = query.filter(
+            db.or_(
+                Report.status == normalized_status,
+                Report.status == status_filter  # 也支援原始值
+            )
+        )
     
-    if report_type_filter and report_type_filter != 'all':
-        query = query.filter_by(report_type=report_type_filter)
+    # 類型篩選：根據 report_type 和 ForeignKey 進行複雜篩選
+    if type_filter and type_filter != 'all':
+        if type_filter == 'skill':
+            query = query.filter(
+                db.or_(
+                    Report.report_type.in_(['skill', 'skills', '技能', 'skill_report']),
+                    Report.skill_id.isnot(None)
+                )
+            )
+        elif type_filter == 'message':
+            # 訊息檢舉：有 message_id（不管是否有 match_id）
+            query = query.filter(
+                db.or_(
+                    Report.report_type.in_(['message', 'chat', '訊息', '聊天']),
+                    Report.message_id.isnot(None)
+                )
+            )
+        elif type_filter == 'match':
+            # 媒合檢舉：有 match_id 但沒有 message_id（針對媒合對象本身的檢舉）
+            query = query.filter(
+                db.and_(
+                    db.or_(
+                        Report.report_type.in_(['match', 'matching', '媒合']),
+                        Report.match_id.isnot(None)
+                    ),
+                    Report.message_id.is_(None)
+                )
+            )
+        elif type_filter == 'profile':
+            query = query.filter(
+                db.or_(
+                    Report.report_type.in_(['profile', 'user', 'personal', '個人檔案', '使用者']),
+                    db.and_(
+                        Report.reported_user_id.isnot(None),
+                        Report.skill_id.is_(None),
+                        Report.message_id.is_(None),
+                        Report.match_id.is_(None)
+                    )
+                )
+            )
 
     reports_list = query.order_by(Report.created_at.desc()).all()
+    
+    # 為模板新增正規化的類型資訊
+    for report in reports_list:
+        report.normalized_type = _normalize_report_type(report)
 
     return render_template(
         'admin/reports.html',
         current_page='reports',
         reports=reports_list,
         status_filter=status_filter,
-        report_type_filter=report_type_filter,
+        type_filter=type_filter,
         stats=_admin_counts()
     )
 

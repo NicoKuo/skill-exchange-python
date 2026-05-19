@@ -93,6 +93,22 @@ def _can_manage_user_status(target_user):
     return current_user.role == 'admin' and target_user.role == 'user'
 
 
+def _normalize_user_status(status):
+    """
+    正規化使用者帳號狀態。將舊值統一轉換為標準值。
+    支援的舊值：blocked → banned
+    標準值：active, suspended, banned
+    """
+    status = (status or '').strip().lower()
+    
+    if status in ['banned', 'blocked']:
+        return 'banned'
+    elif status == 'suspended':
+        return 'suspended'
+    else:
+        return 'active'
+
+
 def _normalize_report_type(report):
     """
     正規化檢舉類型。根據 report_type 和 ForeignKey 推斷真正的檢舉類型。
@@ -845,6 +861,7 @@ def report_detail(report_id):
     顯示單筆檢舉的完整資訊（包含被檢舉內容、附件、管理員備註等）。
     """
     report = Report.query.get_or_404(report_id)
+    report.normalized_type = _normalize_report_type(report)
     return render_template(
         'admin/report_detail.html',
         report=report,

@@ -702,10 +702,10 @@ h1, h2, h3, h4, h5 {
 }
 
 .match-chat-action {
-  display: flex;
-  justify-content: flex-start;
-  gap: 6px;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
   padding-right: 12px;
   max-width: 160px;
   min-width: 0;
@@ -713,26 +713,32 @@ h1, h2, h3, h4, h5 {
 
 .match-chat-column,
 .match-report-column {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 6px;
-}
-
-.match-chat-action .inline-form {
-  display: block;
-  margin: 0;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
 }
 
 .match-chat-column .btn,
-.match-chat-column .inline-form button {
-  width: 98px;
+.match-chat-column .inline-form button,
+.match-report-column .btn,
+.match-report-column .inline-form button {
+  width: 100%;
+  max-width: 120px;
   padding: 6px 10px;
   white-space: nowrap;
 }
 
+.match-chat-column .btn,
+.match-chat-column .inline-form button {
+  min-width: 98px;
+}
+
 .match-report-column .btn,
 .match-report-column .inline-form button {
-  width: 82px;
-  padding: 6px 8px;
+  min-width: 82px;
 }
 
 .action-buttons {

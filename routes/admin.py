@@ -751,17 +751,18 @@ def reports():
     檢舉列表路由。需管理員以上權限。
     支援依狀態和類型篩選。
     report_type: all / profile / message / skill / match
-    status_filter: all / pending / reviewing / resolved / rejected
+    status_filter: all / pending / reviewed / rejected / resolved / punished
     """
-    status_filter = request.args.get('status', 'all')
-    report_type_filter = request.args.get('report_type', 'all')
+    # 規範化參數：空字串或 None 都視為 'all'
+    status_filter = request.args.get('status', 'all') or 'all'
+    report_type_filter = request.args.get('report_type', 'all') or 'all'
 
     query = Report.query
     
-    if status_filter != 'all':
+    if status_filter and status_filter != 'all':
         query = query.filter_by(status=status_filter)
     
-    if report_type_filter != 'all':
+    if report_type_filter and report_type_filter != 'all':
         query = query.filter_by(report_type=report_type_filter)
 
     reports_list = query.order_by(Report.created_at.desc()).all()

@@ -153,6 +153,7 @@ class Report(db.Model):
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=True)
     skill_id = db.Column(db.Integer, db.ForeignKey('skills.id'), nullable=True)
     message_id = db.Column(db.Integer, db.ForeignKey('messages.id'), nullable=True)
+    report_type = db.Column(db.String(20), default='profile', nullable=False)
     reason = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text)
     evidence_file_url = db.Column(db.String(500), nullable=True)
@@ -162,6 +163,7 @@ class Report(db.Model):
     admin_note = db.Column(db.Text, nullable=True)
     feedback = db.Column(db.Text, nullable=True)
     reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)
 

@@ -17,7 +17,46 @@
     <h2>報告內容</h2>
     <div class="table-responsive" style="margin-bottom: 24px;">
         <table class="admin-table">
-            {% if report.message_id and report.message %}
+            {% if report.report_type == 'profile' %}
+            <tr>
+                <td style="width: 150px; font-weight: 600;">報告類型</td>
+                <td><span class="tag" style="background: rgba(59,130,246,.1); color: #1e40af; border: 1px solid rgba(59,130,246,.2);">個人檔案</span></td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">被檢舉人</td>
+                <td>{{ report.reported_user.name }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">Email</td>
+                <td>{{ report.reported_user.email }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">系級/年級</td>
+                <td>{{ report.reported_user.department or '未填' }} {{ report.reported_user.grade or '' }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">自我介紹</td>
+                <td style="white-space: pre-wrap; word-break: break-word;">{{ report.reported_user.bio or '(未填)' }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">上架技能數</td>
+                <td>{{ report.reported_user.skills|selectattr('status', 'equalto', 'open')|selectattr('is_active')|list|length }} 個</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">帳號狀態</td>
+                <td>
+                    {% if report.reported_user.status == 'active' %}
+                    <span class="tag tag-green">正常</span>
+                    {% elif report.reported_user.status == 'suspended' %}
+                    <span class="tag tag-yellow">已停權</span>
+                    {% elif report.reported_user.status == 'banned' or report.reported_user.status == 'blocked' %}
+                    <span class="tag tag-red">已封禁</span>
+                    {% else %}
+                    <span class="tag">{{ report.reported_user.status }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% elif report.message_id and report.message %}
             <tr>
                 <td style="width: 150px; font-weight: 600;">報告類型</td>
                 <td><span class="tag tag-red">訊息檢舉</span></td>

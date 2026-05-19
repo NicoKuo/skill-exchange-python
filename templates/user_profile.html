@@ -84,6 +84,9 @@
             <a class="btn btn-muted" href="{{ url_for('skills') }}?user_id={{ user.id }}">
                 <span class="material-icons-round icon-inline">search</span> 查看技能
             </a>
+            <a class="btn" style="background: rgba(220,38,38,.15); color: #dc2626;" href="{{ url_for('profile.report_user', user_id=user.id) }}" title="檢舉此使用者個人檔案">
+                <span class="material-icons-round icon-inline">flag</span> 檢舉此個人檔案
+            </a>
         </div>
         {% endif %}
     </div>

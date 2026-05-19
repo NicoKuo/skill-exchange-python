@@ -749,13 +749,20 @@ def promote_manager(user_id):
 def reports():
     """
     檢舉列表路由。需管理員以上權限。
-    支援依狀態篩選（all / pending / reviewed / rejected / resolved / punished）。
+    支援依狀態和類型篩選。
+    report_type: all / profile / message / skill / match
+    status_filter: all / pending / reviewing / resolved / rejected
     """
     status_filter = request.args.get('status', 'all')
+    report_type_filter = request.args.get('report_type', 'all')
 
     query = Report.query
+    
     if status_filter != 'all':
         query = query.filter_by(status=status_filter)
+    
+    if report_type_filter != 'all':
+        query = query.filter_by(report_type=report_type_filter)
 
     reports_list = query.order_by(Report.created_at.desc()).all()
 
@@ -764,6 +771,7 @@ def reports():
         current_page='reports',
         reports=reports_list,
         status_filter=status_filter,
+        report_type_filter=report_type_filter,
         stats=_admin_counts()
     )
 
@@ -813,6 +821,7 @@ def update_report(report_id):
     report.admin_note = admin_note
     report.feedback = feedback
     report.reviewed_by = current_user.id
+    report.reviewed_at = datetime.utcnow()
     report.updated_at = datetime.utcnow()
 
     try:

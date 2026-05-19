@@ -6,7 +6,8 @@ import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
 
-from models import db, User, Skill, Review, ActivityLog
+from models import db, User, Skill, Review, ActivityLog, Report
+from datetime import datetime
 
 profile_bp = Blueprint('profile', __name__)
 
@@ -144,3 +145,100 @@ def view_user(user_id):
     reviews = Review.query.filter_by(reviewee_id=user.id).order_by(Review.created_at.desc()).all()
     portfolio = json.loads(user.portfolio) if user.portfolio else []
     return render_template("user_profile.html", user=user, skills=skills, reviews=reviews, portfolio=portfolio)
+
+
+@profile_bp.route("/user/<int:user_id>/report", methods=['GET', 'POST'], endpoint='report_user')
+def report_user(user_id):
+    """
+    個人檔案檢舉路由。
+    GET: 顯示檢舉表單。
+    POST: 建立檢舉報告。
+    """
+    reported_user = User.query.get_or_404(user_id)
+
+    # 不能檢舉自己
+    if current_user.is_authenticated and reported_user.id == current_user.id:
+        flash('不能檢舉自己。', 'error')
+        return redirect(url_for('.view_user', user_id=user_id))
+
+    # 檢舉原因選項
+    report_reasons = [
+        '不當個人介紹',
+        '假資料或冒名',
+        '騷擾或攻擊性內容',
+        '廣告或垃圾訊息',
+        '違反平台規範',
+        '其他'
+    ]
+
+    if request.method == 'GET':
+        if not current_user.is_authenticated:
+            flash('請先登入才能檢舉。', 'error')
+            return redirect(url_for('auth.login'))
+        return render_template(
+            'report_profile.html',
+            reported_user=reported_user,
+            report_reasons=report_reasons
+        )
+
+    # POST 邏輯
+    if not current_user.is_authenticated:
+        flash('請先登入才能檢舉。', 'error')
+        return redirect(url_for('auth.login'))
+
+    reason = request.form.get('reason', '').strip()
+    description = request.form.get('description', '').strip()
+
+    # 驗證
+    if not reason:
+        flash('請選擇檢舉原因。', 'error')
+        return render_template(
+            'report_profile.html',
+            reported_user=reported_user,
+            report_reasons=report_reasons
+        )
+
+    if reason == '其他' and not description:
+        flash('選擇「其他」時，補充說明必填。', 'error')
+        return render_template(
+            'report_profile.html',
+            reported_user=reported_user,
+            report_reasons=report_reasons,
+            description_value=description
+        )
+
+    # 檢查重複檢舉
+    existing = Report.query.filter(
+        Report.reporter_id == current_user.id,
+        Report.reported_user_id == reported_user.id,
+        Report.report_type == 'profile',
+        Report.status.in_(['pending', 'reviewing'])
+    ).first()
+
+    if existing:
+        flash('你已經檢舉過此個人檔案，請等待管理員處理。', 'warning')
+        return redirect(url_for('.view_user', user_id=user_id))
+
+    # 建立檢舉
+    try:
+        report = Report(
+            reporter_id=current_user.id,
+            reported_user_id=reported_user.id,
+            report_type='profile',
+            reason=reason,
+            description=description,
+            status='pending'
+        )
+        db.session.add(report)
+        db.session.commit()
+        flash('檢舉已送出，管理員會盡快處理。', 'success')
+        return redirect(url_for('.view_user', user_id=user_id))
+    except Exception as e:
+        db.session.rollback()
+        flash(f'送出檢舉時發生錯誤：{str(e)}', 'error')
+        return render_template(
+            'report_profile.html',
+            reported_user=reported_user,
+            report_reasons=report_reasons,
+            description_value=description
+        )

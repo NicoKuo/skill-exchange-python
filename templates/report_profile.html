@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% set title = '檢舉個人檔案' %}
+
+{% block content %}
+<div class="card section">
+    <h2>檢舉個人檔案</h2>
+    
+    <!-- 被檢舉使用者資訊 -->
+    <div style="background: var(--surface); padding: 18px; border-radius: var(--radius-md); margin-bottom: 24px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase;">被檢舉使用者</h4>
+        <div style="display: flex; gap: 14px; align-items: flex-start;">
+            {% if reported_user.avatar %}
+                <img src="{{ reported_user.avatar }}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover;" alt="{{ reported_user.name }}">
+            {% else %}
+                <div class="avatar" style="width: 56px; height: 56px; font-size: 22px;">{{ reported_user.name[0] }}</div>
+            {% endif %}
+            <div style="flex: 1;">
+                <h3 style="margin: 0 0 4px 0;">{{ reported_user.name }}</h3>
+                {% if reported_user.department or reported_user.grade %}
+                    <p style="margin: 0 0 8px 0; color: var(--muted); font-size: 13px;">
+                        {{ reported_user.department or '' }}{% if reported_user.department and reported_user.grade %} · {% endif %}{{ reported_user.grade or '' }}
+                    </p>
+                {% endif %}
+                {% if reported_user.bio %}
+                    <p style="margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5;">{{ reported_user.bio[:100] }}{% if reported_user.bio|length > 100 %}...{% endif %}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 檢舉表單 -->
+    <form method="post" class="form-grid" style="grid-template-columns: 1fr;">
+        <div class="field">
+            <label>檢舉原因 <span style="color: var(--danger);">*</span></label>
+            <select name="reason" required>
+                <option value="">請選擇檢舉原因</option>
+                {% for reason in report_reasons %}
+                    <option value="{{ reason }}" {% if reason_value == reason %}selected{% endif %}>{{ reason }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="field">
+            <label>補充說明</label>
+            <textarea name="description" placeholder="請詳細說明檢舉的具體內容及原因（選填，選擇「其他」時為必填）。" style="min-height: 120px;">{{ description_value or '' }}</textarea>
+            <small class="muted">說明內容有助於管理員更快速地進行審核。</small>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 12px;">
+            <button type="submit" class="btn">送出檢舉</button>
+            <a href="{{ url_for('profile.view_user', user_id=reported_user.id) }}" class="btn btn-muted">返回</a>
+        </div>
+    </form>
+
+    <div style="margin-top: 24px; padding: 14px; background: rgba(251,191,36,.1); border-left: 4px solid #f59e0b; border-radius: var(--radius-md);">
+        <p style="margin: 0; font-size: 13px; color: var(--text);">
+            <strong>💡 提醒：</strong> 檢舉功能用於回報違反平台規範的行為。請確保你的檢舉內容真實、準確，濫用檢舉功能可能導致帳號受罰。
+        </p>
+    </div>
+</div>
+{% endblock %}

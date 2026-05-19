@@ -9,7 +9,7 @@
 
 <section class="card section">
     <h1>檢舉審查</h1>
-    <p class="muted">檢視和審查使用者檢舉。</p>
+    <p class="muted">檢視和審查使用者檢舉。點擊任一筆檢舉即可進入審核詳情。</p>
     
     <div style="margin-bottom: 24px;">
         <div>
@@ -21,6 +21,20 @@
             <a class="btn btn-muted{% if type_filter == 'match' %} active{% endif %}" href="{{ url_for('admin.reports', type='match') }}">媒合</a>
         </div>
     </div>
+
+    <style>
+        .report-row {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .report-row:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        /* 防止行點擊影響內部按鈕 */
+        .report-row .btn-row-action {
+            pointer-events: auto;
+        }
+    </style>
 
     <div class="table-responsive">
         <table class="admin-table" style="min-width: 1400px;">
@@ -36,7 +50,7 @@
                 <th>操作</th>
             </tr>
             {% for report in reports %}
-            <tr>
+            <tr class="report-row" data-href="{{ url_for('admin.report_detail', report_id=report.id) }}">
                 <td style="text-align: center;">
                     {% if report.status == 'pending' %}
                     <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: #f59e0b;" title="未審核"></span>
@@ -104,7 +118,7 @@
                     <span class="tag tag-gray">未提供</span>
                     {% endif %}
                 </td>
-                <td>
+                <td class="btn-row-action" onclick="event.stopPropagation();">
                     <a class="btn btn-sm" href="{{ url_for('admin.report_detail', report_id=report.id) }}">檢視</a>
                 </td>
             </tr>
@@ -113,5 +127,16 @@
             {% endfor %}
         </table>
     </div>
+
+    <script>
+        document.querySelectorAll('.report-row').forEach(row => {
+            row.addEventListener('click', function() {
+                const href = this.getAttribute('data-href');
+                if (href) {
+                    window.location.href = href;
+                }
+            });
+        });
+    </script>
 </section>
 {% endblock %}

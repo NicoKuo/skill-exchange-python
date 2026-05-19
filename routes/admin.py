@@ -802,18 +802,15 @@ def reports():
                 )
             )
         elif type_filter == 'message':
-            # 訊息檢舉：有 message_id，但不是媒合中的訊息（沒有 match_id）
+            # 訊息檢舉：有 message_id（不管是否有 match_id）
             query = query.filter(
-                db.and_(
-                    db.or_(
-                        Report.report_type.in_(['message', 'chat', '訊息', '聊天']),
-                        Report.message_id.isnot(None)
-                    ),
-                    Report.match_id.is_(None)
+                db.or_(
+                    Report.report_type.in_(['message', 'chat', '訊息', '聊天']),
+                    Report.message_id.isnot(None)
                 )
             )
         elif type_filter == 'match':
-            # 媒合檢舉：有 match_id，但不是訊息檢舉（沒有 message_id）
+            # 媒合檢舉：有 match_id 但沒有 message_id（針對媒合對象本身的檢舉）
             query = query.filter(
                 db.and_(
                     db.or_(

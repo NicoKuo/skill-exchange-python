@@ -16,27 +16,45 @@ BUCKET = "portfolio"
 
 
 def upload_pdf_to_supabase(file, user_id):
-    """上傳 PDF 到 Supabase Storage，回傳公開 URL 或 None"""
     if not file or file.filename == '':
         return None
     if not file.filename.lower().endswith('.pdf'):
         return None
-
     filename = f"{user_id}/{uuid.uuid4().hex}.pdf"
     upload_url = f"{SUPABASE_URL}/storage/v1/object/{BUCKET}/{filename}"
-
     headers = {
         "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
         "Content-Type": "application/pdf",
         "x-upsert": "true",
     }
-
     try:
         resp = requests.put(upload_url, data=file.read(), headers=headers, timeout=30)
         if resp.status_code in (200, 201):
             return f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET}/{filename}"
     except Exception as e:
         print(f"[Supabase upload error] {e}")
+    return None
+
+
+def upload_avatar_to_supabase(file, user_id):
+    if not file or file.filename == '':
+        return None
+    ext = file.filename.rsplit('.', 1)[-1].lower()
+    if ext not in ('jpg', 'jpeg', 'png', 'gif', 'webp'):
+        return None
+    filename = f"{user_id}/{uuid.uuid4().hex}.{ext}"
+    upload_url = f"{SUPABASE_URL}/storage/v1/object/avatars/{filename}"
+    headers = {
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": f"image/{ext}",
+        "x-upsert": "true",
+    }
+    try:
+        resp = requests.put(upload_url, data=file.read(), headers=headers, timeout=30)
+        if resp.status_code in (200, 201):
+            return f"{SUPABASE_URL}/storage/v1/object/public/avatars/{filename}"
+    except Exception as e:
+        print(f"[Supabase avatar upload error] {e}")
     return None
 
 
@@ -53,11 +71,19 @@ def profile():
     if request.method == "POST":
         current_user.name = request.form.get("name", "").strip()
         current_user.bio = request.form.get("bio", "").strip()
-        current_user.avatar = request.form.get("avatar", "").strip() or None
         current_user.department = request.form.get("department", "").strip() or None
         current_user.grade = request.form.get("grade", "").strip() or None
         current_user.offered_skills_intro = request.form.get("offered_skills_intro", "").strip() or None
         current_user.wanted_skills_intro = request.form.get("wanted_skills_intro", "").strip() or None
+
+        # 頭像：優先用上傳檔案，其次用網址
+        avatar_file = request.files.get("avatar_file")
+        if avatar_file and avatar_file.filename:
+            uploaded_avatar = upload_avatar_to_supabase(avatar_file, current_user.id)
+            if uploaded_avatar:
+                current_user.avatar = uploaded_avatar
+        else:
+            current_user.avatar = request.form.get("avatar", "").strip() or None
 
         # 作品集
         titles   = request.form.getlist("portfolio_title")

@@ -50,9 +50,14 @@
                 <label>想學技能（簡短介紹）</label>
                 <input name="wanted_skills_intro" value="{{ current_user.wanted_skills_intro or '' }}" placeholder="例如：影片剪輯、日文、吉他">
             </div>
-            <div class="field">
-                <label>頭像圖片網址</label>
-                <input name="avatar" value="{{ current_user.avatar or '' }}" placeholder="貼上圖片網址">
+            <div class="field" style="grid-column:1/-1;">
+                <label>頭像</label>
+                {% if current_user.avatar %}
+                    <img src="{{ current_user.avatar }}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin-bottom:8px;display:block;">
+                {% endif %}
+                <input name="avatar_file" type="file" accept="image/*" style="margin-bottom:6px;">
+                <p class="muted" style="font-size:12px;">或貼上圖片網址：</p>
+                <input name="avatar" value="{{ current_user.avatar or '' }}" placeholder="https://...">
             </div>
             <div class="field">
                 <label>新密碼</label>

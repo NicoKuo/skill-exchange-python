@@ -32,36 +32,6 @@ ACCOUNT_ACTION_MESSAGES = {
 }
 
 
-def _normalize_report_status(status):
-    """
-    正規化檢舉狀態。支援舊的狀態值對應到標準狀態。
-    回傳：'pending', 'reviewed', 'rejected', 'resolved', 'punished', 或原值
-    """
-    status = (status or '').strip().lower()
-    
-    # 待審狀態的別名
-    if status in ['pending', '待審', '待審查', 'reviewing']:
-        return 'pending'
-    
-    # 已審狀態的別名
-    if status in ['reviewed', '已審', '已審查', 'review']:
-        return 'reviewed'
-    
-    # 駁回狀態的別名
-    if status in ['rejected', '駁回', 'reject']:
-        return 'rejected'
-    
-    # 已解決狀態的別名
-    if status in ['resolved', '已解決', '解決', 'resolve']:
-        return 'resolved'
-    
-    # 已懲處狀態的別名
-    if status in ['punished', '已懲處', '懲處', 'punish']:
-        return 'punished'
-    
-    return status
-
-
 
 def _append_feedback_text(base_text, feedback):
     """
@@ -802,26 +772,13 @@ def promote_manager(user_id):
 def reports():
     """
     檢舉列表路由。需管理員以上權限。
-    支援依狀態和類型篩選。
-    支援正規化的檢舉類型，可根據 ForeignKey 識別舊資料。
+    支援依檢舉類型篩選。
     type: all / profile / message / skill / match
-    status: all / pending / reviewed / rejected / resolved / punished
     """
     # 規範化參數：空字串或 None 都視為 'all'
-    status_filter = request.args.get('status', 'all') or 'all'
     type_filter = request.args.get('type', 'all') or 'all'
 
     query = Report.query
-    
-    # 狀態篩選：支援多個舊狀態值
-    if status_filter and status_filter != 'all':
-        normalized_status = _normalize_report_status(status_filter)
-        query = query.filter(
-            db.or_(
-                Report.status == normalized_status,
-                Report.status == status_filter  # 也支援原始值
-            )
-        )
     
     # 類型篩選：根據 report_type 和 ForeignKey 進行複雜篩選
     if type_filter and type_filter != 'all':
@@ -874,7 +831,6 @@ def reports():
         'admin/reports.html',
         current_page='reports',
         reports=reports_list,
-        status_filter=status_filter,
         type_filter=type_filter,
         stats=_admin_counts()
     )

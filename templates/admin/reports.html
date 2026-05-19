@@ -12,28 +12,20 @@
     <p class="muted">檢視和審查使用者檢舉。</p>
     
     <div style="margin-bottom: 24px;">
-        <div style="margin-bottom: 12px;">
-            <strong>狀態篩選：</strong>
-            <a class="btn{% if status_filter == 'all' %} active{% endif %}" href="{{ url_for('admin.reports', status='all', type=type_filter) }}">全部</a>
-            <a class="btn btn-muted{% if status_filter == 'pending' %} active{% endif %}" href="{{ url_for('admin.reports', status='pending', type=type_filter) }}">尚未審查 (pending)</a>
-            <a class="btn btn-muted{% if status_filter == 'reviewed' %} active{% endif %}" href="{{ url_for('admin.reports', status='reviewed', type=type_filter) }}">已審 (reviewed)</a>
-            <a class="btn btn-muted{% if status_filter == 'rejected' %} active{% endif %}" href="{{ url_for('admin.reports', status='rejected', type=type_filter) }}">駁回 (rejected)</a>
-            <a class="btn btn-muted{% if status_filter == 'resolved' %} active{% endif %}" href="{{ url_for('admin.reports', status='resolved', type=type_filter) }}">已解決 (resolved)</a>
-            <a class="btn btn-muted{% if status_filter == 'punished' %} active{% endif %}" href="{{ url_for('admin.reports', status='punished', type=type_filter) }}">已懲處 (punished)</a>
-        </div>
         <div>
             <strong>檢舉類型篩選：</strong>
-            <a class="btn{% if type_filter == 'all' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, type='all') }}">全部</a>
-            <a class="btn btn-muted{% if type_filter == 'profile' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, type='profile') }}">個人檔案</a>
-            <a class="btn btn-muted{% if type_filter == 'message' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, type='message') }}">訊息</a>
-            <a class="btn btn-muted{% if type_filter == 'skill' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, type='skill') }}">技能</a>
-            <a class="btn btn-muted{% if type_filter == 'match' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, type='match') }}">媒合</a>
+            <a class="btn{% if type_filter == 'all' %} active{% endif %}" href="{{ url_for('admin.reports', type='all') }}">全部</a>
+            <a class="btn btn-muted{% if type_filter == 'profile' %} active{% endif %}" href="{{ url_for('admin.reports', type='profile') }}">個人檔案</a>
+            <a class="btn btn-muted{% if type_filter == 'message' %} active{% endif %}" href="{{ url_for('admin.reports', type='message') }}">訊息</a>
+            <a class="btn btn-muted{% if type_filter == 'skill' %} active{% endif %}" href="{{ url_for('admin.reports', type='skill') }}">技能</a>
+            <a class="btn btn-muted{% if type_filter == 'match' %} active{% endif %}" href="{{ url_for('admin.reports', type='match') }}">媒合</a>
         </div>
     </div>
 
     <div class="table-responsive">
         <table class="admin-table" style="min-width: 1400px;">
             <tr>
+                <th>審核狀態</th>
                 <th>時間</th>
                 <th>檢舉人</th>
                 <th>被檢舉人</th>
@@ -41,11 +33,23 @@
                 <th>內容預覽</th>
                 <th>原因</th>
                 <th>附件</th>
-                <th>狀態</th>
                 <th>操作</th>
             </tr>
             {% for report in reports %}
             <tr>
+                <td style="text-align: center; vertical-align: middle;">
+                    {% if report.status == 'pending' %}
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                        <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background-color: #f59e0b;"></span>
+                        <span style="font-size: 11px; color: #f59e0b; font-weight: 500;">未審核</span>
+                    </div>
+                    {% else %}
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                        <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background-color: #10b981;"></span>
+                        <span style="font-size: 11px; color: #10b981; font-weight: 500;">已審核</span>
+                    </div>
+                    {% endif %}
+                </td>
                 <td>{{ format_taiwan_time(report.created_at, '%Y-%m-%d %H:%M') }}</td>
                 <td>{{ report.reporter.name }}</td>
                 <td>{{ report.reported_user.name if report.reported_user else '-' }}</td>
@@ -107,24 +111,11 @@
                     {% endif %}
                 </td>
                 <td>
-                    {% if report.status == 'pending' %}
-                    <span class="tag tag-yellow">待審</span>
-                    {% elif report.status == 'reviewed' %}
-                    <span class="tag tag-blue">已審</span>
-                    {% elif report.status == 'rejected' %}
-                    <span class="tag tag-gray">駁回</span>
-                    {% elif report.status == 'punished' %}
-                    <span class="tag tag-red">已懲處</span>
-                    {% else %}
-                    <span class="tag tag-green">已解決</span>
-                    {% endif %}
-                </td>
-                <td>
                     <a class="btn btn-sm" href="{{ url_for('admin.report_detail', report_id=report.id) }}">檢視</a>
                 </td>
             </tr>
             {% else %}
-            <tr><td colspan="9" class="empty">沒有檢舉。</td></tr>
+            <tr><td colspan="8" class="empty">沒有檢舉。</td></tr>
             {% endfor %}
         </table>
     </div>

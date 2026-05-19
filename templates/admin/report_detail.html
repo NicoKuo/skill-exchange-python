@@ -24,35 +24,41 @@
             </tr>
             <tr>
                 <td style="font-weight: 600;">被檢舉人</td>
-                <td>{{ report.reported_user.name }}</td>
+                <td>{{ report.reported_user.name if report.reported_user else '（已刪除）' }}</td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">Email</td>
-                <td>{{ report.reported_user.email }}</td>
+                <td>{{ report.reported_user.email if report.reported_user else '（已刪除）' }}</td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">系級/年級</td>
-                <td>{{ report.reported_user.department or '未填' }} {{ report.reported_user.grade or '' }}</td>
+                <td>{{ report.reported_user.department if report.reported_user else '未填' }} {{ report.reported_user.grade if report.reported_user else '' }}</td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">自我介紹</td>
-                <td style="white-space: pre-wrap; word-break: break-word;">{{ report.reported_user.bio or '(未填)' }}</td>
+                <td style="white-space: pre-wrap; word-break: break-word;">{{ report.reported_user.bio if report.reported_user and report.reported_user.bio else '(未填)' }}</td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">上架技能數</td>
-                <td>{{ report.reported_user.skills|selectattr('status', 'equalto', 'open')|selectattr('is_active')|list|length }} 個</td>
+                <td>
+                    {% if report.reported_user %}
+                    {{ report.reported_user.skills|selectattr('status', 'equalto', 'open')|selectattr('is_active')|list|length }} 個
+                    {% else %}
+                    0 個
+                    {% endif %}
+                </td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">帳號狀態</td>
                 <td>
-                    {% if report.reported_user.status == 'active' %}
+                    {% if report.reported_user and report.reported_user.status == 'active' %}
                     <span class="tag tag-green">正常</span>
-                    {% elif report.reported_user.status == 'suspended' %}
+                    {% elif report.reported_user and report.reported_user.status == 'suspended' %}
                     <span class="tag tag-yellow">已停權</span>
-                    {% elif report.reported_user.status == 'banned' or report.reported_user.status == 'blocked' %}
+                    {% elif report.reported_user and (report.reported_user.status == 'banned' or report.reported_user.status == 'blocked') %}
                     <span class="tag tag-red">已封禁</span>
                     {% else %}
-                    <span class="tag">{{ report.reported_user.status }}</span>
+                    <span class="tag">{{ report.reported_user.status if report.reported_user else '未知' }}</span>
                     {% endif %}
                 </td>
             </tr>
@@ -63,7 +69,7 @@
             </tr>
             <tr>
                 <td style="font-weight: 600;">發送者</td>
-                <td>{{ report.message.sender.name }}</td>
+                <td>{{ report.message.sender.name if report.message.sender else '（已刪除）' }}</td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">訊息內容</td>
@@ -92,31 +98,31 @@
             </tr>
             <tr>
                 <td style="font-weight: 600;">技能標題</td>
-                <td>{{ report.skill.title }}</td>
+                <td>{{ report.skill.title if report.skill else '（已刪除）' }}</td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">發佈者</td>
-                <td>{{ report.skill.user.name }}</td>
+                <td>{{ report.skill.user.name if report.skill and report.skill.user else '（已刪除）' }}</td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">分類</td>
-                <td>{{ report.skill.category.name if report.skill.category else '未分類' }}</td>
+                <td>{{ report.skill.category.name if report.skill and report.skill.category else '未分類' }}</td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">類型</td>
-                <td>{{ '我可以教' if report.skill.type == 'offer' else '我想學' }}</td>
+                <td>{{ '我可以教' if report.skill and report.skill.type == 'offer' else '我想學' }}</td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">方式</td>
-                <td>{{ report.skill.method }}</td>
+                <td>{{ report.skill.method if report.skill else '—' }}</td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">描述</td>
-                <td style="white-space: pre-wrap; word-break: break-word;">{{ report.skill.description }}</td>
+                <td style="white-space: pre-wrap; word-break: break-word;">{{ report.skill.description if report.skill else '—' }}</td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">發佈時間</td>
-                <td>{{ format_taiwan_time(report.skill.created_at, '%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ format_taiwan_time(report.skill.created_at, '%Y-%m-%d %H:%M:%S') if report.skill else '—' }}</td>
             </tr>
             {% elif report.match_id and report.match %}
             <tr>
@@ -137,7 +143,7 @@
             </tr>
             <tr>
                 <td style="font-weight: 600;">技能</td>
-                <td>{{ report.match.skill.title }}</td>
+                <td>{{ report.match.skill.title if report.match.skill else '（已刪除）' }}</td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">狀態</td>
@@ -228,14 +234,14 @@
             <tr>
                 <td style="font-weight: 600;">檢舉人</td>
                 <td>
-                    {{ report.reporter.name }}
+                    {{ report.reporter.name if report.reporter else '（已刪除）' }}
                     <a class="btn btn-sm btn-muted" href="{{ url_for('admin.users') }}">檢視使用者</a>
                 </td>
             </tr>
             <tr>
                 <td style="font-weight: 600;">被檢舉人</td>
                 <td>
-                    {{ report.reported_user.name }}
+                    {{ report.reported_user.name if report.reported_user else '（已刪除）' }}
                     <a class="btn btn-sm btn-muted" href="{{ url_for('admin.users') }}">檢視使用者</a>
                 </td>
             </tr>
@@ -331,6 +337,7 @@
         </div>
     </form>
 
+    {% if report.reported_user %}
     <h2 style="margin-top: 32px;">帳號處置</h2>
     <form method="post" action="{{ url_for('admin.account_action', report_id=report.id) }}" class="form-grid">
         <div class="field" style="grid-column: 1/-1;">
@@ -351,5 +358,8 @@
             <button class="btn" type="submit">更新帳號狀態</button>
         </div>
     </form>
+    {% else %}
+    <div class="empty" style="margin-top: 32px;">此檢舉沒有對應的被檢舉帳號，無法進行帳號處置。</div>
+    {% endif %}
 </section>
 {% endblock %}

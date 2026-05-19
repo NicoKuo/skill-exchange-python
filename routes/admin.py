@@ -928,6 +928,15 @@ def account_action(report_id):
         return redirect(url_for('admin.report_detail', report_id=report_id))
 
     reported_user.status = requested_account_status
+    report_needs_sync = requested_account_status in {'suspended', 'banned'} and report.status != 'punished'
+
+    if report_needs_sync:
+        report.status = 'punished'
+        report.admin_note = action_reason or report.admin_note
+        report.feedback = action_reason or report.feedback
+        report.reviewed_by = current_user.id
+        report.reviewed_at = datetime.utcnow()
+        report.updated_at = datetime.utcnow()
 
     try:
         db.session.commit()
@@ -935,6 +944,25 @@ def account_action(report_id):
         db.session.rollback()
         flash('帳號處置失敗，請稍後再試。', 'error')
         return redirect(url_for('admin.report_detail', report_id=report_id))
+
+    if report_needs_sync:
+        try:
+            reporter_message = _build_report_feedback_message('punished', action_reason)
+            notifications = []
+            if reporter_message and report.reporter_id:
+                notifications.append(
+                    Notification(
+                        user_id=report.reporter_id,
+                        type='report_feedback',
+                        content=reporter_message,
+                        related_id=report.id,
+                    )
+                )
+            if notifications:
+                db.session.add_all(notifications)
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
 
     # 發送通知給被處置的使用者
     account_message = _build_account_action_message(requested_account_status, action_reason)

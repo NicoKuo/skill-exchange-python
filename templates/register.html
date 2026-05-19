@@ -1,10 +1,31 @@
-{% extends 'base.html' %}{% set title='註冊' %}{% block content %}<div class="card"
-    style="max-width:560px;margin:30px auto">
+{% extends 'base.html' %}
+{% set title='註冊' %}
+{% block content %}
+<div class="card" style="max-width:560px;margin:30px auto">
     <h2>註冊帳號</h2>
+
+    {% if pending_verification %}
+    <p class="muted">驗證碼已寄送至 <strong>{{ pending_verification.email }}</strong>，請輸入後完成註冊。</p>
     <form method="post" class="form-grid">
+        <div class="field" style="grid-column:1/-1">
+            <label>驗證碼</label>
+            <input name="verification_code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required>
+        </div>
+        <div style="grid-column:1/-1; display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn" type="submit" name="action" value="verify_code">驗證並建立帳號</button>
+            <button class="btn btn-muted" type="submit" name="action" value="resend_code" formnovalidate>重新寄送驗證碼</button>
+        </div>
+    </form>
+    <p class="muted" style="margin-top:12px;">若驗證碼過期或輸入錯誤次數過多，請重新註冊取得新驗證碼。</p>
+    {% else %}
+    <form method="post" class="form-grid">
+        <input type="hidden" name="action" value="send_code">
         <div class="field"><label>姓名</label><input name="name" required></div>
         <div class="field"><label>Email</label><input name="email" type="email" required></div>
         <div class="field" style="grid-column:1/-1"><label>密碼</label><input name="password" type="password" required>
-        </div><button class="btn" type="submit">建立帳號</button>
+        </div>
+        <button class="btn" type="submit">寄送驗證碼</button>
     </form>
-</div>{% endblock %}
+    {% endif %}
+</div>
+{% endblock %}

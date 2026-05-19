@@ -1,9 +1,14 @@
 # routes/auth.py: 認證路由（登入、註冊、登出）
 # 包含暴力破解防護：連續失敗 5 次後鎖定帳號 30 分鐘
 from datetime import datetime, timedelta
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+import secrets
+import smtplib
+from email.message import EmailMessage
+
+from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import IntegrityError
+from werkzeug.security import generate_password_hash
 
 from models import db, User, ActivityLog, Skill
 
@@ -13,6 +18,60 @@ auth_bp = Blueprint('auth', __name__)
 MAX_FAILED_ATTEMPTS = 5
 # 超過失敗次數後的鎖定時間（分鐘）
 LOCKOUT_MINUTES = 30
+# 註冊驗證碼有效時間（分鐘）
+REGISTRATION_CODE_TTL_MINUTES = 10
+# 驗證碼錯誤上限
+REGISTRATION_CODE_MAX_ATTEMPTS = 5
+
+
+def _clear_registration_verification():
+    session.pop('register_verification', None)
+
+
+def _get_registration_verification():
+    return session.get('register_verification')
+
+
+def _send_registration_verification_email(email, name, code):
+    """寄送註冊驗證碼；若未設定 SMTP，則只寫入 log。"""
+    smtp_server = current_app.config.get('SMTP_SERVER')
+    smtp_port = int(current_app.config.get('SMTP_PORT', 587))
+    smtp_user = current_app.config.get('SMTP_USER', '')
+    smtp_password = current_app.config.get('SMTP_PASSWORD', '')
+    mail_from = current_app.config.get('MAIL_FROM') or smtp_user or 'noreply@skillswap.local'
+
+    message = EmailMessage()
+    message['Subject'] = 'SkillSwap 註冊驗證碼'
+    message['From'] = mail_from
+    message['To'] = email
+    message.set_content(
+        f"""{name} 您好，
+
+您的 SkillSwap 註冊驗證碼是：{code}
+
+此驗證碼將於 {REGISTRATION_CODE_TTL_MINUTES} 分鐘後失效。
+若這不是您本人操作，請忽略此郵件。
+"""
+    )
+
+    if not smtp_server:
+        current_app.logger.warning('SMTP_SERVER 未設定，驗證碼未實際寄送：%s -> %s', email, code)
+        return False
+
+    smtp = smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=10) if smtp_port == 465 else smtplib.SMTP(smtp_server, smtp_port, timeout=10)
+    with smtp as server:
+        server.ehlo()
+        if smtp_port != 465:
+            try:
+                server.starttls()
+                server.ehlo()
+            except smtplib.SMTPException:
+                current_app.logger.warning('SMTP STARTTLS 啟動失敗，改以未加密通道寄送驗證信。')
+        if smtp_user and smtp_password:
+            server.login(smtp_user, smtp_password)
+        server.send_message(message)
+
+    return True
 
 
 @auth_bp.route("/register", methods=["GET", "POST"], endpoint='register')
@@ -27,7 +86,102 @@ def register():
     if current_user.is_authenticated:
         return redirect(url_for("profile.dashboard"))
 
+    pending_verification = _get_registration_verification()
+
     if request.method == "POST":
+        action = request.form.get('action', 'send_code')
+
+        if action == 'verify_code':
+            if not pending_verification:
+                flash('請先完成註冊驗證碼寄送。', 'error')
+                return render_template('register.html', pending_verification=None)
+
+            verification_code = request.form.get('verification_code', '').strip()
+            expected_code = pending_verification.get('code', '')
+            expires_at = pending_verification.get('expires_at')
+            attempts = int(pending_verification.get('attempts', 0))
+
+            if expires_at:
+                try:
+                    expires_at_dt = datetime.fromisoformat(expires_at)
+                except ValueError:
+                    expires_at_dt = None
+                if expires_at_dt and datetime.utcnow() > expires_at_dt:
+                    _clear_registration_verification()
+                    flash('驗證碼已過期，請重新註冊並取得新驗證碼。', 'error')
+                    return render_template('register.html', pending_verification=None)
+
+            if not verification_code:
+                flash('請輸入驗證碼。', 'error')
+                return render_template('register.html', pending_verification=pending_verification)
+
+            if verification_code != expected_code:
+                attempts += 1
+                pending_verification['attempts'] = attempts
+                session['register_verification'] = pending_verification
+                if attempts >= REGISTRATION_CODE_MAX_ATTEMPTS:
+                    _clear_registration_verification()
+                    flash('驗證碼錯誤次數過多，請重新註冊並取得新驗證碼。', 'error')
+                else:
+                    flash(f'驗證碼錯誤，還可以再試 {REGISTRATION_CODE_MAX_ATTEMPTS - attempts} 次。', 'error')
+                return render_template('register.html', pending_verification=_get_registration_verification())
+
+            email = pending_verification.get('email', '').strip().lower()
+            name = pending_verification.get('name', '').strip()
+            password_hash = pending_verification.get('password_hash', '')
+
+            if not email or not name or not password_hash:
+                _clear_registration_verification()
+                flash('註冊資料已失效，請重新註冊。', 'error')
+                return render_template('register.html', pending_verification=None)
+
+            if User.query.filter_by(email=email).first():
+                _clear_registration_verification()
+                flash('此 Email 已被註冊，請直接登入或使用其他 Email。', 'error')
+                return render_template('register.html', pending_verification=None)
+
+            user = User(name=name, email=email, role='user', bio='')
+            user.password_hash = password_hash
+
+            try:
+                db.session.add(user)
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash('此 Email 已被註冊，請直接登入或使用其他 Email。', 'error')
+                return render_template('register.html', pending_verification=None)
+
+            _clear_registration_verification()
+            flash('Email 驗證成功，帳號已建立，請登入。', 'success')
+            return redirect(url_for('.login'))
+
+        if action == 'resend_code':
+            if not pending_verification:
+                flash('請先完成註冊資料填寫。', 'error')
+                return render_template('register.html', pending_verification=None)
+
+            verification_code = f'{secrets.randbelow(1000000):06d}'
+            pending_verification['code'] = verification_code
+            pending_verification['attempts'] = 0
+            pending_verification['expires_at'] = (datetime.utcnow() + timedelta(minutes=REGISTRATION_CODE_TTL_MINUTES)).isoformat()
+            session['register_verification'] = pending_verification
+
+            try:
+                sent = _send_registration_verification_email(
+                    pending_verification['email'],
+                    pending_verification['name'],
+                    verification_code,
+                )
+                if sent:
+                    flash('新的驗證碼已重新寄出。', 'success')
+                else:
+                    flash(f'尚未設定 SMTP，開發驗證碼為：{verification_code}', 'warning')
+            except Exception:
+                current_app.logger.exception('重新寄送註冊驗證碼失敗')
+                flash('驗證碼寄送失敗，請稍後再試。', 'error')
+
+            return render_template('register.html', pending_verification=_get_registration_verification())
+
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
@@ -41,21 +195,28 @@ def register():
             if existing_user:
                 flash("此 Email 已被註冊，請直接登入或使用其他 Email。", "error")
             else:
-                # 建立新使用者，預設角色為 user
-                user = User(name=name, email=email, role="user", bio="")
-                user.set_password(password)
+                verification_code = f'{secrets.randbelow(1000000):06d}'
+                pending_verification = {
+                    'name': name,
+                    'email': email,
+                    'password_hash': generate_password_hash(password),
+                    'code': verification_code,
+                    'attempts': 0,
+                    'expires_at': (datetime.utcnow() + timedelta(minutes=REGISTRATION_CODE_TTL_MINUTES)).isoformat(),
+                }
+                session['register_verification'] = pending_verification
                 try:
-                    db.session.add(user)
-                    db.session.commit()
-                except IntegrityError:
-                    # 處理並發情況下的 Email 重複錯誤
-                    db.session.rollback()
-                    flash("此 Email 已被註冊，請直接登入或使用其他 Email。", "error")
-                else:
-                    flash("註冊成功，請登入。", "success")
-                    return redirect(url_for(".login"))
+                    sent = _send_registration_verification_email(email, name, verification_code)
+                    if sent:
+                        flash(f'驗證碼已寄到 {email}，請輸入完成驗證。', 'success')
+                    else:
+                        flash(f'尚未設定 SMTP，開發驗證碼為：{verification_code}', 'warning')
+                except Exception:
+                    current_app.logger.exception('寄送註冊驗證碼失敗')
+                    _clear_registration_verification()
+                    flash('驗證碼寄送失敗，請稍後再試。', 'error')
 
-    return render_template("register.html")
+    return render_template("register.html", pending_verification=_get_registration_verification())
 
 
 @auth_bp.route("/login", methods=["GET", "POST"], endpoint='login')

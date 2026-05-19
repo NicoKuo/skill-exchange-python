@@ -535,6 +535,7 @@ h1, h2, h3, h4, h5 {
   font-weight: 600;
   letter-spacing: 0.01em;
   border: 1px solid rgba(0,82,204,.12);
+  white-space: nowrap;
 }
 .tag-green { background: rgba(5,150,105,.1); color: #065f46; border-color: rgba(5,150,105,.15); }
 .tag-teal  { background: var(--secondary-light); color: #0a7b65; border-color: rgba(46,196,165,.2); }
@@ -545,12 +546,7 @@ h1, h2, h3, h4, h5 {
 .tag-orange { background: rgba(251,146,60,.1); color: #9a3412; border-color: rgba(251,146,60,.15); }
 .tag-purple { background: rgba(168,85,247,.1); color: #6b21a8; border-color: rgba(168,85,247,.15); }
 
-.match-chat-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+/* legacy match-chat-action styles removed */
 
 .match-unread-badge {
   display: inline-flex;
@@ -632,12 +628,15 @@ h1, h2, h3, h4, h5 {
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   background: var(--card);
+  overflow: hidden;
 }
 
 .table,
 .admin-table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
+  border-spacing: 0;
   table-layout: fixed;
   font-size: 14.5px;
 }
@@ -648,7 +647,6 @@ h1, h2, h3, h4, h5 {
 .admin-table th,
 .admin-table td {
   padding: 14px 16px;
-  border-bottom: 1px solid var(--line);
   vertical-align: middle;
   text-align: left;
   min-width: 0;
@@ -667,6 +665,10 @@ h1, h2, h3, h4, h5 {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+.table tbody tr,
+.admin-table tbody tr { border-bottom: 1px solid var(--line); }
+.table tbody tr:last-child,
+.admin-table tbody tr:last-child { border-bottom: none; }
 .table tbody tr:last-child td,
 .admin-table tbody tr:last-child td { border-bottom: none; }
 .table tbody tr:hover,
@@ -697,6 +699,40 @@ h1, h2, h3, h4, h5 {
 .admin-table td.actions {
   width: 180px;
   white-space: normal;
+}
+
+.match-chat-action {
+  display: flex;
+  justify-content: flex-start;
+  gap: 6px;
+  align-items: flex-start;
+  padding-right: 12px;
+  max-width: 160px;
+  min-width: 0;
+}
+
+.match-chat-column,
+.match-report-column {
+  display: grid;
+  gap: 6px;
+}
+
+.match-chat-action .inline-form {
+  display: block;
+  margin: 0;
+}
+
+.match-chat-column .btn,
+.match-chat-column .inline-form button {
+  width: 98px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.match-report-column .btn,
+.match-report-column .inline-form button {
+  width: 82px;
+  padding: 6px 8px;
 }
 
 .action-buttons {
@@ -795,7 +831,11 @@ h1, h2, h3, h4, h5 {
 .footer a:hover { text-decoration: underline; }
 
 /* ─── Misc Helpers ────────────────────────── */
-.inline-form  { display: inline; }
+.inline-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
 .shadow-soft  { box-shadow: var(--shadow-md); }
 .rounded-full { border-radius: 999px; }
 .text-center  { text-align: center; }

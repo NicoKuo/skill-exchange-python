@@ -525,6 +525,62 @@ def deactivate_skill(skill_id):
     return redirect(request.referrer or url_for("profile.dashboard"))
 
 
+@skills_bp.route("/skills/<int:skill_id>/delete", methods=["POST"], endpoint='delete_skill')
+@login_required
+def delete_skill(skill_id):
+    """
+    技能刪除路由。需登入且只有技能擁有者才可存取。
+    支援軟刪除和硬刪除：
+    - 若技能有關聯的媒合記錄，使用軟刪除（status='deleted'）
+    - 若技能無任何關聯資料，直接硬刪除
+    已刪除或已下架的技能無法再次刪除。
+    """
+    skill = Skill.query.get_or_404(skill_id)
+
+    # 權限檢查：只有技能發布者本人才能刪除
+    if skill.user_id != current_user.id:
+        abort(403)
+
+    # 檢查技能是否已被刪除或下架
+    if skill.status == 'deleted':
+        flash("這個技能已經被刪除。", "warning")
+        return redirect(request.referrer or url_for("profile.dashboard"))
+
+    # 檢查是否有關聯的媒合記錄
+    has_matches = Match.query.filter_by(skill_id=skill.id).count() > 0
+
+    try:
+        if has_matches:
+            # 有媒合記錄：使用軟刪除
+            skill.status = 'deleted'
+            skill.is_active = False
+            db.session.commit()
+        else:
+            # 無任何關聯資料：直接硬刪除
+            db.session.delete(skill)
+            db.session.commit()
+
+        # 記錄刪除活動日誌
+        try:
+            log = ActivityLog(
+                user_id=current_user.id,
+                action='delete_skill',
+                detail=f'skill_id={skill_id}|has_matches={has_matches}',
+                ip_address=request.remote_addr
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+        flash("技能已刪除。", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash("技能刪除失敗，請稍後再試。", "error")
+
+    return redirect(request.referrer or url_for("profile.dashboard"))
+
+
 @skills_bp.route("/skills/<int:skill_id>/report", methods=["POST"], endpoint='report_skill')
 def report_skill(skill_id):
     """

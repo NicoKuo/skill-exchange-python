@@ -48,7 +48,7 @@
             <tr>
                 <td>{{ format_taiwan_time(report.created_at, '%Y-%m-%d %H:%M') }}</td>
                 <td>{{ report.reporter.name }}</td>
-                <td>{{ report.reported_user.name }}</td>
+                <td>{{ report.reported_user.name if report.reported_user else '-' }}</td>
                 <td>
                     {% if report.report_type == 'profile' %}
                     <span class="tag" style="background: rgba(59,130,246,.1); color: #1e40af; border: 1px solid rgba(59,130,246,.2);">個人檔案</span>
@@ -64,7 +64,7 @@
                 </td>
                 <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                     {% if report.report_type == 'profile' %}
-                    <strong>個人檔案:</strong> {{ report.reported_user.name }}
+                    <strong>個人檔案:</strong> {{ report.reported_user.name if report.reported_user else '無' }}
                     {% elif report.message_id and report.message %}
                     <strong>訊息:</strong> {{ report.message.content[:40] }}{% if report.message.content|length > 40 %}...{% endif %}
                     {% elif report.skill_id and report.skill %}

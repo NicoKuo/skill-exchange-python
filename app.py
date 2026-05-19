@@ -181,6 +181,6 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    # 直接執行時啟動開發伺服器，從環境變數讀取 PORT，預設 5000
+    # 直接執行時啟動開發伺服器，從環境變數讀取 PORT
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

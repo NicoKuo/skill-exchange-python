@@ -39,8 +39,9 @@
                             <button class="btn btn-sm" type="submit" title="將技能下架，前台搜尋不到">下架</button>
                         </form>
                         {% elif not skill.is_active %}
-                        <form method="post" action="{{ url_for('admin.restore_skill', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要重新上架這個技能嗎？');">
-                            <button class="btn btn-sm btn-success btn-restore" type="submit" title="重新上架，前台將可搜尋到">重新上架</button>
+                        {% set owner_active_count = skill_owner_active_counts.get(skill.user_id, 0) %}
+                        <form method="post" action="{{ url_for('admin.restore_skill', skill_id=skill.id) }}" class="inline-form" onsubmit="{% if owner_active_count >= 3 %}return false;{% else %}return confirm('確定要重新上架這個技能嗎？');{% endif %}">
+                            <button class="btn btn-sm btn-success btn-restore" type="submit" {% if owner_active_count >= 3 %}disabled title="此使用者已有 3 個上架技能"{% else %}title="重新上架，前台將可搜尋到"{% endif %}>重新上架</button>
                         </form>
                         {% endif %}
                         <form method="post" action="{{ url_for('admin.delete_skill', skill_id=skill.id) }}" class="inline-form" onsubmit="return confirm('確定要刪除這筆技能嗎？\n\n若已有媒合或檢舉，將改為下架。');">

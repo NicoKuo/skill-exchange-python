@@ -11,7 +11,7 @@ from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 
 from models import db, Skill, SkillCategory, Match, ActivityLog, Report
-from utils.helpers import get_skill_recommendations
+from utils.helpers import get_skill_recommendations, user_active_skill_count, can_user_add_skill
 
 skills_bp = Blueprint('skills', __name__)
 
@@ -339,6 +339,11 @@ def add_skill():
         # 時間邏輯驗證：結束時間不可早於開始時間
         if start_time and end_time and end_time < start_time:
             flash("結束時間不可早於開始時間。", "error")
+            return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
+
+        # 檢查使用者是否可以新增上架技能（每人上限 3 個）
+        if not can_user_add_skill(current_user.id):
+            flash("你目前最多只能同時上架 3 個技能，請先下架其他技能後再新增。", "error")
             return render_template("add_skill.html", categories=categories, skill=None, form_action=url_for(".add_skill"), **form_values)
 
         # 建立技能物件並儲存

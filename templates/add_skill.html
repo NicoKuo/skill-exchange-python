@@ -1,5 +1,12 @@
 {% extends 'base.html' %}{% set title = '編輯技能' if skill else '上架技能' %}{% block content %}<div class="card section">
   <h2>{% if skill %}編輯技能{% else %}上架新技能{% endif %}</h2>
+  
+  {% if not skill %}
+  <div class="flash warning" style="margin-bottom: 24px;">
+    <strong>💡 提示：</strong> 每位使用者最多只能同時上架 3 個技能。若要新增更多技能，請先下架既有技能。
+  </div>
+  {% endif %}
+  
   <form method="post" class="form-grid" enctype="multipart/form-data" action="{{ form_action }}">
     <div class="field"><label>技能標題</label><input name="title" maxlength="50" required value="{{ title_value }}"></div>
     <div class="field"><label>分類</label>

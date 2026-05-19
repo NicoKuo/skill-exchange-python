@@ -503,6 +503,19 @@ h1, h2, h3, h4, h5 {
 .btn-success { background: var(--success); box-shadow: 0 4px 16px rgba(5,150,105,.22); }
 .btn-danger  { background: var(--danger);  box-shadow: 0 4px 16px rgba(220,38,38,.22); }
 
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn:disabled:hover,
+.btn[disabled]:hover {
+  transform: none;
+  box-shadow: none;
+  background: inherit;
+}
+
 .btn-lg { padding: 14px 28px; font-size: 15.5px; border-radius: var(--radius-lg); }
 .btn-sm { padding: 7px 14px; font-size: 13px; border-radius: var(--radius-sm); }
 

@@ -11,6 +11,7 @@ from flask_login import current_user, login_required
 
 from models import db, Match, Skill, User, ActivityLog, Notification, Report, Message, Review
 from utils import format_taiwan_time
+from utils.helpers import user_active_skill_count, can_user_add_skill
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -333,8 +334,21 @@ def skills():
     - 下架：將技能標記為已下架（is_active=False），前台看不到，但資料保留
     - 刪除：若無關聯資料則永久刪除；若有關聯資料則改為下架
     """
-    skills = Skill.query.order_by(Skill.created_at.desc()).all()
-    return render_template('admin/skills.html', current_page='skills', skills=skills, stats=_admin_counts())
+    skills_list = Skill.query.order_by(Skill.created_at.desc()).all()
+    
+    # 為每個技能計算發布者的上架技能數量（用於判斷是否可重新上架）
+    skill_owner_active_counts = {}
+    for skill in skills_list:
+        if skill.user_id not in skill_owner_active_counts:
+            skill_owner_active_counts[skill.user_id] = user_active_skill_count(skill.user_id)
+    
+    return render_template(
+        'admin/skills.html',
+        current_page='skills',
+        skills=skills_list,
+        stats=_admin_counts(),
+        skill_owner_active_counts=skill_owner_active_counts
+    )
 
 
 @admin_bp.route('/skills/<int:skill_id>/deactivate', methods=['POST'], endpoint='deactivate_skill')
@@ -365,6 +379,7 @@ def restore_skill(skill_id):
     """
     技能重新上架路由（管理員操作）。需管理員以上權限。
     將已下架的技能重新上架（is_active=True）。
+    會檢查該技能發布者是否已達上架數量上限。
     """
     try:
         skill = Skill.query.get_or_404(skill_id)
@@ -372,6 +387,11 @@ def restore_skill(skill_id):
         # 如果已經是上架狀態，提示使用者但不報錯
         if skill.is_active:
             flash('此技能已經是上架狀態。', 'warning')
+            return redirect(url_for('admin.skills'))
+
+        # 檢查技能發布者是否已達上架上限
+        if not can_user_add_skill(skill.user_id):
+            flash('此使用者目前已有 3 個上架技能，無法重新上架。', 'error')
             return redirect(url_for('admin.skills'))
 
         # 重新上架（恢復 is_active 為 True）

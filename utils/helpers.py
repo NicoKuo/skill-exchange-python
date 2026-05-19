@@ -877,3 +877,36 @@ def get_skill_recommendations(user_id, limit=6, debug=False):
         result['debug'] = debug_info
 
     return result
+
+
+# -----------------------------------------------
+# 技能上架數量限制檢查
+# -----------------------------------------------
+
+def user_active_skill_count(user_id):
+    """
+    計算指定使用者目前上架中的技能數量。
+    只計算 status='open' 且 is_active=True 的技能。
+    
+    Args:
+        user_id: 使用者 ID
+    
+    Returns:
+        int: 上架中的技能數量
+    """
+    return Skill.query.filter_by(user_id=user_id, status='open', is_active=True).count()
+
+
+def can_user_add_skill(user_id, skill_limit=3):
+    """
+    檢查使用者是否可以新增上架技能。
+    
+    Args:
+        user_id: 使用者 ID
+        skill_limit: 上架技能數量上限（預設 3）
+    
+    Returns:
+        bool: True 表示可以新增，False 表示已達上限
+    """
+    current_count = user_active_skill_count(user_id)
+    return current_count < skill_limit

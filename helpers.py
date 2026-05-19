@@ -9,7 +9,9 @@ from utils.helpers import (
     unread_notifications_count,
     add_notification,
     skill_match_score,
-    get_skill_recommendations
+    get_skill_recommendations,
+    user_active_skill_count,
+    can_user_add_skill,
 )
 
 __all__ = [
@@ -21,4 +23,6 @@ __all__ = [
     'add_notification',
     'skill_match_score',
     'get_skill_recommendations',
+    'user_active_skill_count',
+    'can_user_add_skill',
 ]

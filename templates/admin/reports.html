@@ -15,7 +15,7 @@
         <div style="margin-bottom: 12px;">
             <strong>狀態篩選：</strong>
             <a class="btn{% if status_filter == 'all' %} active{% endif %}" href="{{ url_for('admin.reports', status='all', type=type_filter) }}">全部</a>
-            <a class="btn btn-muted{% if status_filter == 'pending' %} active{% endif %}" href="{{ url_for('admin.reports', status='pending', type=type_filter) }}">待審 (pending)</a>
+            <a class="btn btn-muted{% if status_filter == 'pending' %} active{% endif %}" href="{{ url_for('admin.reports', status='pending', type=type_filter) }}">尚未審查 (pending)</a>
             <a class="btn btn-muted{% if status_filter == 'reviewed' %} active{% endif %}" href="{{ url_for('admin.reports', status='reviewed', type=type_filter) }}">已審 (reviewed)</a>
             <a class="btn btn-muted{% if status_filter == 'rejected' %} active{% endif %}" href="{{ url_for('admin.reports', status='rejected', type=type_filter) }}">駁回 (rejected)</a>
             <a class="btn btn-muted{% if status_filter == 'resolved' %} active{% endif %}" href="{{ url_for('admin.reports', status='resolved', type=type_filter) }}">已解決 (resolved)</a>

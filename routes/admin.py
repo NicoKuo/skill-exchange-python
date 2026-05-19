@@ -32,10 +32,35 @@ ACCOUNT_ACTION_MESSAGES = {
 }
 
 
-def _normalize_user_status(status):
-    """將帳號狀態規範化：將舊版的 'blocked' 統一轉換為 'banned'。"""
-    status = (status or '').strip()
-    return 'banned' if status == 'blocked' else status
+def _normalize_report_status(status):
+    """
+    正規化檢舉狀態。支援舊的狀態值對應到標準狀態。
+    回傳：'pending', 'reviewed', 'rejected', 'resolved', 'punished', 或原值
+    """
+    status = (status or '').strip().lower()
+    
+    # 待審狀態的別名
+    if status in ['pending', '待審', '待審查', 'reviewing']:
+        return 'pending'
+    
+    # 已審狀態的別名
+    if status in ['reviewed', '已審', '已審查', 'review']:
+        return 'reviewed'
+    
+    # 駁回狀態的別名
+    if status in ['rejected', '駁回', 'reject']:
+        return 'rejected'
+    
+    # 已解決狀態的別名
+    if status in ['resolved', '已解決', '解決', 'resolve']:
+        return 'resolved'
+    
+    # 已懲處狀態的別名
+    if status in ['punished', '已懲處', '懲處', 'punish']:
+        return 'punished'
+    
+    return status
+
 
 
 def _append_feedback_text(base_text, feedback):
@@ -788,9 +813,15 @@ def reports():
 
     query = Report.query
     
-    # 狀態篩選
+    # 狀態篩選：支援多個舊狀態值
     if status_filter and status_filter != 'all':
-        query = query.filter_by(status=status_filter)
+        normalized_status = _normalize_report_status(status_filter)
+        query = query.filter(
+            db.or_(
+                Report.status == normalized_status,
+                Report.status == status_filter  # 也支援原始值
+            )
+        )
     
     # 類型篩選：根據 report_type 和 ForeignKey 進行複雜篩選
     if type_filter and type_filter != 'all':

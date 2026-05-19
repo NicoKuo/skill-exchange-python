@@ -184,7 +184,7 @@ def register():
                 if sent:
                     flash('新的驗證碼已重新寄出。', 'success')
                 else:
-                    flash(f'尚未設定 SMTP，開發驗證碼為：{verification_code}', 'warning')
+                    flash(f'Resend 未設定，開發驗證碼為：{verification_code}', 'warning')
             except Exception:
                 current_app.logger.exception('重新寄送註冊驗證碼失敗')
                 flash('驗證碼寄送失敗，請稍後再試。', 'error')
@@ -214,9 +214,9 @@ def register():
                 try:
                     sent = _send_registration_verification_email(email, name, verification_code)
                     if sent:
-                        flash(f'驗證碼已寄到 {email}，請輸入完成驗證。', 'success')
+                        flash('驗證碼已寄到 {email}，請輸入完成驗證。', 'success')
                     else:
-                        flash(f'尚未設定 SMTP，開發驗證碼為：{verification_code}', 'warning')
+                        flash(f'Resend 未設定，開發驗證碼為：{verification_code}', 'warning')
                 except Exception:
                     current_app.logger.exception('寄送註冊驗證碼失敗')
                     _clear_registration_verification()

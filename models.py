@@ -173,3 +173,15 @@ class Report(db.Model):
     skill = db.relationship('Skill')
     message = db.relationship('Message')
     reviewed_by_user = db.relationship('User', foreign_keys=[reviewed_by])
+
+
+class EmailVerification(db.Model):
+    __tablename__ = 'email_verifications'
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), nullable=False, index=True)
+    code = db.Column(db.String(6), nullable=False)
+    purpose = db.Column(db.String(20), default='register', nullable=False)
+    attempts = db.Column(db.Integer, default=0, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    is_used = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

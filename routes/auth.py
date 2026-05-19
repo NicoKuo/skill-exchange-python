@@ -1,7 +1,7 @@
 # routes/auth.py: 認證路由（登入、註冊、登出）
 # 包含暴力破解防護：連續失敗 5 次後鎖定帳號 30 分鐘
 from datetime import datetime, timedelta
-import secrets
+import random
 import smtplib
 from email.message import EmailMessage
 
@@ -10,7 +10,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
-from models import db, User, ActivityLog, Skill
+from models import db, User, ActivityLog, Skill, EmailVerification
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -22,6 +22,42 @@ LOCKOUT_MINUTES = 30
 REGISTRATION_CODE_TTL_MINUTES = 10
 # 驗證碼錯誤上限
 REGISTRATION_CODE_MAX_ATTEMPTS = 5
+
+
+def create_verification_code(email, purpose='register'):
+    EmailVerification.query.filter_by(
+        email=email, purpose=purpose, is_used=False
+    ).update({'is_used': True})
+    db.session.commit()
+    code = str(random.randint(100000, 999999))
+    record = EmailVerification(
+        email=email,
+        code=code,
+        purpose=purpose,
+        expires_at=datetime.utcnow() + timedelta(minutes=10)
+    )
+    db.session.add(record)
+    db.session.commit()
+    return code
+
+
+def verify_code(email, code, purpose='register'):
+    record = EmailVerification.query.filter_by(
+        email=email, purpose=purpose, is_used=False
+    ).order_by(EmailVerification.created_at.desc()).first()
+    if not record:
+        return False, '驗證碼不存在或已使用'
+    if datetime.utcnow() > record.expires_at:
+        return False, '驗證碼已過期，請重新寄送'
+    if record.attempts >= 5:
+        return False, '錯誤次數過多，請重新寄送'
+    if record.code != code:
+        record.attempts += 1
+        db.session.commit()
+        return False, f'驗證碼錯誤，剩餘 {5 - record.attempts} 次'
+    record.is_used = True
+    db.session.commit()
+    return True, 'ok'
 
 
 def _clear_registration_verification():
@@ -97,36 +133,16 @@ def register():
                 return render_template('register.html', pending_verification=None)
 
             verification_code = request.form.get('verification_code', '').strip()
-            expected_code = pending_verification.get('code', '')
-            expires_at = pending_verification.get('expires_at')
-            attempts = int(pending_verification.get('attempts', 0))
-
-            if expires_at:
-                try:
-                    expires_at_dt = datetime.fromisoformat(expires_at)
-                except ValueError:
-                    expires_at_dt = None
-                if expires_at_dt and datetime.utcnow() > expires_at_dt:
-                    _clear_registration_verification()
-                    flash('驗證碼已過期，請重新註冊並取得新驗證碼。', 'error')
-                    return render_template('register.html', pending_verification=None)
-
             if not verification_code:
                 flash('請輸入驗證碼。', 'error')
                 return render_template('register.html', pending_verification=pending_verification)
 
-            if verification_code != expected_code:
-                attempts += 1
-                pending_verification['attempts'] = attempts
-                session['register_verification'] = pending_verification
-                if attempts >= REGISTRATION_CODE_MAX_ATTEMPTS:
-                    _clear_registration_verification()
-                    flash('驗證碼錯誤次數過多，請重新註冊並取得新驗證碼。', 'error')
-                else:
-                    flash(f'驗證碼錯誤，還可以再試 {REGISTRATION_CODE_MAX_ATTEMPTS - attempts} 次。', 'error')
-                return render_template('register.html', pending_verification=_get_registration_verification())
-
             email = pending_verification.get('email', '').strip().lower()
+            is_valid, message = verify_code(email, verification_code)
+            if not is_valid:
+                flash(message, 'error')
+                return render_template('register.html', pending_verification=pending_verification)
+
             name = pending_verification.get('name', '').strip()
             password_hash = pending_verification.get('password_hash', '')
 
@@ -160,11 +176,10 @@ def register():
                 flash('請先完成註冊資料填寫。', 'error')
                 return render_template('register.html', pending_verification=None)
 
-            verification_code = f'{secrets.randbelow(1000000):06d}'
-            pending_verification['code'] = verification_code
-            pending_verification['attempts'] = 0
-            pending_verification['expires_at'] = (datetime.utcnow() + timedelta(minutes=REGISTRATION_CODE_TTL_MINUTES)).isoformat()
-            session['register_verification'] = pending_verification
+            verification_code = create_verification_code(
+                pending_verification['email'],
+                purpose='register'
+            )
 
             try:
                 sent = _send_registration_verification_email(
@@ -180,7 +195,7 @@ def register():
                 current_app.logger.exception('重新寄送註冊驗證碼失敗')
                 flash('驗證碼寄送失敗，請稍後再試。', 'error')
 
-            return render_template('register.html', pending_verification=_get_registration_verification())
+            return render_template('register.html', pending_verification=pending_verification)
 
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
@@ -195,14 +210,11 @@ def register():
             if existing_user:
                 flash("此 Email 已被註冊，請直接登入或使用其他 Email。", "error")
             else:
-                verification_code = f'{secrets.randbelow(1000000):06d}'
+                verification_code = create_verification_code(email, purpose='register')
                 pending_verification = {
                     'name': name,
                     'email': email,
                     'password_hash': generate_password_hash(password),
-                    'code': verification_code,
-                    'attempts': 0,
-                    'expires_at': (datetime.utcnow() + timedelta(minutes=REGISTRATION_CODE_TTL_MINUTES)).isoformat(),
                 }
                 session['register_verification'] = pending_verification
                 try:

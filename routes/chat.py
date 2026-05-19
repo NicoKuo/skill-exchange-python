@@ -347,6 +347,7 @@ def report_message(match_id):
         reported_user_id=msg.sender_id,
         match_id=match_id,
         message_id=message_id,
+        report_type='message',
         reason=reason,
         description=description,
         evidence_file_url=evidence_url,

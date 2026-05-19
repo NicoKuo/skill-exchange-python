@@ -14,20 +14,20 @@
     <div style="margin-bottom: 24px;">
         <div style="margin-bottom: 12px;">
             <strong>狀態篩選：</strong>
-            <a class="btn{% if status_filter == 'all' %} active{% endif %}" href="{{ url_for('admin.reports', status='all', report_type=report_type_filter) }}">全部</a>
-            <a class="btn btn-muted{% if status_filter == 'pending' %} active{% endif %}" href="{{ url_for('admin.reports', status='pending', report_type=report_type_filter) }}">待審 (pending)</a>
-            <a class="btn btn-muted{% if status_filter == 'reviewed' %} active{% endif %}" href="{{ url_for('admin.reports', status='reviewed', report_type=report_type_filter) }}">已審 (reviewed)</a>
-            <a class="btn btn-muted{% if status_filter == 'rejected' %} active{% endif %}" href="{{ url_for('admin.reports', status='rejected', report_type=report_type_filter) }}">駁回 (rejected)</a>
-            <a class="btn btn-muted{% if status_filter == 'resolved' %} active{% endif %}" href="{{ url_for('admin.reports', status='resolved', report_type=report_type_filter) }}">已解決 (resolved)</a>
-            <a class="btn btn-muted{% if status_filter == 'punished' %} active{% endif %}" href="{{ url_for('admin.reports', status='punished', report_type=report_type_filter) }}">已懲處 (punished)</a>
+            <a class="btn{% if status_filter == 'all' %} active{% endif %}" href="{{ url_for('admin.reports', status='all', type=type_filter) }}">全部</a>
+            <a class="btn btn-muted{% if status_filter == 'pending' %} active{% endif %}" href="{{ url_for('admin.reports', status='pending', type=type_filter) }}">待審 (pending)</a>
+            <a class="btn btn-muted{% if status_filter == 'reviewed' %} active{% endif %}" href="{{ url_for('admin.reports', status='reviewed', type=type_filter) }}">已審 (reviewed)</a>
+            <a class="btn btn-muted{% if status_filter == 'rejected' %} active{% endif %}" href="{{ url_for('admin.reports', status='rejected', type=type_filter) }}">駁回 (rejected)</a>
+            <a class="btn btn-muted{% if status_filter == 'resolved' %} active{% endif %}" href="{{ url_for('admin.reports', status='resolved', type=type_filter) }}">已解決 (resolved)</a>
+            <a class="btn btn-muted{% if status_filter == 'punished' %} active{% endif %}" href="{{ url_for('admin.reports', status='punished', type=type_filter) }}">已懲處 (punished)</a>
         </div>
         <div>
             <strong>檢舉類型篩選：</strong>
-            <a class="btn{% if report_type_filter == 'all' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, report_type='all') }}">全部</a>
-            <a class="btn btn-muted{% if report_type_filter == 'profile' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, report_type='profile') }}">個人檔案</a>
-            <a class="btn btn-muted{% if report_type_filter == 'message' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, report_type='message') }}">訊息</a>
-            <a class="btn btn-muted{% if report_type_filter == 'skill' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, report_type='skill') }}">技能</a>
-            <a class="btn btn-muted{% if report_type_filter == 'match' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, report_type='match') }}">媒合</a>
+            <a class="btn{% if type_filter == 'all' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, type='all') }}">全部</a>
+            <a class="btn btn-muted{% if type_filter == 'profile' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, type='profile') }}">個人檔案</a>
+            <a class="btn btn-muted{% if type_filter == 'message' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, type='message') }}">訊息</a>
+            <a class="btn btn-muted{% if type_filter == 'skill' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, type='skill') }}">技能</a>
+            <a class="btn btn-muted{% if type_filter == 'match' %} active{% endif %}" href="{{ url_for('admin.reports', status=status_filter, type='match') }}">媒合</a>
         </div>
     </div>
 
@@ -50,26 +50,26 @@
                 <td>{{ report.reporter.name }}</td>
                 <td>{{ report.reported_user.name if report.reported_user else '-' }}</td>
                 <td>
-                    {% if report.report_type == 'profile' %}
+                    {% if report.normalized_type == 'profile' %}
                     <span class="tag" style="background: rgba(59,130,246,.1); color: #1e40af; border: 1px solid rgba(59,130,246,.2);">個人檔案</span>
-                    {% elif report.message_id or report.report_type == 'message' %}
+                    {% elif report.normalized_type == 'message' %}
                     <span class="tag tag-red">訊息檢舉</span>
-                    {% elif report.skill_id or report.report_type == 'skill' %}
+                    {% elif report.normalized_type == 'skill' %}
                     <span class="tag tag-orange">技能檢舉</span>
-                    {% elif report.match_id or report.report_type == 'match' %}
+                    {% elif report.normalized_type == 'match' %}
                     <span class="tag tag-purple">媒合檢舉</span>
                     {% else %}
                     <span class="tag">未知</span>
                     {% endif %}
                 </td>
                 <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                    {% if report.report_type == 'profile' %}
+                    {% if report.normalized_type == 'profile' %}
                     <strong>個人檔案:</strong> {{ report.reported_user.name if report.reported_user else '無' }}
-                    {% elif report.message_id and report.message %}
+                    {% elif report.normalized_type == 'message' and report.message %}
                     <strong>訊息:</strong> {{ report.message.content[:40] }}{% if report.message.content|length > 40 %}...{% endif %}
-                    {% elif report.skill_id and report.skill %}
+                    {% elif report.normalized_type == 'skill' and report.skill %}
                     <strong>技能:</strong> {{ report.skill.title }}
-                    {% elif report.match_id and report.match %}
+                    {% elif report.normalized_type == 'match' and report.match %}
                     <strong>媒合:</strong>
                     {{ report.match.requester.name if report.match.requester else '未知使用者' }}
                     ↔

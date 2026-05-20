@@ -17,9 +17,9 @@ MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 30
 # 允許註冊的學校 Email 後綴
 ALLOWED_EMAIL_DOMAINS = [
-    'syh.ntpc.edu.tw',
-    'mail.fju.edu.tw',
-    'gapp.fju.edu.tw',
+    'gmail.com',
+    'm365.fju.edu.tw',
+    'cloud.fju.edu.tw',
 ]
 
 

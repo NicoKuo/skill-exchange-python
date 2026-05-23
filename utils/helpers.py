@@ -1,13 +1,13 @@
-"""utils/helpers.py: Flask 應用程式的核心輔助函數庫。"""
+"""utils/helpers.py:我們的自訂函數們。"""
 
-from datetime import datetime, timezone, timedelta
-import re
+from datetime import datetime, timezone, timedelta # 用於處理台灣時區的時間轉換
+import re # 用於解析技能描述中的附件標記
 
-from flask import url_for
-from markupsafe import Markup, escape
-from sqlalchemy import or_, func
+from flask import url_for # 用於生成技能附件的存取 URL
+from markupsafe import Markup, escape # 用於安全地渲染技能描述中的 HTML，並避免 XSS 攻擊
+from sqlalchemy import or_, func # 用於 SQLAlchemy 查詢中的條件組合和聚合函數
 
-from models import db, Match, Review, Notification, Skill, User
+from models import db, Match, Review, Notification, Skill, User # 引入資料庫模型，避免循環引用
 
 
 # 台灣時區（UTC+8）
@@ -897,13 +897,13 @@ def user_active_skill_count(user_id):
     return Skill.query.filter_by(user_id=user_id, status='open', is_active=True).count()
 
 
-def can_user_add_skill(user_id, skill_limit=3):
+def can_user_add_skill(user_id, skill_limit=5):
     """
     檢查使用者是否可以新增上架技能。
     
     Args:
         user_id: 使用者 ID
-        skill_limit: 上架技能數量上限（預設 3）
+        skill_limit: 上架技能數量上限（預設 5）
     
     Returns:
         bool: True 表示可以新增，False 表示已達上限

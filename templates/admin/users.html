@@ -15,7 +15,7 @@
             <thead>
                 <tr>
                     <th>姓名</th>
-                    <th>Email</th>
+                    <th>電子郵件</th>
                     <th>系所</th>
                     <th>註冊日期</th>
                     <th>交換完成次數</th>
@@ -39,24 +39,10 @@
                     <td>{{ format_taiwan_time(user.created_at, '%Y-%m-%d %H:%M') }}</td>
                     <td>{{ completed_count }}</td>
                     <td>
-                        {% if user.status == 'active' %}
-                        <span class="tag tag-green">active</span>
-                        {% elif user.status == 'suspended' %}
-                        <span class="tag tag-yellow">suspended</span>
-                        {% elif user.status in ['banned', 'blocked'] %}
-                        <span class="tag tag-red">banned</span>
-                        {% else %}
-                        <span class="tag tag-gray">{{ user.status or 'unknown' }}</span>
-                        {% endif %}
+                        <span class="tag {% if user.status == 'active' %}tag-green{% elif user.status == 'suspended' %}tag-yellow{% elif user.status in ['banned', 'blocked'] %}tag-red{% else %}tag-gray{% endif %}">{{ status_label(user.status) }}</span>
                     </td>
                     <td>
-                        {% if user.role == 'super_admin' %}
-                        <span class="tag tag-red">super_admin</span>
-                        {% elif user.role == 'admin' %}
-                        <span class="tag tag-teal">admin</span>
-                        {% else %}
-                        <span class="tag tag-gray">user</span>
-                        {% endif %}
+                        <span class="tag {% if user.role == 'super_admin' %}tag-red{% elif user.role == 'admin' %}tag-teal{% else %}tag-gray{% endif %}">{{ role_label(user.role) }}</span>
                     </td>
                     <td>
                         {% if user.id in manageable_user_ids %}
@@ -91,5 +77,17 @@
             </tbody>
         </table>
     </div>
+
+    {% if pagination.pages > 1 %}
+    <div class="actions" style="margin-top: 20px; justify-content: center; flex-wrap: wrap; gap: 8px;">
+        {% if pagination.has_prev %}
+        <a class="btn btn-muted" href="{{ url_for('admin.users', page=pagination.prev_num) }}">上一頁</a>
+        {% endif %}
+        <span class="tag tag-gray">第 {{ pagination.page }} / {{ pagination.pages }} 頁</span>
+        {% if pagination.has_next %}
+        <a class="btn btn-muted" href="{{ url_for('admin.users', page=pagination.next_num) }}">下一頁</a>
+        {% endif %}
+    </div>
+    {% endif %}
 </section>
 {% endblock %}

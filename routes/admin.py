@@ -3,7 +3,8 @@
 # 存取控制：admin（一般管理員）可管理一般使用者；super_admin 可管理管理員
 from collections import Counter
 from datetime import datetime
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
+from sqlalchemy.orm import joinedload, load_only
 from functools import wraps
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
@@ -11,9 +12,12 @@ from flask_login import current_user, login_required
 
 from models import db, Match, Skill, User, ActivityLog, Notification, Report, Message, Review
 from utils import format_taiwan_time
-from utils.helpers import user_active_skill_count, can_user_add_skill
+from utils.helpers import can_user_add_skill, match_status_label
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+ADMIN_LIST_PAGE_SIZE = 20
+ACTIVITY_PAGE_SIZE = 50
 
 
 # 檢舉狀態對應的回饋通知文字（發送給檢舉人）
@@ -200,7 +204,9 @@ def _recent_activities(limit=8):
     activities = []
 
     # 新會員記錄
-    for user in User.query.order_by(User.created_at.desc()).limit(limit).all():
+    for user in User.query.options(
+        load_only(User.id, User.name, User.email, User.created_at)
+    ).order_by(User.created_at.desc()).limit(limit).all():
         activities.append({
             'kind': '新會員',
             'tag_class': 'tag-green',
@@ -210,7 +216,10 @@ def _recent_activities(limit=8):
         })
 
     # 新技能記錄
-    for skill in Skill.query.order_by(Skill.created_at.desc()).limit(limit).all():
+    for skill in Skill.query.options(
+        load_only(Skill.id, Skill.title, Skill.created_at, Skill.user_id),
+        joinedload(Skill.user).load_only(User.id, User.name),
+    ).order_by(Skill.created_at.desc()).limit(limit).all():
         activities.append({
             'kind': '新技能',
             'tag_class': 'tag-teal',
@@ -220,12 +229,17 @@ def _recent_activities(limit=8):
         })
 
     # 新媒合記錄
-    for match in Match.query.order_by(Match.created_at.desc()).limit(limit).all():
+    for match in Match.query.options(
+        load_only(Match.id, Match.created_at, Match.status, Match.skill_id, Match.requester_id, Match.receiver_id),
+        joinedload(Match.skill).load_only(Skill.id, Skill.title),
+        joinedload(Match.requester).load_only(User.id, User.name),
+        joinedload(Match.receiver).load_only(User.id, User.name),
+    ).order_by(Match.created_at.desc()).limit(limit).all():
         activities.append({
             'kind': '交換申請',
             'tag_class': 'tag-yellow',
             'title': match.skill.title,
-            'description': f'{match.requester.name} → {match.receiver.name} · {match.status}',
+            'description': f'{match.requester.name} → {match.receiver.name} · {match_status_label(match.status)}',
             'created_at': match.created_at,
         })
 
@@ -285,7 +299,11 @@ def users():
     manageable_user_ids：目前管理員有權限修改狀態的使用者 ID 集合
     （super_admin 可管理 user 和 admin；admin 只能管理 user）。
     """
-    users = User.query.order_by(User.created_at.desc()).all()
+    page = request.args.get('page', 1, type=int)
+    pagination = User.query.options(
+        load_only(User.id, User.name, User.email, User.department, User.created_at, User.role, User.status),
+    ).order_by(User.created_at.desc()).paginate(page=page, per_page=ADMIN_LIST_PAGE_SIZE, error_out=False)
+    users = pagination.items
     completed_counts = _completed_exchange_counts()
     manageable_user_ids = set()
 
@@ -303,9 +321,9 @@ def users():
         'admin/users.html',
         current_page='users',
         users=users,
-        stats=_admin_counts(),
         completed_counts=completed_counts,
         manageable_user_ids=manageable_user_ids,
+        pagination=pagination,
     )
 
 
@@ -373,20 +391,34 @@ def skills():
     - 下架：將技能標記為已下架（is_active=False），前台看不到，但資料保留
     - 刪除：若無關聯資料則永久刪除；若有關聯資料則改為下架
     """
-    skills_list = Skill.query.order_by(Skill.created_at.desc()).all()
-    
-    # 為每個技能計算發布者的上架技能數量（用於判斷是否可重新上架）
+    page = request.args.get('page', 1, type=int)
+    pagination = Skill.query.options(
+        load_only(Skill.id, Skill.user_id, Skill.category_id, Skill.title, Skill.status, Skill.is_active, Skill.method, Skill.created_at),
+        joinedload(Skill.user).load_only(User.id, User.name),
+        joinedload(Skill.category),
+    ).order_by(Skill.created_at.desc()).paginate(page=page, per_page=ADMIN_LIST_PAGE_SIZE, error_out=False)
+    skills_list = pagination.items
+
+    # 為當頁技能批次計算發布者的上架技能數量（避免 N+1）
     skill_owner_active_counts = {}
-    for skill in skills_list:
-        if skill.user_id not in skill_owner_active_counts:
-            skill_owner_active_counts[skill.user_id] = user_active_skill_count(skill.user_id)
+    user_ids = {skill.user_id for skill in skills_list}
+    if user_ids:
+        active_rows = db.session.query(
+            Skill.user_id,
+            func.count(Skill.id),
+        ).filter(
+            Skill.user_id.in_(user_ids),
+            Skill.is_active.is_(True),
+            Skill.status == 'open',
+        ).group_by(Skill.user_id).all()
+        skill_owner_active_counts = {user_id: count for user_id, count in active_rows}
     
     return render_template(
         'admin/skills.html',
         current_page='skills',
         skills=skills_list,
-        stats=_admin_counts(),
-        skill_owner_active_counts=skill_owner_active_counts
+        skill_owner_active_counts=skill_owner_active_counts,
+        pagination=pagination,
     )
 
 
@@ -536,7 +568,12 @@ def matches():
     date_to_str = request.args.get('date_to', '').strip()
     
     # 構建查詢
-    query = Match.query.outerjoin(Skill).outerjoin(User, Match.requester_id == User.id)
+    query = Match.query.options(
+        load_only(Match.id, Match.skill_id, Match.requester_id, Match.receiver_id, Match.message, Match.status, Match.created_at, Match.updated_at),
+        joinedload(Match.skill).load_only(Skill.id, Skill.title, Skill.method),
+        joinedload(Match.requester).load_only(User.id, User.name, User.email),
+        joinedload(Match.receiver).load_only(User.id, User.name, User.email),
+    ).outerjoin(Skill).outerjoin(User, Match.requester_id == User.id)
     
     # 狀態篩選
     if status_filter != 'all':
@@ -571,37 +608,37 @@ def matches():
         except ValueError:
             pass
     
-    # 排序並執行查詢
-    matches_list = query.order_by(Match.updated_at.desc()).all()
-    
-    # 計算統計數字
-    all_matches_count = Match.query.count()
-    pending_count = Match.query.filter_by(status='pending').count()
-    accepted_count = Match.query.filter_by(status='accepted').count()
-    completed_count = Match.query.filter_by(status='completed').count()
-    cancelled_rejected_count = Match.query.filter(
-        Match.status.in_(['cancelled', 'rejected'])
-    ).count()
-    
+    # 排序並執行分頁查詢
+    page = request.args.get('page', 1, type=int)
+    pagination = query.order_by(Match.updated_at.desc()).paginate(page=page, per_page=ADMIN_LIST_PAGE_SIZE, error_out=False)
+    matches_list = pagination.items
+
+    # 以單次群組查詢產生統計數字
+    status_counts = dict(
+        db.session.query(Match.status, func.count(Match.id))
+        .group_by(Match.status)
+        .all()
+    )
+
     stats_data = {
-        'all': all_matches_count,
-        'pending': pending_count,
-        'accepted': accepted_count,
-        'completed': completed_count,
-        'cancelled_rejected': cancelled_rejected_count,
+        'all': sum(status_counts.values()),
+        'pending': status_counts.get('pending', 0),
+        'accepted': status_counts.get('accepted', 0),
+        'completed': status_counts.get('completed', 0),
+        'cancelled_rejected': status_counts.get('cancelled', 0) + status_counts.get('rejected', 0),
     }
     
     return render_template(
         'admin/matches.html',
         current_page='matches',
         matches=matches_list,
-        stats=_admin_counts(),
         match_stats=stats_data,
         status_filter=status_filter,
         skill_keyword=skill_keyword,
         user_keyword=user_keyword,
         date_from=date_from_str,
         date_to=date_to_str,
+        pagination=pagination,
     )
 
 
@@ -613,7 +650,13 @@ def match_detail(match_id):
     媒合詳情路由。需管理員以上權限。
     顯示媒合的完整資訊，包含技能、雙方使用者、聊天記錄、評價、檢舉等相關資料。
     """
-    match = Match.query.get_or_404(match_id)
+    match = Match.query.options(
+        joinedload(Match.skill).load_only(Skill.id, Skill.title, Skill.type, Skill.method, Skill.status, Skill.description, Skill.location_type),
+        joinedload(Match.skill).joinedload(Skill.user).load_only(User.id, User.name, User.email, User.role, User.status),
+        joinedload(Match.skill).joinedload(Skill.category),
+        joinedload(Match.requester).load_only(User.id, User.name, User.email, User.role, User.status, User.department, User.grade, User.created_at),
+        joinedload(Match.receiver).load_only(User.id, User.name, User.email, User.role, User.status, User.department, User.grade, User.created_at),
+    ).get_or_404(match_id)
     
     # 取得相關資料
     skill = match.skill
@@ -621,13 +664,22 @@ def match_detail(match_id):
     receiver = match.receiver
     
     # 取得該媒合的所有聊天訊息
-    messages = Message.query.filter_by(match_id=match.id).order_by(Message.created_at.asc()).all()
+    messages = Message.query.options(
+        joinedload(Message.sender).load_only(User.id, User.name),
+    ).filter_by(match_id=match.id).order_by(Message.created_at.asc()).all()
     
     # 取得該媒合的所有評價
-    reviews = Review.query.filter_by(match_id=match.id).all()
+    reviews = Review.query.options(
+        joinedload(Review.reviewer).load_only(User.id, User.name),
+        joinedload(Review.reviewee).load_only(User.id, User.name),
+    ).filter_by(match_id=match.id).all()
     
     # 取得該媒合的所有檢舉
-    reports = Report.query.filter_by(match_id=match.id).all()
+    reports = Report.query.options(
+        joinedload(Report.reporter).load_only(User.id, User.name),
+        joinedload(Report.reported_user).load_only(User.id, User.name),
+        joinedload(Report.skill).load_only(Skill.id, Skill.title),
+    ).filter_by(match_id=match.id).all()
     
     return render_template(
         'admin/match_detail.html',
@@ -638,7 +690,6 @@ def match_detail(match_id):
         messages=messages,
         reviews=reviews,
         reports=reports,
-        stats=_admin_counts(),
     )
 
 
@@ -653,17 +704,23 @@ def managers():
     從此頁面可以升級使用者為管理員或刪除管理員。
     """
     search_query = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
 
     if search_query:
         # 模糊搜尋姓名或 Email
-        users = User.query.filter(
+        query = User.query.filter(
             db.or_(
                 User.name.ilike(f'%{search_query}%'),
                 User.email.ilike(f'%{search_query}%')
             )
-        ).order_by(User.created_at.desc()).all()
+        )
     else:
-        users = User.query.order_by(User.created_at.desc()).all()
+        query = User.query
+
+    pagination = query.options(
+        load_only(User.id, User.name, User.email, User.status, User.role, User.created_at),
+    ).order_by(User.created_at.desc()).paginate(page=page, per_page=ADMIN_LIST_PAGE_SIZE, error_out=False)
+    users = pagination.items
 
     # 分離管理員和一般使用者以分區顯示
     managers_list = [u for u in users if u.role in ['admin', 'super_admin']]
@@ -675,7 +732,7 @@ def managers():
         managers=managers_list,
         users=regular_users,
         search_query=search_query,
-        stats=_admin_counts()
+        pagination=pagination,
     )
 
 
@@ -687,12 +744,15 @@ def activity():
     活動日誌路由。需管理員以上權限。
     顯示最近 200 筆活動記錄，並預先載入相關使用者資料（避免 N+1 查詢）。
     """
-    # 取得最近 200 筆日誌，依時間倒序
-    logs = ActivityLog.query.order_by(ActivityLog.created_at.desc()).limit(200).all()
+    page = request.args.get('page', 1, type=int)
+    pagination = ActivityLog.query.options(
+        load_only(ActivityLog.id, ActivityLog.user_id, ActivityLog.action, ActivityLog.detail, ActivityLog.ip_address, ActivityLog.created_at),
+    ).order_by(ActivityLog.created_at.desc()).paginate(page=page, per_page=ACTIVITY_PAGE_SIZE, error_out=False)
+    logs = pagination.items
     # 批次載入相關使用者，減少資料庫查詢次數
     user_ids = [l.user_id for l in logs]
-    users = {u.id: u for u in User.query.filter(User.id.in_(user_ids)).all()} if user_ids else {}
-    return render_template('admin/activity.html', logs=logs, users=users, stats=_admin_counts())
+    users = {u.id: u for u in User.query.options(load_only(User.id, User.name, User.email)).filter(User.id.in_(user_ids)).all()} if user_ids else {}
+    return render_template('admin/activity.html', logs=logs, users=users, pagination=pagination)
 
 
 @admin_bp.route('/users/<int:user_id>/activity', endpoint='user_activity')
@@ -704,8 +764,12 @@ def user_activity(user_id):
     顯示指定使用者的所有活動記錄（登入、上架技能、建立媒合等），依時間倒序。
     """
     user = User.query.get_or_404(user_id)
-    logs = ActivityLog.query.filter_by(user_id=user.id).order_by(ActivityLog.created_at.desc()).all()
-    return render_template('admin/user_activity.html', user=user, logs=logs, stats=_admin_counts())
+    page = request.args.get('page', 1, type=int)
+    pagination = ActivityLog.query.options(
+        load_only(ActivityLog.id, ActivityLog.user_id, ActivityLog.action, ActivityLog.detail, ActivityLog.ip_address, ActivityLog.created_at),
+    ).filter_by(user_id=user.id).order_by(ActivityLog.created_at.desc()).paginate(page=page, per_page=ACTIVITY_PAGE_SIZE, error_out=False)
+    logs = pagination.items
+    return render_template('admin/user_activity.html', user=user, logs=logs, pagination=pagination)
 
 
 @admin_bp.route('/managers/<int:user_id>/delete', methods=['POST'], endpoint='delete_manager')
@@ -794,7 +858,30 @@ def reports():
     # 規範化參數：空字串或 None 都視為 'all'
     type_filter = request.args.get('type', 'all') or 'all'
 
-    query = Report.query
+    query = Report.query.options(
+        load_only(
+            Report.id,
+            Report.reporter_id,
+            Report.reported_user_id,
+            Report.match_id,
+            Report.skill_id,
+            Report.message_id,
+            Report.report_type,
+            Report.reason,
+            Report.description,
+            Report.evidence_file_url,
+            Report.evidence_file_name,
+            Report.evidence_file_type,
+            Report.status,
+            Report.created_at,
+        ),
+        joinedload(Report.reporter).load_only(User.id, User.name),
+        joinedload(Report.reported_user).load_only(User.id, User.name),
+        joinedload(Report.match).joinedload(Match.requester).load_only(User.id, User.name),
+        joinedload(Report.match).joinedload(Match.receiver).load_only(User.id, User.name),
+        joinedload(Report.skill).joinedload(Skill.user).load_only(User.id, User.name),
+        joinedload(Report.message).joinedload(Message.sender).load_only(User.id, User.name),
+    )
     
     # 類型篩選：根據 report_type 和 ForeignKey 進行複雜篩選
     if type_filter and type_filter != 'all':
@@ -837,7 +924,9 @@ def reports():
                 )
             )
 
-    reports_list = query.order_by(Report.created_at.desc()).all()
+    page = request.args.get('page', 1, type=int)
+    pagination = query.order_by(Report.created_at.desc()).paginate(page=page, per_page=ADMIN_LIST_PAGE_SIZE, error_out=False)
+    reports_list = pagination.items
     
     # 為模板新增正規化的類型資訊
     for report in reports_list:
@@ -848,7 +937,7 @@ def reports():
         current_page='reports',
         reports=reports_list,
         type_filter=type_filter,
-        stats=_admin_counts()
+        pagination=pagination,
     )
 
 
@@ -860,12 +949,21 @@ def report_detail(report_id):
     檢舉詳情路由。需管理員以上權限。
     顯示單筆檢舉的完整資訊（包含被檢舉內容、附件、管理員備註等）。
     """
-    report = Report.query.get_or_404(report_id)
+    report = Report.query.options(
+        joinedload(Report.reporter).load_only(User.id, User.name, User.email),
+        joinedload(Report.reported_user).load_only(User.id, User.name, User.email, User.role, User.status),
+        joinedload(Report.reviewed_by_user).load_only(User.id, User.name),
+        joinedload(Report.match).joinedload(Match.requester).load_only(User.id, User.name),
+        joinedload(Report.match).joinedload(Match.receiver).load_only(User.id, User.name),
+        joinedload(Report.match).joinedload(Match.skill).load_only(Skill.id, Skill.title, Skill.status, Skill.method),
+        joinedload(Report.skill).joinedload(Skill.user).load_only(User.id, User.name),
+        joinedload(Report.skill).joinedload(Skill.category),
+        joinedload(Report.message).joinedload(Message.sender).load_only(User.id, User.name),
+    ).get_or_404(report_id)
     report.normalized_type = _normalize_report_type(report)
     return render_template(
         'admin/report_detail.html',
         report=report,
-        stats=_admin_counts()
     )
 
 

@@ -14,11 +14,11 @@
     </div>
     <div class="stat" style="background-color: #fffbf0;">
         <div class="num">{{ match_stats.pending }}</div>
-        <div>待處理</div>
+        <div>等待回覆</div>
     </div>
     <div class="stat" style="background-color: #f0f7ff;">
         <div class="num">{{ match_stats.accepted }}</div>
-        <div>進行中</div>
+        <div>已接受</div>
     </div>
     <div class="stat" style="background-color: #f0fff4;">
         <div class="num">{{ match_stats.completed }}</div>
@@ -26,7 +26,7 @@
     </div>
     <div class="stat" style="background-color: #fef0f0;">
         <div class="num">{{ match_stats.cancelled_rejected }}</div>
-        <div>已取消/拒絕</div>
+        <div>已取消／已拒絕</div>
     </div>
 </section>
 
@@ -39,11 +39,11 @@
                 <label>狀態</label>
                 <select name="status">
                     <option value="all" {% if status_filter == 'all' %}selected{% endif %}>全部</option>
-                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>待處理 (pending)</option>
-                    <option value="accepted" {% if status_filter == 'accepted' %}selected{% endif %}>進行中 (accepted)</option>
-                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>已完成 (completed)</option>
-                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>已拒絕 (rejected)</option>
-                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>已取消 (cancelled)</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>等待回覆</option>
+                    <option value="accepted" {% if status_filter == 'accepted' %}selected{% endif %}>已接受</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>已完成</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>已拒絕</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>已取消</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -52,7 +52,7 @@
             </div>
             <div class="filter-group">
                 <label>使用者</label>
-                <input type="text" name="user_keyword" value="{{ user_keyword }}" placeholder="姓名或 Email...">
+                <input type="text" name="user_keyword" value="{{ user_keyword }}" placeholder="姓名或電子郵件...">
             </div>
             <div class="filter-group">
                 <label>建立時間從</label>
@@ -137,7 +137,7 @@
                     </td>
                     <td>
                         <span class="tag {% if match.status == 'pending' %}tag-yellow{% elif match.status == 'accepted' %}tag-blue{% elif match.status == 'completed' %}tag-green{% elif match.status in ['rejected', 'cancelled'] %}tag-red{% endif %}">
-                            {{ match.status }}
+                            {{ match_status_label(match.status) }}
                         </span>
                     </td>
                     <td>{{ format_taiwan_time(match.created_at, '%Y-%m-%d %H:%M') }}</td>
@@ -152,6 +152,18 @@
     </div>
     {% else %}
     <div class="empty">目前沒有符合條件的媒合紀錄。</div>
+    {% endif %}
+
+    {% if pagination.pages > 1 %}
+    <div class="actions" style="margin-top: 20px; justify-content: center; flex-wrap: wrap; gap: 8px;">
+        {% if pagination.has_prev %}
+        <a class="btn btn-muted" href="{{ url_for('admin.matches', page=pagination.prev_num, status=status_filter, skill_keyword=skill_keyword, user_keyword=user_keyword, date_from=date_from, date_to=date_to) }}">上一頁</a>
+        {% endif %}
+        <span class="tag tag-gray">第 {{ pagination.page }} / {{ pagination.pages }} 頁</span>
+        {% if pagination.has_next %}
+        <a class="btn btn-muted" href="{{ url_for('admin.matches', page=pagination.next_num, status=status_filter, skill_keyword=skill_keyword, user_keyword=user_keyword, date_from=date_from, date_to=date_to) }}">下一頁</a>
+        {% endif %}
+    </div>
     {% endif %}
 </section>
 

@@ -8,6 +8,16 @@ from flask_login import LoginManager
 from config import Config
 from models import db, User
 from utils import (
+    role_label,
+    status_label,
+    skill_status_label,
+    match_status_label,
+    report_status_label,
+    report_type_label,
+    report_reason_label,
+    notification_type_label,
+    skill_method_label,
+    activity_action_label,
     user_average_rating,
     user_completed_matches,
     user_points,
@@ -150,6 +160,16 @@ def create_app():
             format_taiwan_time=format_taiwan_time,          # 台灣時區時間格式化
             render_skill_description=render_skill_description,  # 渲染技能描述（含附件）
             user_pending_review_count=user_pending_review_count,  # 待評分媒合數
+            role_label=role_label,                    # 使用者角色中文標籤
+            status_label=status_label,                # 帳號狀態中文標籤
+            skill_status_label=skill_status_label,    # 技能狀態中文標籤
+            match_status_label=match_status_label,    # 媒合狀態中文標籤
+            report_status_label=report_status_label,  # 檢舉狀態中文標籤
+            report_type_label=report_type_label,      # 檢舉類型中文標籤
+            report_reason_label=report_reason_label,  # 檢舉原因中文標籤
+            notification_type_label=notification_type_label,  # 通知類型中文標籤
+            skill_method_label=skill_method_label,    # 教學方式中文標籤
+            activity_action_label=activity_action_label,  # 活動紀錄動作中文標籤
             skill_location_type_label=skill_location_type_label,  # 地點類型中文標籤
             skill_available_day_label=skill_available_day_label,  # 可配合星期中文標籤
             format_skill_time=format_skill_time,            # 時間格式化

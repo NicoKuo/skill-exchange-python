@@ -11,7 +11,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
         <h2>媒合詳情 #{{ match.id }}</h2>
         <span class="tag {% if match.status == 'pending' %}tag-yellow{% elif match.status == 'accepted' %}tag-blue{% elif match.status == 'completed' %}tag-green{% elif match.status in ['rejected', 'cancelled'] %}tag-red{% endif %}">
-            {{ match.status }}
+            {{ match_status_label(match.status) }}
         </span>
     </div>
     
@@ -56,7 +56,7 @@
             <div class="detail-label">技能狀態</div>
             <div class="detail-value">
                 <span class="tag" style="background-color: {% if skill.is_active and skill.status == 'open' %}#d4edda{% else %}#f8d7da{% endif %}; color: {% if skill.is_active and skill.status == 'open' %}#155724{% else %}#721c24{% endif %};">
-                    {{ 'active' if skill.is_active else 'inactive' }} / {{ skill.status }}
+                    {{ skill_status_label(skill.status if skill.is_active else 'removed') }}
                 </span>
             </div>
         </div>
@@ -66,11 +66,11 @@
         </div>
         <div class="detail-item">
             <div class="detail-label">教學方式</div>
-            <div class="detail-value">{{ skill.method or '未設定' }}</div>
+            <div class="detail-value">{{ skill_method_label(skill.method) }}</div>
         </div>
         <div class="detail-item">
             <div class="detail-label">地點類型</div>
-            <div class="detail-value">{{ skill.location_type or '未設定' }}</div>
+            <div class="detail-value">{{ skill_location_type_label(skill.location_type) }}</div>
         </div>
     </div>
     {% else %}
@@ -92,18 +92,18 @@
             <div class="detail-value">{{ requester.name }}</div>
         </div>
         <div class="detail-item">
-            <div class="detail-label">Email</div>
+            <div class="detail-label">電子郵件</div>
             <div class="detail-value">{{ requester.email }}</div>
         </div>
         <div class="detail-item">
             <div class="detail-label">角色</div>
-            <div class="detail-value">{{ requester.role }}</div>
+            <div class="detail-value">{{ role_label(requester.role) }}</div>
         </div>
         <div class="detail-item">
             <div class="detail-label">帳號狀態</div>
             <div class="detail-value">
                 <span class="tag" style="background-color: {% if requester.status == 'active' %}#d4edda{% else %}#f8d7da{% endif %}; color: {% if requester.status == 'active' %}#155724{% else %}#721c24{% endif %};">
-                    {{ requester.status }}
+                    {{ status_label(requester.status) }}
                 </span>
             </div>
         </div>
@@ -139,18 +139,18 @@
             <div class="detail-value">{{ receiver.name }}</div>
         </div>
         <div class="detail-item">
-            <div class="detail-label">Email</div>
+            <div class="detail-label">電子郵件</div>
             <div class="detail-value">{{ receiver.email }}</div>
         </div>
         <div class="detail-item">
             <div class="detail-label">角色</div>
-            <div class="detail-value">{{ receiver.role }}</div>
+            <div class="detail-value">{{ role_label(receiver.role) }}</div>
         </div>
         <div class="detail-item">
             <div class="detail-label">帳號狀態</div>
             <div class="detail-value">
                 <span class="tag" style="background-color: {% if receiver.status == 'active' %}#d4edda{% else %}#f8d7da{% endif %}; color: {% if receiver.status == 'active' %}#155724{% else %}#721c24{% endif %};">
-                    {{ receiver.status }}
+                    {{ status_label(receiver.status) }}
                 </span>
             </div>
         </div>
@@ -231,7 +231,7 @@
             <div class="report-header">
                 <strong>檢舉 #{{ report.id }}</strong>
                 <span class="tag" style="background-color: {% if report.status == 'pending' %}#fff3cd{% elif report.status == 'reviewed' %}#d1ecf1{% elif report.status == 'resolved' or report.status == 'punished' %}#d4edda{% else %}#f8d7da{% endif %};">
-                    {{ report.status }}
+                    {{ report_status_label(report.status) }}
                 </span>
             </div>
             <div class="detail-grid" style="font-size: 0.9rem;">
@@ -245,7 +245,7 @@
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">原因</div>
-                    <div class="detail-value">{{ report.reason }}</div>
+                    <div class="detail-value">{{ report_reason_label(report.reason) }}</div>
                 </div>
                 <div class="detail-item" style="grid-column: 1 / -1;">
                     <div class="detail-label">描述</div>

@@ -1,6 +1,16 @@
 # utils/__init__.py: 工具套件初始化
 # 統一從 helpers.py 匯出所有輔助函數，讓外部可用 from utils import xxx 直接取用
 from .helpers import (
+    role_label,
+    status_label,
+    skill_status_label,
+    match_status_label,
+    report_status_label,
+    report_type_label,
+    report_reason_label,
+    notification_type_label,
+    skill_method_label,
+    activity_action_label,
     user_average_rating,          # 計算使用者平均評分
     user_completed_matches,       # 計算已完成的媒合數
     user_points,                  # 計算使用者積分
@@ -19,6 +29,16 @@ from .helpers import (
 )
 
 __all__ = [
+    'role_label',
+    'status_label',
+    'skill_status_label',
+    'match_status_label',
+    'report_status_label',
+    'report_type_label',
+    'report_reason_label',
+    'notification_type_label',
+    'skill_method_label',
+    'activity_action_label',
     'user_average_rating',
     'user_completed_matches',
     'user_points',

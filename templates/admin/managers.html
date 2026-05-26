@@ -6,10 +6,10 @@
 
 <section class="card section">
     <h1>管理者管理</h1>
-    <p class="muted">只有最高管理者 super_admin 可以將使用者升級為管理者或刪除一般管理者。</p>
+    <p class="muted">只有最高管理者可以將使用者升級為管理者或刪除一般管理者。</p>
     
     <form method="get" class="form-grid" style="margin-bottom: 24px;">
-        <div class="field"><input type="text" name="search" placeholder="搜尋姓名或 Email" value="{{ search_query }}" style="flex: 1;"></div>
+        <div class="field"><input type="text" name="search" placeholder="搜尋姓名或電子郵件" value="{{ search_query }}" style="flex: 1;"></div>
         <button class="btn" type="submit">搜尋</button>
         {% if search_query %}<a class="btn btn-muted" href="{{ url_for('admin.managers') }}">清除</a>{% endif %}
     </form>
@@ -20,22 +20,14 @@
         <table class="admin-table" style="min-width: 860px;">
             <tr>
                 <th>姓名</th>
-                <th>Email</th>
+                <th>電子郵件</th>
                 <th>狀態</th>
                 <th>操作</th>
             </tr>{% for user in users %}<tr>
                 <td>{{ user.name }}</td>
                 <td>{{ user.email }}</td>
                 <td>
-                    {% if user.status == 'active' %}
-                    <span class="tag tag-green">active</span>
-                    {% elif user.status == 'suspended' %}
-                    <span class="tag tag-yellow">suspended</span>
-                    {% elif user.status in ['banned', 'blocked'] %}
-                    <span class="tag tag-red">banned</span>
-                    {% else %}
-                    <span class="tag tag-gray">{{ user.status or 'unknown' }}</span>
-                    {% endif %}
+                    <span class="tag {% if user.status == 'active' %}tag-green{% elif user.status == 'suspended' %}tag-yellow{% elif user.status in ['banned', 'blocked'] %}tag-red{% else %}tag-gray{% endif %}">{{ status_label(user.status) }}</span>
                 </td>
                 <td>
                     {% if user.status == 'active' %}
@@ -57,15 +49,15 @@
         <table class="admin-table" style="min-width: 860px;">
             <tr>
                 <th>姓名</th>
-                <th>Email</th>
+                <th>電子郵件</th>
                 <th>角色</th>
                 <th>狀態</th>
                 <th>操作</th>
             </tr>{% for manager in managers %}<tr>
                 <td>{{ manager.name }}</td>
                 <td>{{ manager.email }}</td>
-                <td><span class="tag{% if manager.role == 'super_admin' %} tag-red{% endif %}">{{ manager.role }}</span></td>
-                <td>{{ manager.status }}</td>
+                <td><span class="tag{% if manager.role == 'super_admin' %} tag-red{% elif manager.role == 'admin' %} tag-teal{% endif %}">{{ role_label(manager.role) }}</span></td>
+                <td><span class="tag {% if manager.status == 'active' %}tag-green{% elif manager.status == 'suspended' %}tag-yellow{% elif manager.status in ['banned', 'blocked'] %}tag-red{% else %}tag-gray{% endif %}">{{ status_label(manager.status) }}</span></td>
                 <td>
                     {% if manager.role == 'admin' and manager.id != current_user.id %}
                     <form method="post" action="{{ url_for('admin.delete_manager', user_id=manager.id) }}" onsubmit="return confirm('確定要刪除這位管理者嗎？');">
@@ -80,5 +72,17 @@
     </div>
     {% else %}
     <div class="empty">沒有管理者。</div>
+    {% endif %}
+
+    {% if pagination.pages > 1 %}
+    <div class="actions" style="margin-top: 20px; justify-content: center; flex-wrap: wrap; gap: 8px;">
+        {% if pagination.has_prev %}
+        <a class="btn btn-muted" href="{{ url_for('admin.managers', page=pagination.prev_num, search=search_query) }}">上一頁</a>
+        {% endif %}
+        <span class="tag tag-gray">第 {{ pagination.page }} / {{ pagination.pages }} 頁</span>
+        {% if pagination.has_next %}
+        <a class="btn btn-muted" href="{{ url_for('admin.managers', page=pagination.next_num, search=search_query) }}">下一頁</a>
+        {% endif %}
+    </div>
     {% endif %}
 </section>{% endblock %}

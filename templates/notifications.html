@@ -2,7 +2,7 @@
     <h2>通知中心</h2>
     {% for item in items %}
     <div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
-        <span class="tag">{{ item.type }}</span>
+        <span class="tag">{{ notification_type_label(item.type) }}</span>
         {% set href = None %}
         {% if item.type == 'message' and item.related_id %}
             {% set href = url_for('chat.chat', match_id=item.related_id) %}

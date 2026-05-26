@@ -43,7 +43,7 @@
                 <th>時間</th>
                 <th>檢舉人</th>
                 <th>被檢舉人</th>
-                <th>報告類型</th>
+                <th>檢舉類型</th>
                 <th>內容預覽</th>
                 <th>原因</th>
                 <th>附件</th>
@@ -52,64 +52,34 @@
             {% for report in reports %}
             <tr class="report-row" data-href="{{ url_for('admin.report_detail', report_id=report.id) }}">
                 <td style="text-align: center;">
-                    {% if report.status == 'pending' %}
-                    <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: #f59e0b;" title="未審核"></span>
-                    {% else %}
-                    <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: #10b981;" title="已審核"></span>
-                    {% endif %}
+                    <span class="tag {% if report.status == 'pending' %}tag-yellow{% elif report.status == 'reviewing' %}tag-blue{% elif report.status in ['resolved', 'closed', 'punished'] %}tag-green{% else %}tag-red{% endif %}">{{ report_status_label(report.status) }}</span>
                 </td>
                 <td>{{ format_taiwan_time(report.created_at, '%Y-%m-%d %H:%M') }}</td>
-                <td>{{ report.reporter.name }}</td>
+                <td>{{ report.reporter.name if report.reporter else '已刪除帳號' }}</td>
                 <td>{{ report.reported_user.name if report.reported_user else '-' }}</td>
                 <td>
-                    {% if report.normalized_type == 'profile' %}
-                    <span class="tag" style="background: rgba(59,130,246,.1); color: #1e40af; border: 1px solid rgba(59,130,246,.2);">個人檔案</span>
-                    {% elif report.normalized_type == 'message' %}
-                    <span class="tag tag-red">訊息檢舉</span>
-                    {% elif report.normalized_type == 'skill' %}
-                    <span class="tag tag-orange">技能檢舉</span>
-                    {% elif report.normalized_type == 'match' %}
-                    <span class="tag tag-purple">媒合檢舉</span>
-                    {% else %}
-                    <span class="tag">未知</span>
-                    {% endif %}
+                    <span class="tag {% if report.normalized_type == 'profile' %}tag-blue{% elif report.normalized_type == 'message' %}tag-red{% elif report.normalized_type == 'skill' %}tag-orange{% elif report.normalized_type == 'match' %}tag-purple{% else %}tag-gray{% endif %}">{{ report_type_label(report.normalized_type) }}</span>
                 </td>
                 <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                     {% if report.normalized_type == 'profile' %}
-                    <strong>個人檔案:</strong> {{ report.reported_user.name if report.reported_user else '無' }}
+                    <strong>個人檔案：</strong> {{ report.reported_user.name if report.reported_user else '無' }}
                     {% elif report.normalized_type == 'message' and report.message %}
-                    <strong>訊息:</strong> {{ report.message.content[:40] }}{% if report.message.content|length > 40 %}...{% endif %}
+                    <strong>訊息：</strong> {{ report.message.content[:40] }}{% if report.message.content|length > 40 %}...{% endif %}
                     {% elif report.normalized_type == 'skill' and report.skill %}
-                    <strong>技能:</strong> {{ report.skill.title }}
+                    <strong>技能：</strong> {{ report.skill.title }}
                     {% elif report.normalized_type == 'match' and report.match %}
-                    <strong>媒合:</strong>
+                    <strong>媒合：</strong>
                     {{ report.match.requester.name if report.match.requester else '未知使用者' }}
                     ↔
                     {{ report.match.receiver.name if report.match.receiver else '未知使用者' }}
                     {% elif report.match_id %}
-                    <strong>媒合:</strong> 無關聯媒合
+                    <strong>媒合：</strong> 無關聯媒合
                     {% else %}
                     -
                     {% endif %}
                 </td>
                 <td>
-                    {% if report.reason == 'inappropriate_language' %}
-                    用詞不當
-                    {% elif report.reason == 'harassment' %}
-                    騷擾或威脅
-                    {% elif report.reason == 'no_show' %}
-                    爽約或不履行交換
-                    {% elif report.reason == 'scam' %}
-                    詐騙或可疑行為
-                    {% elif report.reason == 'inappropriate_content' %}
-                    內容不當
-                    {% elif report.reason == 'spam' %}
-                    垃圾訊息/廣告
-                    {% elif report.reason == 'copyright' %}
-                    侵犯著作權
-                    {% else %}
-                    其他
-                    {% endif %}
+                    {{ report_reason_label(report.reason) }}
                 </td>
                 <td>
                     {% if report.evidence_file_url %}
@@ -127,6 +97,18 @@
             {% endfor %}
         </table>
     </div>
+
+    {% if pagination.pages > 1 %}
+    <div class="actions" style="margin-top: 20px; justify-content: center; flex-wrap: wrap; gap: 8px;">
+        {% if pagination.has_prev %}
+        <a class="btn btn-muted" href="{{ url_for('admin.reports', page=pagination.prev_num, type=type_filter) }}">上一頁</a>
+        {% endif %}
+        <span class="tag tag-gray">第 {{ pagination.page }} / {{ pagination.pages }} 頁</span>
+        {% if pagination.has_next %}
+        <a class="btn btn-muted" href="{{ url_for('admin.reports', page=pagination.next_num, type=type_filter) }}">下一頁</a>
+        {% endif %}
+    </div>
+    {% endif %}
 
     <script>
         document.querySelectorAll('.report-row').forEach(row => {

@@ -5,14 +5,14 @@
         <table class="table">
             <tr>
                 <th>姓名</th>
-                <th>Email</th>
+                <th>電子郵件</th>
                 <th>角色</th>
                 <th>狀態</th>
             </tr>{% for u in users %}<tr>
                 <td>{{ u.name }}</td>
                 <td>{{ u.email }}</td>
-                <td>{{ u.role }}</td>
-                <td>{{ u.status }}</td>
+                <td>{{ role_label(u.role) }}</td>
+                <td>{{ status_label(u.status) }}</td>
             </tr>{% endfor %}
         </table>
     </div>
@@ -26,7 +26,7 @@
             </tr>{% for s in skills %}<tr>
                 <td>{{ s.title }}</td>
                 <td>{{ s.user.name }}</td>
-                <td>{{ s.status }}</td>
+                <td>{{ skill_status_label(s.status) }}</td>
             </tr>{% endfor %}
         </table>
     </div>

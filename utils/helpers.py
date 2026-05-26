@@ -23,6 +23,159 @@ TAG_SPLIT_RE = re.compile(r'[，,、]+')
 
 
 # -----------------------------------------------
+# 中文標籤對照
+# -----------------------------------------------
+
+ROLE_LABELS = {
+    'user': '一般會員',
+    'admin': '管理者',
+    'super_admin': '超級管理者',
+}
+
+ACCOUNT_STATUS_LABELS = {
+    'active': '正常',
+    'suspended': '停權中',
+    'banned': '已封鎖',
+    'blocked': '已封鎖',
+    'inactive': '未啟用',
+}
+
+SKILL_STATUS_LABELS = {
+    'open': '上架中',
+    'draft': '草稿',
+    'closed': '已關閉',
+    'removed': '已下架',
+    'pending': '待審核',
+    'rejected': '已拒絕',
+}
+
+MATCH_STATUS_LABELS = {
+    'pending': '等待回覆',
+    'accepted': '已接受',
+    'rejected': '已拒絕',
+    'completed': '已完成',
+    'cancelled': '已取消',
+}
+
+REPORT_STATUS_LABELS = {
+    'pending': '待處理',
+    'reviewing': '審核中',
+    'resolved': '已處理',
+    'rejected': '不成立',
+    'closed': '已結案',
+    'reviewed': '審核中',
+    'punished': '已處理',
+}
+
+REPORT_TYPE_LABELS = {
+    'user': '使用者',
+    'skill': '技能',
+    'message': '訊息',
+    'review': '評價',
+    'profile': '個人檔案',
+    'match': '媒合',
+}
+
+REPORT_REASON_LABELS = {
+    'inappropriate_language': '用詞不當',
+    'harassment': '騷擾或威脅',
+    'no_show': '爽約或不履行交換',
+    'scam': '詐騙或可疑行為',
+    'inappropriate_content': '內容不當',
+    'spam': '垃圾訊息/廣告',
+    'copyright': '侵犯著作權',
+}
+
+NOTIFICATION_TYPE_LABELS = {
+    'report_feedback': '檢舉回饋',
+    'match_request': '媒合邀請',
+    'completion_ack': '完成確認',
+    'review': '評價通知',
+    'message': '訊息通知',
+    'skill_created': '技能上架',
+    'system': '系統通知',
+    'admin_notice': '管理員通知',
+    'account_action': '帳號處置',
+}
+
+SKILL_METHOD_LABELS = {
+    'online': '線上',
+    'offline': '實體',
+    'hybrid': '混合',
+    'campus': '校內',
+    'off_campus': '校外',
+}
+
+ACTIVITY_ACTION_LABELS = {
+    'login': '登入',
+    'account_locked': '帳號鎖定',
+    'update_profile': '更新個人資料',
+    'create_skill': '建立技能',
+    'edit_skill': '編輯技能',
+    'delete_skill': '刪除技能',
+    'take_down_skill': '下架技能',
+    'create_match': '建立媒合',
+    'create_report': '建立檢舉',
+    'report_message': '檢舉訊息',
+    'admin_update_user_status': '更新使用者狀態',
+    'promote_user_to_admin': '升級為管理者',
+    'update_report': '更新檢舉',
+    'account_action': '帳號處置',
+}
+
+
+def _label_from_mapping(value, mapping, fallback):
+    if value is None:
+        return fallback
+
+    normalized = str(value).strip().lower()
+    if not normalized:
+        return fallback
+
+    return mapping.get(normalized, fallback)
+
+
+def role_label(value):
+    return _label_from_mapping(value, ROLE_LABELS, '未知角色')
+
+
+def status_label(value):
+    return _label_from_mapping(value, ACCOUNT_STATUS_LABELS, '未知狀態')
+
+
+def skill_status_label(value):
+    return _label_from_mapping(value, SKILL_STATUS_LABELS, '未知狀態')
+
+
+def match_status_label(value):
+    return _label_from_mapping(value, MATCH_STATUS_LABELS, '未知狀態')
+
+
+def report_status_label(value):
+    return _label_from_mapping(value, REPORT_STATUS_LABELS, '未知狀態')
+
+
+def report_type_label(value):
+    return _label_from_mapping(value, REPORT_TYPE_LABELS, '未知類型')
+
+
+def report_reason_label(value):
+    return _label_from_mapping(value, REPORT_REASON_LABELS, '其他')
+
+
+def notification_type_label(value):
+    return _label_from_mapping(value, NOTIFICATION_TYPE_LABELS, '系統通知')
+
+
+def skill_method_label(value):
+    return _label_from_mapping(value, SKILL_METHOD_LABELS, '未設定')
+
+
+def activity_action_label(value):
+    return _label_from_mapping(value, ACTIVITY_ACTION_LABELS, '系統動作')
+
+
+# -----------------------------------------------
 # 模型相容性輔助函數（處理不同版本的欄位名稱差異）
 # -----------------------------------------------
 

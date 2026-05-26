@@ -21,17 +21,9 @@
                 <td>{{ skill.user.name }}</td>
                 <td>{{ skill.category.name if skill.category else '未分類' }}</td>
                 <td>
-                    {% if not skill.is_active %}
-                    <span class="tag tag-gray">已下架</span>
-                    {% elif skill.status == 'open' %}
-                    <span class="tag tag-green">活躍</span>
-                    {% elif skill.status == 'closed' %}
-                    <span class="tag tag-yellow">已關閉</span>
-                    {% else %}
-                    <span class="tag tag-gray">{{ skill.status }}</span>
-                    {% endif %}
+                    <span class="tag {% if not skill.is_active %}tag-gray{% elif skill.status == 'open' %}tag-green{% elif skill.status == 'closed' %}tag-yellow{% else %}tag-gray{% endif %}">{{ skill_status_label(skill.status if skill.is_active else 'removed') }}</span>
                 </td>
-                <td>{{ skill.method }}</td>
+                <td>{{ skill_method_label(skill.method) }}</td>
                 <td>
                     <div class="skill-action-buttons">
                         {% if skill.is_active and skill.status == 'open' %}
@@ -52,4 +44,16 @@
             </tr>{% else %}<tr><td colspan="6" class="empty">目前沒有技能資料。</td></tr>{% endfor %}
         </table>
     </div>
+
+    {% if pagination.pages > 1 %}
+    <div class="actions" style="margin-top: 20px; justify-content: center; flex-wrap: wrap; gap: 8px;">
+        {% if pagination.has_prev %}
+        <a class="btn btn-muted" href="{{ url_for('admin.skills', page=pagination.prev_num) }}">上一頁</a>
+        {% endif %}
+        <span class="tag tag-gray">第 {{ pagination.page }} / {{ pagination.pages }} 頁</span>
+        {% if pagination.has_next %}
+        <a class="btn btn-muted" href="{{ url_for('admin.skills', page=pagination.next_num) }}">下一頁</a>
+        {% endif %}
+    </div>
+    {% endif %}
 </section>{% endblock %}

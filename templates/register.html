@@ -58,13 +58,13 @@
 
             const data = await response.json();
             if (!response.ok || !data.ok) {
-                setHint(data.message || '寄送失敗，請稍後再試。', false);
+                setHint(data.message || '寄送失敗，請稍後再試', false);
                 return;
             }
 
             setHint(data.message || '驗證碼已寄出。', true);
         } catch (error) {
-            setHint('寄送失敗，請稍後再試。', false);
+            setHint('寄送失敗，請稍後再試', false);
         } finally {
             sendCodeBtn.disabled = false;
             sendCodeBtn.textContent = originalText;

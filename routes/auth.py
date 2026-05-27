@@ -97,7 +97,7 @@ def send_register_code():
 
     if not send_email(email, subject, body):
         flash("寄送失敗，請稍後再試", "error")
-        return jsonify({"ok": False, "message": "寄送失敗，請稍後再試"}), 500
+        return jsonify({"ok": False, "message": "寄送失敗，請稍後再試"})
 
     # 寄送成功後才寫入驗證碼記錄，避免失敗時殘留無效紀錄。
     EmailVerification.query.filter_by(

@@ -69,8 +69,10 @@ def send_register_code():
     """
     寄送註冊驗證碼到指定 Email。
     """
+    print("[REGISTER SEND CODE] route called", flush=True)
     payload = request.get_json(silent=True) or {}
     email = str(payload.get("email", "")).strip().lower()
+    print(f"[REGISTER SEND CODE] target email exists: {bool(email)}", flush=True)
 
     if not email:
         return jsonify({"ok": False, "message": "請先輸入 Email。"}), 400
@@ -94,12 +96,15 @@ def send_register_code():
         "<p>若非你本人操作，請忽略此信。</p>"
         "</div>"
     )
-
+    # 記錄收到請求
     current_app.logger.debug(f"收到寄驗證碼請求：email={email}")
+
+    # 呼叫 send_email()（會回傳 (success, message)）
     send_success, send_message = send_email(email, subject, body)
     current_app.logger.debug(f"send_email result: success={send_success}, message={send_message}")
 
     if not send_success:
+        # 寄信失敗：詳細記錄並回傳清楚錯誤給前端
         current_app.logger.error(f"寄送驗證碼失敗，email={email}, reason={send_message}")
         flash(send_message or "寄送失敗，請稍後再試", "error")
         return jsonify({"success": False, "ok": False, "message": send_message or "郵件服務尚未設定"}), 500

@@ -1,7 +1,10 @@
+import logging
 import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
+logger = logging.getLogger(__name__)
 
 
 def _safe_bool(value):
@@ -55,7 +58,7 @@ def _log_smtp_diagnostics(config):
 
 def send_email(to_email, subject, body):
     """
-    Send an HTML email via Gmail SMTP.
+    Send an HTML email via SMTP.
 
     Env vars:
     - SMTP_HOST
@@ -66,8 +69,8 @@ def send_email(to_email, subject, body):
     - SMTP_PASSWORD
 
     Returns:
-    - True on success
-    - False on failure
+    - (True, None) on success
+    - (False, error_message) on failure
     """
     try:
         config = _smtp_config()
@@ -82,6 +85,9 @@ def send_email(to_email, subject, body):
         if not config["smtp_from"]:
             raise ValueError("SMTP from address is missing.")
 
+        logger.debug("send_email start")
+        logger.debug(f"SMTP config loaded? host={config['smtp_host']}, port={config['smtp_port']}, username_set={config['has_smtp_username']}, from_set={config['has_smtp_from']}")
+
         message = MIMEMultipart("alternative")
         message["From"] = config["smtp_from"]
         message["To"] = to_email
@@ -94,10 +100,10 @@ def send_email(to_email, subject, body):
             server.ehlo()
             server.login(config["smtp_username"], smtp_password)
             server.sendmail(config["smtp_from"], [to_email], message.as_string())
-        return True
+
+        return True, None
     except Exception as exc:
         config = locals().get("config") or _smtp_config()
         _log_smtp_diagnostics(config)
-        print(f"[Email] Exception type: {type(exc).__name__}")
-        print(f"[Email] Exception message: {exc}")
-        return False
+        logger.exception("send_email exception")
+        return False, str(exc)

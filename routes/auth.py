@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from secrets import randbelow
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
@@ -95,9 +95,14 @@ def send_register_code():
         "</div>"
     )
 
-    if not send_email(email, subject, body):
-        flash("寄送失敗，請稍後再試", "error")
-        return jsonify({"ok": False, "message": "寄送失敗，請稍後再試"})
+    current_app.logger.debug(f"收到寄驗證碼請求：email={email}")
+    send_success, send_message = send_email(email, subject, body)
+    current_app.logger.debug(f"send_email result: success={send_success}, message={send_message}")
+
+    if not send_success:
+        current_app.logger.error(f"寄送驗證碼失敗，email={email}, reason={send_message}")
+        flash(send_message or "寄送失敗，請稍後再試", "error")
+        return jsonify({"success": False, "ok": False, "message": send_message or "郵件服務尚未設定"}), 500
 
     # 寄送成功後才寫入驗證碼記錄，避免失敗時殘留無效紀錄。
     EmailVerification.query.filter_by(
@@ -117,7 +122,7 @@ def send_register_code():
     db.session.add(verification)
     db.session.commit()
 
-    return jsonify({"ok": True, "message": "驗證碼已寄出，請至信箱查收。"})
+    return jsonify({"success": True, "ok": True, "message": "驗證碼已寄出，請至信箱查收。"})
 
 
 @auth_bp.route("/register", methods=["GET", "POST"], endpoint='register')

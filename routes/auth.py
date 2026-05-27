@@ -85,7 +85,21 @@ def send_register_code():
     code = _generate_six_digit_code()
     expires_at = datetime.utcnow() + timedelta(minutes=REGISTER_CODE_EXPIRE_MINUTES)
 
-    # 讓舊驗證碼失效，避免同一 Email 多碼並存。
+    subject = "【技能交換平台】註冊驗證碼"
+    body = (
+        "<div style='font-family:Arial,sans-serif;line-height:1.7'>"
+        "<h3>註冊驗證碼</h3>"
+        f"<p>你的驗證碼是：<strong style='font-size:20px'>{code}</strong></p>"
+        f"<p>此驗證碼將於 {REGISTER_CODE_EXPIRE_MINUTES} 分鐘後失效。</p>"
+        "<p>若非你本人操作，請忽略此信。</p>"
+        "</div>"
+    )
+
+    if not send_email(email, subject, body):
+        flash("寄送失敗，請稍後再試", "error")
+        return jsonify({"ok": False, "message": "寄送失敗，請稍後再試"}), 500
+
+    # 寄送成功後才寫入驗證碼記錄，避免失敗時殘留無效紀錄。
     EmailVerification.query.filter_by(
         email=email,
         purpose='register',
@@ -102,19 +116,6 @@ def send_register_code():
     )
     db.session.add(verification)
     db.session.commit()
-
-    subject = "【技能交換平台】註冊驗證碼"
-    body = (
-        "<div style='font-family:Arial,sans-serif;line-height:1.7'>"
-        "<h3>註冊驗證碼</h3>"
-        f"<p>你的驗證碼是：<strong style='font-size:20px'>{code}</strong></p>"
-        f"<p>此驗證碼將於 {REGISTER_CODE_EXPIRE_MINUTES} 分鐘後失效。</p>"
-        "<p>若非你本人操作，請忽略此信。</p>"
-        "</div>"
-    )
-
-    if not send_email(email, subject, body):
-        return jsonify({"ok": False, "message": "寄送失敗，請稍後再試。"}), 500
 
     return jsonify({"ok": True, "message": "驗證碼已寄出，請至信箱查收。"})
 

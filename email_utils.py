@@ -1,112 +1,71 @@
 import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import requests
 
 
-def _safe_bool(value):
-    return bool(str(value or "").strip())
-
-
-def _smtp_config():
-    smtp_host_env = os.getenv("SMTP_HOST", "")
-    smtp_port_env = os.getenv("SMTP_PORT", "")
-    smtp_username_env = os.getenv("SMTP_USERNAME", "")
-    smtp_email_env = os.getenv("SMTP_EMAIL", "")
-    smtp_password_env = os.getenv("SMTP_PASSWORD", "")
-    smtp_from_env = os.getenv("SMTP_FROM", "")
-
-    smtp_host = smtp_host_env.strip() or "smtp.gmail.com"
-    smtp_port_raw = smtp_port_env.strip() or "587"
-
-    try:
-        smtp_port = int(smtp_port_raw)
-    except ValueError:
-        smtp_port = 587
-
-    smtp_username = smtp_username_env.strip() or smtp_email_env.strip()
-    smtp_password = smtp_password_env.strip()
-    smtp_from = smtp_from_env.strip() or smtp_username
+def _resend_config():
+    resend_api_key_env = os.getenv("RESEND_API_KEY", "")
+    resend_from_env = os.getenv("RESEND_FROM", "")
 
     return {
-        "smtp_host": smtp_host,
-        "smtp_port": smtp_port,
-        "smtp_username": smtp_username,
-        "smtp_password": smtp_password,
-        "smtp_from": smtp_from,
-        "has_smtp_host": bool(smtp_host_env.strip()),
-        "has_smtp_port": bool(smtp_port_env.strip()),
-        "has_smtp_username": bool(smtp_username_env.strip()),
-        "has_smtp_email": bool(smtp_email_env.strip()),
-        "has_smtp_password": bool(smtp_password_env.strip()),
-        "has_smtp_from": bool(smtp_from_env.strip()),
+        "resend_api_key": resend_api_key_env.strip(),
+        "resend_from": resend_from_env.strip(),
+        "has_resend_api_key": bool(resend_api_key_env.strip()),
+        "has_resend_from": bool(resend_from_env.strip()),
     }
 
 
-def _log_smtp_diagnostics(config):
-    print("[Email] SMTP diagnostics:")
-    print(f"[Email] SMTP_HOST set={config['has_smtp_host']}")
-    print(f"[Email] SMTP_PORT set={config['has_smtp_port']}")
-    print(f"[Email] SMTP_USERNAME set={config['has_smtp_username']}")
-    print(f"[Email] SMTP_EMAIL set={config['has_smtp_email']}")
-    print(f"[Email] SMTP_FROM set={config['has_smtp_from']}")
-    print(f"[Email] SMTP_PASSWORD set={config['has_smtp_password']}")
+def _log_resend_diagnostics(config):
+    print("[RESEND DEBUG] RESEND_API_KEY exists:", config["has_resend_api_key"], flush=True)
+    print("[RESEND DEBUG] RESEND_FROM exists:", config["has_resend_from"], flush=True)
 
 
 def send_email(to_email, subject, body):
     """
-    Send an HTML email via Gmail SMTP.
+    Send an HTML email via Resend HTTP API.
 
     Env vars:
-    - SMTP_HOST
-    - SMTP_PORT
-    - SMTP_USERNAME
-    - SMTP_FROM
-    - SMTP_EMAIL (fallback only)
-    - SMTP_PASSWORD
+    - RESEND_API_KEY
+    - RESEND_FROM
 
     Returns:
     - True on success
     - False on failure
     """
-    print("[SMTP DEBUG] send_email called", flush=True)
+    print("[RESEND DEBUG] send_email called", flush=True)
     try:
-        config = _smtp_config()
-        smtp_password = config["smtp_password"]
+        config = _resend_config()
 
-        print(f"[SMTP DEBUG] SMTP_HOST exists: {config['has_smtp_host']}", flush=True)
-        print(f"[SMTP DEBUG] SMTP_PORT exists: {config['has_smtp_port']}", flush=True)
-        print(f"[SMTP DEBUG] SMTP_USERNAME exists: {config['has_smtp_username']}", flush=True)
-        print(f"[SMTP DEBUG] SMTP_EMAIL exists: {config['has_smtp_email']}", flush=True)
-        print(f"[SMTP DEBUG] SMTP_FROM exists: {config['has_smtp_from']}", flush=True)
-        print(f"[SMTP DEBUG] SMTP_PASSWORD exists: {config['has_smtp_password']}", flush=True)
+        _log_resend_diagnostics(config)
 
-        if not config["smtp_username"]:
-            raise ValueError("SMTP username/email is missing.")
+        if not config["resend_api_key"]:
+            raise ValueError("RESEND_API_KEY is missing.")
 
-        if not smtp_password:
-            raise ValueError("SMTP password is missing.")
+        if not config["resend_from"]:
+            raise ValueError("RESEND_FROM is missing.")
 
-        if not config["smtp_from"]:
-            raise ValueError("SMTP from address is missing.")
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {config['resend_api_key']}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": config["resend_from"],
+                "to": [to_email],
+                "subject": subject,
+                "html": body,
+            },
+            timeout=20,
+        )
 
-        message = MIMEMultipart("alternative")
-        message["From"] = config["smtp_from"]
-        message["To"] = to_email
-        message["Subject"] = subject
-        message.attach(MIMEText(body, "html", "utf-8"))
+        if response.status_code >= 400:
+            raise RuntimeError(f"Resend API returned {response.status_code}: {response.text}")
 
-        with smtplib.SMTP(config["smtp_host"], config["smtp_port"], timeout=20) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(config["smtp_username"], smtp_password)
-            server.sendmail(config["smtp_from"], [to_email], message.as_string())
         return True
     except Exception as exc:
-        config = locals().get("config") or _smtp_config()
-        _log_smtp_diagnostics(config)
-        print("[SMTP ERROR]", flush=True)
-        print(f"[SMTP ERROR] exception type: {type(exc).__name__}", flush=True)
-        print(f"[SMTP ERROR] exception message: {exc}", flush=True)
+        config = locals().get("config") or _resend_config()
+        _log_resend_diagnostics(config)
+        print("[RESEND ERROR]", flush=True)
+        print(f"[RESEND ERROR] exception type: {type(exc).__name__}", flush=True)
+        print(f"[RESEND ERROR] exception message: {exc}", flush=True)
         return False

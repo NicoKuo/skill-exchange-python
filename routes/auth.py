@@ -69,8 +69,10 @@ def send_register_code():
     """
     寄送註冊驗證碼到指定 Email。
     """
+    print("[REGISTER SEND CODE] route called", flush=True)
     payload = request.get_json(silent=True) or {}
     email = str(payload.get("email", "")).strip().lower()
+    print(f"[REGISTER SEND CODE] target email exists: {bool(email)}", flush=True)
 
     if not email:
         return jsonify({"ok": False, "message": "請先輸入 Email。"}), 400
@@ -95,9 +97,13 @@ def send_register_code():
         "</div>"
     )
 
+    print("[REGISTER SEND CODE] before send_email", flush=True)
     if not send_email(email, subject, body):
+        print("[REGISTER SEND CODE] send_email result: False", flush=True)
         flash("寄送失敗，請稍後再試", "error")
         return jsonify({"ok": False, "message": "寄送失敗，請稍後再試"})
+
+    print("[REGISTER SEND CODE] send_email result: True", flush=True)
 
     # 寄送成功後才寫入驗證碼記錄，避免失敗時殘留無效紀錄。
     EmailVerification.query.filter_by(

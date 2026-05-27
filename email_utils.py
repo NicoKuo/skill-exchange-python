@@ -69,9 +69,17 @@ def send_email(to_email, subject, body):
     - True on success
     - False on failure
     """
+    print("[SMTP DEBUG] send_email called", flush=True)
     try:
         config = _smtp_config()
         smtp_password = config["smtp_password"]
+
+        print(f"[SMTP DEBUG] SMTP_HOST exists: {config['has_smtp_host']}", flush=True)
+        print(f"[SMTP DEBUG] SMTP_PORT exists: {config['has_smtp_port']}", flush=True)
+        print(f"[SMTP DEBUG] SMTP_USERNAME exists: {config['has_smtp_username']}", flush=True)
+        print(f"[SMTP DEBUG] SMTP_EMAIL exists: {config['has_smtp_email']}", flush=True)
+        print(f"[SMTP DEBUG] SMTP_FROM exists: {config['has_smtp_from']}", flush=True)
+        print(f"[SMTP DEBUG] SMTP_PASSWORD exists: {config['has_smtp_password']}", flush=True)
 
         if not config["smtp_username"]:
             raise ValueError("SMTP username/email is missing.")
@@ -98,6 +106,7 @@ def send_email(to_email, subject, body):
     except Exception as exc:
         config = locals().get("config") or _smtp_config()
         _log_smtp_diagnostics(config)
-        print(f"[Email] Exception type: {type(exc).__name__}")
-        print(f"[Email] Exception message: {exc}")
+        print("[SMTP ERROR]", flush=True)
+        print(f"[SMTP ERROR] exception type: {type(exc).__name__}", flush=True)
+        print(f"[SMTP ERROR] exception message: {exc}", flush=True)
         return False

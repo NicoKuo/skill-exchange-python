@@ -19,10 +19,11 @@ MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 30
 # 允許註冊的學校 Email 後綴
 ALLOWED_EMAIL_DOMAINS = [
-    'gmail.com',
-    'm365.fju.edu.tw',
     'cloud.fju.edu.tw',
 ]
+
+# 註冊連續送出冷卻時間（秒）
+REGISTER_SUBMIT_COOLDOWN_SECONDS = 5
 
 # 註冊驗證碼有效時間（分鐘）
 REGISTER_CODE_EXPIRE_MINUTES = 10
@@ -62,6 +63,19 @@ def _is_register_code_valid(email, code):
     verification.is_used = True
     db.session.commit()
     return True
+
+
+def _is_register_submit_too_fast():
+    last_submit_at = session.get('register_last_submit_at')
+    if not last_submit_at:
+        return False
+
+    try:
+        last_submit_at = float(last_submit_at)
+    except (TypeError, ValueError):
+        return False
+
+    return (datetime.utcnow().timestamp() - last_submit_at) < REGISTER_SUBMIT_COOLDOWN_SECONDS
 
 
 @auth_bp.route("/register/send-code", methods=["POST"], endpoint='send_register_code')
@@ -136,30 +150,33 @@ def register():
     使用者註冊路由。
     GET：顯示註冊表單。
     POST：驗證表單資料後建立新帳號，成功則導向登入頁。
-    驗證規則：姓名和 Email 必填、密碼至少 6 碼、Email 不可重複。
+    驗證規則：姓名、Email、密碼必填，Email 限定 @cloud.fju.edu.tw，且 Email 不可重複。
     """
     # 已登入的使用者直接導向儀表板
     if current_user.is_authenticated:
         return redirect(url_for("profile.dashboard"))
 
     if request.method == "POST":
+        if _is_register_submit_too_fast():
+            flash("註冊送出太快，請稍後再試。", "error")
+            return render_template("register.html")
+
+        session['register_last_submit_at'] = datetime.utcnow().timestamp()
+
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
-        verification_code = request.form.get("verification_code", "").strip()
 
         # 基本欄位驗證
-        if not name or not email or len(password) < 6 or not verification_code:
-            flash("姓名、Email、驗證碼必填，密碼至少 6 碼。", "error")
+        if not name or not email or len(password) < 6:
+            flash("姓名、Email、密碼必填，密碼至少 6 碼。", "error")
         elif not _is_allowed_email_domain(email):
-            flash("請使用學校 Email 註冊", "error")
+            flash("請使用 @cloud.fju.edu.tw Email 註冊。", "error")
         else:
             # 檢查 Email 是否已被使用
             existing_user = User.query.filter_by(email=email).first()
             if existing_user:
                 flash("此 Email 已被註冊，請直接登入", "error")
-            elif not _is_register_code_valid(email, verification_code):
-                flash("驗證碼錯誤或已過期，請重新寄送。", "error")
             else:
                 user = User(name=name, email=email, role='user', bio='')
                 user.password_hash = generate_password_hash(password)

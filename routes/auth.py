@@ -1,13 +1,15 @@
 # routes/auth.py: 認證路由（登入、註冊、登出）
 # 包含暴力破解防護：連續失敗 5 次後鎖定帳號 30 分鐘
 from datetime import datetime, timedelta
+from secrets import randbelow
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
-from models import db, User, ActivityLog, Skill
+from models import db, User, ActivityLog, Skill, EmailVerification
+from email_utils import send_email
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -15,10 +17,117 @@ auth_bp = Blueprint('auth', __name__)
 MAX_FAILED_ATTEMPTS = 5
 # 超過失敗次數後的鎖定時間（分鐘）
 LOCKOUT_MINUTES = 30
+# 允許註冊的學校 Email 後綴
+ALLOWED_EMAIL_DOMAINS = [
+    'gmail.com',
+    'm365.fju.edu.tw',
+    'cloud.fju.edu.tw',
+]
+
+# 註冊驗證碼有效時間（分鐘）
+REGISTER_CODE_EXPIRE_MINUTES = 10
 
 
-def _is_valid_email_format(email):
-    return bool(email) and "@" in email and "." in email.split("@", 1)[-1]
+def _is_allowed_email_domain(email):
+    return any(email.endswith(f"@{domain}") for domain in ALLOWED_EMAIL_DOMAINS)
+
+
+def _generate_six_digit_code():
+    return f"{randbelow(1000000):06d}"
+
+
+def _get_latest_register_verification(email):
+    return (
+        EmailVerification.query
+        .filter_by(email=email, purpose='register', is_used=False)
+        .order_by(EmailVerification.created_at.desc())
+        .first()
+    )
+
+
+def _is_register_code_valid(email, code):
+    verification = _get_latest_register_verification(email)
+    if not verification:
+        return False
+
+    now = datetime.utcnow()
+    if verification.expires_at <= now:
+        return False
+
+    if verification.code != code:
+        verification.attempts = (verification.attempts or 0) + 1
+        db.session.commit()
+        return False
+
+    verification.is_used = True
+    db.session.commit()
+    return True
+
+
+@auth_bp.route("/register/send-code", methods=["POST"], endpoint='send_register_code')
+def send_register_code():
+    """
+    寄送註冊驗證碼到指定 Email。
+    """
+    print("[REGISTER SEND CODE] route called", flush=True)
+    payload = request.get_json(silent=True) or {}
+    email = str(payload.get("email", "")).strip().lower()
+    print(f"[REGISTER SEND CODE] target email exists: {bool(email)}", flush=True)
+
+    if not email:
+        return jsonify({"ok": False, "message": "請先輸入 Email。"}), 400
+
+    if not _is_allowed_email_domain(email):
+        return jsonify({"ok": False, "message": "請使用學校 Email。"}), 400
+
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        return jsonify({"ok": False, "message": "此 Email 已被註冊，請直接登入。"}), 400
+
+    code = _generate_six_digit_code()
+    expires_at = datetime.utcnow() + timedelta(minutes=REGISTER_CODE_EXPIRE_MINUTES)
+
+    subject = "【技能交換平台】註冊驗證碼"
+    body = (
+        "<div style='font-family:Arial,sans-serif;line-height:1.7'>"
+        "<h3>註冊驗證碼</h3>"
+        f"<p>你的驗證碼是：<strong style='font-size:20px'>{code}</strong></p>"
+        f"<p>此驗證碼將於 {REGISTER_CODE_EXPIRE_MINUTES} 分鐘後失效。</p>"
+        "<p>若非你本人操作，請忽略此信。</p>"
+        "</div>"
+    )
+    # 記錄收到請求
+    current_app.logger.debug(f"收到寄驗證碼請求：email={email}")
+
+    # 呼叫 send_email()（會回傳 (success, message)）
+    send_success, send_message = send_email(email, subject, body)
+    current_app.logger.debug(f"send_email result: success={send_success}, message={send_message}")
+
+    if not send_success:
+        # 寄信失敗：詳細記錄並回傳清楚錯誤給前端
+        current_app.logger.error(f"寄送驗證碼失敗，email={email}, reason={send_message}")
+        flash(send_message or "寄送失敗，請稍後再試", "error")
+        return jsonify({"success": False, "ok": False, "message": send_message or "郵件服務尚未設定"}), 500
+
+    # 寄送成功後才寫入驗證碼記錄，避免失敗時殘留無效紀錄。
+    EmailVerification.query.filter_by(
+        email=email,
+        purpose='register',
+        is_used=False,
+    ).update({"is_used": True})
+
+    verification = EmailVerification(
+        email=email,
+        code=code,
+        purpose='register',
+        attempts=0,
+        expires_at=expires_at,
+        is_used=False,
+    )
+    db.session.add(verification)
+    db.session.commit()
+
+    return jsonify({"success": True, "ok": True, "message": "驗證碼已寄出，請至信箱查收。"})
 
 
 @auth_bp.route("/register", methods=["GET", "POST"], endpoint='register')
@@ -37,19 +146,20 @@ def register():
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
+        verification_code = request.form.get("verification_code", "").strip()
 
         # 基本欄位驗證
-        if not name or not email or len(password) < 6:
-            flash("姓名、Email 必填，密碼至少 6 碼。", "error")
-        elif not _is_valid_email_format(email):
-            flash("Email 格式不正確。", "error")
-        elif not email.endswith("@cloud.fju.edu.tw"):
+        if not name or not email or len(password) < 6 or not verification_code:
+            flash("姓名、Email、驗證碼必填，密碼至少 6 碼。", "error")
+        elif not _is_allowed_email_domain(email):
             flash("請使用學校 Email 註冊", "error")
         else:
             # 檢查 Email 是否已被使用
             existing_user = User.query.filter_by(email=email).first()
             if existing_user:
                 flash("此 Email 已被註冊，請直接登入", "error")
+            elif not _is_register_code_valid(email, verification_code):
+                flash("驗證碼錯誤或已過期，請重新寄送。", "error")
             else:
                 user = User(name=name, email=email, role='user', bio='')
                 user.password_hash = generate_password_hash(password)

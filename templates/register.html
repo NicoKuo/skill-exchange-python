@@ -7,69 +7,11 @@
         <div class="field"><label>姓名</label><input name="name" required></div>
         <div class="field" style="grid-column:1/-1">
             <label>Email</label>
-            <div style="display:flex;gap:8px;align-items:center;">
-                <input id="registerEmail" name="email" type="email" required style="flex:1;">
-                <button id="sendCodeBtn" class="btn btn-muted" type="button">寄送驗證碼</button>
-            </div>
-            <small id="sendCodeHint" class="muted" style="display:block;margin-top:6px;"></small>
-        </div>
-        <div class="field" style="grid-column:1/-1">
-            <label>驗證碼</label>
-            <input name="verification_code" placeholder="請輸入 6 碼驗證碼" maxlength="6" required>
+            <input id="registerEmail" name="email" type="email" required style="width:100%;">
         </div>
         <div class="field" style="grid-column:1/-1"><label>密碼</label><input name="password" type="password" required>
         </div>
         <button class="btn" type="submit">註冊</button>
     </form>
 </div>
-
-<script>
-(() => {
-    const sendCodeBtn = document.getElementById('sendCodeBtn');
-    const registerEmail = document.getElementById('registerEmail');
-    const sendCodeHint = document.getElementById('sendCodeHint');
-
-    if (!sendCodeBtn || !registerEmail || !sendCodeHint) {
-        return;
-    }
-
-    const setHint = (message, ok) => {
-        sendCodeHint.textContent = message;
-        sendCodeHint.style.color = ok ? '#15803d' : '#b91c1c';
-    };
-
-    sendCodeBtn.addEventListener('click', async () => {
-        const email = registerEmail.value.trim();
-        if (!email) {
-            setHint('請先輸入 Email。', false);
-            return;
-        }
-
-        sendCodeBtn.disabled = true;
-        const originalText = sendCodeBtn.textContent;
-        sendCodeBtn.textContent = '寄送中...';
-
-        try {
-            const response = await fetch('{{ url_for("auth.send_register_code") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
-            });
-
-            const data = await response.json();
-            if (!response.ok || !data.ok) {
-                setHint(data.message || '寄送失敗，請稍後再試', false);
-                return;
-            }
-
-            setHint(data.message || '驗證碼已寄出。', true);
-        } catch (error) {
-            setHint('寄送失敗，請稍後再試', false);
-        } finally {
-            sendCodeBtn.disabled = false;
-            sendCodeBtn.textContent = originalText;
-        }
-    });
-})();
-</script>
 {% endblock %}

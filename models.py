@@ -14,6 +14,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    security_answer_hash = db.Column(db.Text, nullable=True)
     role = db.Column(db.String(20), default='user', nullable=False)
     bio = db.Column(db.Text, default='')
     avatar = db.Column(db.String(255))

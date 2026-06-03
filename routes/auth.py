@@ -6,7 +6,7 @@ from secrets import randbelow
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import IntegrityError
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from models import db, User, ActivityLog, Skill, EmailVerification
 from email_utils import send_email
@@ -166,10 +166,15 @@ def register():
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
+        security_answer = request.form.get("security_answer", "").strip()
 
         # 基本欄位驗證
-        if not name or not email or len(password) < 6:
-            flash("姓名、Email、密碼必填，密碼至少 6 碼。", "error")
+        if not name or not email or not security_answer or len(password) < 6:
+            flash("姓名、Email、密碼與安全問題答案必填，密碼至少 6 碼。", "error")
+            return render_template("register.html")
+        if not (2 <= len(security_answer) <= 50):
+            flash("安全答案長度需為 2 到 50 個字", "error")
+            return render_template("register.html")
         elif not _is_allowed_email_domain(email):
             flash("請使用 @cloud.fju.edu.tw Email 註冊。", "error")
         else:
@@ -180,6 +185,7 @@ def register():
             else:
                 user = User(name=name, email=email, role='user', bio='')
                 user.password_hash = generate_password_hash(password)
+                user.security_answer_hash = generate_password_hash(security_answer)
 
                 try:
                     db.session.add(user)
@@ -192,6 +198,82 @@ def register():
                     return redirect(url_for('.login'))
 
     return render_template("register.html")
+
+
+@auth_bp.route("/forgot-password", methods=["GET", "POST"], endpoint='forgot_password')
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(url_for("profile.dashboard"))
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        security_answer = request.form.get("security_answer", "").strip()
+
+        if not email or not security_answer:
+            flash("Email 與安全問題答案必填。", "error")
+            return render_template("forgot_password.html")
+        if not (2 <= len(security_answer) <= 50):
+            flash("安全答案長度需為 2 到 50 個字", "error")
+            return render_template("forgot_password.html")
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            flash("找不到此 Email 對應的帳號。", "error")
+            return render_template("forgot_password.html")
+
+        if not user.security_answer_hash:
+            flash("此帳號尚未設定安全問題，請聯絡管理員", "error")
+            return render_template("forgot_password.html")
+
+        if not check_password_hash(user.security_answer_hash, security_answer):
+            flash("安全問題答案錯誤。", "error")
+            return render_template("forgot_password.html")
+
+        session['reset_user_id'] = user.id
+        return redirect(url_for('.reset_password'))
+
+    return render_template("forgot_password.html")
+
+
+@auth_bp.route("/reset-password", methods=["GET", "POST"], endpoint='reset_password')
+def reset_password():
+    if current_user.is_authenticated:
+        return redirect(url_for("profile.dashboard"))
+
+    reset_user_id = session.get('reset_user_id')
+    if not reset_user_id:
+        flash("請先完成忘記密碼驗證。", "error")
+        return redirect(url_for('.forgot_password'))
+
+    user = User.query.get(reset_user_id)
+    if not user:
+        session.pop('reset_user_id', None)
+        flash("重設密碼資料已失效，請重新操作。", "error")
+        return redirect(url_for('.forgot_password'))
+
+    if request.method == "POST":
+        new_password = request.form.get("new_password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not new_password or not confirm_password:
+            flash("新密碼與確認密碼必填。", "error")
+            return render_template("reset_password.html")
+
+        if new_password != confirm_password:
+            flash("新密碼與確認密碼不一致。", "error")
+            return render_template("reset_password.html")
+
+        if len(new_password) < 6:
+            flash("密碼至少 6 碼。", "error")
+            return render_template("reset_password.html")
+
+        user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        session.pop('reset_user_id', None)
+        flash("密碼已更新，請重新登入", "success")
+        return redirect(url_for('.login'))
+
+    return render_template("reset_password.html")
 
 
 @auth_bp.route("/login", methods=["GET", "POST"], endpoint='login')

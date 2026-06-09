@@ -1,0 +1,20 @@
+[33m88cd455[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m 修回去
+[33mf3130e1[m 修
+[33mbca4365[m 修
+[33m73f01f6[m scahdule
+[33mfe3fea1[m Reapply "修"
+[33m0ddfba7[m Revert "Reapply "效率提升""
+[33m4451e27[m Revert "忘記密碼"
+[33m1e5f4a8[m Reapply "效率提升"
+[33mfc3817b[m Revert "效率提升"
+[33m16cffb6[m Revert "修"
+[33m0b190ca[m 修
+[33m0a96278[m 效率提升
+[33m265520b[m 忘記密碼
+[33mfba2f42[m 修\
+[33ma6ceb30[m Create .python-version
+[33ma1da745[m Update .env.example
+[33mf45ea36[m Revert "放棄寄信"
+[33m67caf30[m 放棄寄信
+[33m09f9350[m email
+[33mce78133[m email

@@ -78,8 +78,8 @@
       {% if current_user.is_authenticated %}
       updateChatBadge();
       updateNotificationBadge();
-      setInterval(updateChatBadge, 5000);
-      setInterval(updateNotificationBadge, 30000);
+      setInterval(updateChatBadge, 60000);
+      setInterval(updateNotificationBadge, 60000);
       {% endif %}
 
       document.addEventListener('DOMContentLoaded', function() {

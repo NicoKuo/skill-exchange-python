@@ -3,7 +3,7 @@
 from datetime import datetime, timezone, timedelta # 用於處理台灣時區的時間轉換
 import re # 用於解析技能描述中的附件標記
 
-from flask import url_for # 用於生成技能附件的存取 URL
+from flask import g, url_for # 用於生成技能附件的存取 URL
 from markupsafe import Markup, escape # 用於安全地渲染技能描述中的 HTML，並避免 XSS 攻擊
 from sqlalchemy import or_, func # 用於 SQLAlchemy 查詢中的條件組合和聚合函數
 
@@ -468,6 +468,56 @@ def render_skill_description(description, truncate=None):
 # 使用者統計輔助函數
 # -----------------------------------------------
 
+def user_stats(user_id):
+    cache_key = f'_user_stats_{user_id}'
+
+    if not hasattr(g, cache_key):
+        stats = {
+            'completed': 0,
+            'reviews': 0,
+            'rating': 0,
+            'skills': 0,
+            'days': 0,
+        }
+
+        try:
+            completed = Match.query.filter(
+                Match.status == 'completed',
+                or_(Match.requester_id == user_id, Match.receiver_id == user_id)
+            ).count()
+
+            reviews = Review.query.filter_by(reviewee_id=user_id).count()
+
+            rating = db.session.query(func.avg(Review.rating)).filter(
+                Review.reviewee_id == user_id
+            ).scalar()
+
+            skills_query = Skill.query
+            if hasattr(Skill, 'user_id'):
+                skills_query = skills_query.filter(Skill.user_id == user_id)
+            if hasattr(Skill, 'status'):
+                skills_query = skills_query.filter(Skill.status == 'open')
+            skills = skills_query.count()
+
+            user = User.query.get(user_id)
+            days = 0
+            if user and getattr(user, 'created_at', None):
+                days = (datetime.utcnow() - user.created_at).days
+
+            stats = {
+                'completed': completed,
+                'reviews': reviews,
+                'rating': round(float(rating), 1) if rating else 0,
+                'skills': skills,
+                'days': days,
+            }
+        except Exception:
+            pass
+
+        setattr(g, cache_key, stats)
+
+    return getattr(g, cache_key)
+
 def user_average_rating(user_id):
     """
     計算指定使用者的平均評分。
@@ -497,10 +547,8 @@ def user_points(user_id):
     計算指定使用者的累積積分。
     計算方式：每完成一次交換 +20 分，每收到一則評價 +5 分。
     """
-    return (
-        user_completed_matches(user_id) * 20
-        + Review.query.filter_by(reviewee_id=user_id).count() * 5
-    )
+    stats = user_stats(user_id)
+    return stats['completed'] * 20 + stats['reviews'] * 5
 
 
 def user_pending_review_count(user_id):
@@ -538,23 +586,12 @@ def user_badges(user_id):
     badges = []
 
     # 取得統計數據
-    completed = user_completed_matches(user_id)
-    rating = user_average_rating(user_id)
-    reviews = Review.query.filter_by(reviewee_id=user_id).count()
-
-    # 查詢該使用者上架中的技能數
-    skills_query = Skill.query
-    if hasattr(Skill, 'user_id'):
-        skills_query = skills_query.filter(Skill.user_id == user_id)
-    if hasattr(Skill, 'status'):
-        skills_query = skills_query.filter(Skill.status == 'open')
-    skills = skills_query.count()
-
-    # 計算使用者加入天數
-    user = User.query.get(user_id)
-    days = 0
-    if user and getattr(user, 'created_at', None):
-        days = (datetime.utcnow() - user.created_at).days
+    stats = user_stats(user_id)
+    completed = stats['completed']
+    rating = stats['rating']
+    reviews = stats['reviews']
+    skills = stats['skills']
+    days = stats['days']
 
     # 基礎徽章：所有使用者都有
     badges.append({'name': '新會員', 'tier': 'iron', 'icon': '🔩'})

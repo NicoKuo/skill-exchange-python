@@ -486,10 +486,13 @@ def user_completed_matches(user_id):
     計算指定使用者的已完成媒合次數。
     包含作為申請方或被申請方的所有 completed 狀態媒合。
     """
-    return Match.query.filter(
-        Match.status == 'completed',
-        or_(Match.requester_id == user_id, Match.receiver_id == user_id)
-    ).count()
+    try:
+        return Match.query.filter(
+            Match.status == 'completed',
+            or_(Match.requester_id == user_id, Match.receiver_id == user_id)
+        ).execution_options(timeout=5).count()
+    except Exception:
+        return 0
 
 
 def user_points(user_id):
@@ -497,10 +500,19 @@ def user_points(user_id):
     計算指定使用者的累積積分。
     計算方式：每完成一次交換 +20 分，每收到一則評價 +5 分。
     """
-    return (
-        user_completed_matches(user_id) * 20
-        + Review.query.filter_by(reviewee_id=user_id).count() * 5
-    )
+    try:
+        completed_count = Match.query.filter(
+            Match.status == 'completed',
+            or_(Match.requester_id == user_id, Match.receiver_id == user_id)
+        ).execution_options(timeout=5).count()
+
+        reviews_count = Review.query.filter_by(
+            reviewee_id=user_id
+        ).execution_options(timeout=5).count()
+
+        return completed_count * 20 + reviews_count * 5
+    except Exception:
+        return 0
 
 
 def user_pending_review_count(user_id):
@@ -535,69 +547,96 @@ def user_badges(user_id):
     每個徽章包含：name（名稱）、tier（等級：iron/bronze/silver/gold）、icon（表情符號）。
     徽章共分四大類：加入時間、技能數量、評價數量、交換次數。
     """
-    badges = []
+    default_badges = [{'name': '新會員', 'tier': 'iron', 'icon': '🔩'}]
 
-    # 取得統計數據
-    completed = user_completed_matches(user_id)
-    rating = user_average_rating(user_id)
-    reviews = Review.query.filter_by(reviewee_id=user_id).count()
+    try:
+        completed_count_sq = db.session.query(func.count(Match.id)).filter(
+            Match.status == 'completed',
+            or_(Match.requester_id == user_id, Match.receiver_id == user_id)
+        ).scalar_subquery()
 
-    # 查詢該使用者上架中的技能數
-    skills_query = Skill.query
-    if hasattr(Skill, 'user_id'):
-        skills_query = skills_query.filter(Skill.user_id == user_id)
-    if hasattr(Skill, 'status'):
-        skills_query = skills_query.filter(Skill.status == 'open')
-    skills = skills_query.count()
+        reviews_count_sq = db.session.query(func.count(Review.id)).filter(
+            Review.reviewee_id == user_id
+        ).scalar_subquery()
 
-    # 計算使用者加入天數
-    user = User.query.get(user_id)
-    days = 0
-    if user and getattr(user, 'created_at', None):
-        days = (datetime.utcnow() - user.created_at).days
+        avg_rating_sq = db.session.query(func.avg(Review.rating)).filter(
+            Review.reviewee_id == user_id
+        ).scalar_subquery()
 
-    # 基礎徽章：所有使用者都有
-    badges.append({'name': '新會員', 'tier': 'iron', 'icon': '🔩'})
+        skills_count_sq = db.session.query(func.count(Skill.id)).filter(
+            Skill.user_id == user_id,
+            Skill.status == 'open'
+        ).scalar_subquery()
 
-    # 加入時間徽章
-    if days >= 7:
-        badges.append({'name': '老朋友', 'tier': 'bronze', 'icon': '📅'})
-    if days >= 30:
-        badges.append({'name': '月老會員', 'tier': 'silver', 'icon': '🗓️'})
-    if days >= 180:
-        badges.append({'name': '半年元老', 'tier': 'gold', 'icon': '👑'})
+        created_at_sq = db.session.query(User.created_at).filter(
+            User.id == user_id
+        ).scalar_subquery()
 
-    # 技能數量徽章
-    if skills >= 1:
-        badges.append({'name': '技能先鋒', 'tier': 'bronze', 'icon': '🎯'})
-    if skills >= 3:
-        badges.append({'name': '多才多藝', 'tier': 'silver', 'icon': '🎨'})
-    if skills >= 6:
-        badges.append({'name': '技能大師', 'tier': 'gold', 'icon': '🏆'})
+        stats = db.session.query(
+            completed_count_sq,
+            reviews_count_sq,
+            avg_rating_sq,
+            skills_count_sq,
+            created_at_sq,
+        ).execution_options(timeout=5).one()
 
-    # 評價數量徽章
-    if reviews >= 1:
-        badges.append({'name': '初獲好評', 'tier': 'bronze', 'icon': '💬'})
-    if reviews >= 5:
-        badges.append({'name': '口碑累積', 'tier': 'silver', 'icon': '📣'})
-    if reviews >= 15:
-        badges.append({'name': '眾望所歸', 'tier': 'gold', 'icon': '🌟'})
+        completed = int(stats[0] or 0)
+        reviews = int(stats[1] or 0)
+        rating = float(stats[2] or 0)
+        skills = int(stats[3] or 0)
+        created_at = stats[4]
 
-    # 交換次數徽章
-    if completed >= 1:
-        badges.append({'name': '交換新手', 'tier': 'bronze', 'icon': '🤝'})
-    if completed >= 3:
-        badges.append({'name': '交換達人', 'tier': 'silver', 'icon': '🔗'})
-    if completed >= 10:
-        badges.append({'name': '交換大師', 'tier': 'gold', 'icon': '🌐'})
+        badges = []
 
-    # 高評價特殊徽章
-    if rating >= 4.5 and reviews >= 3:
-        badges.append({'name': '高評價成員', 'tier': 'silver', 'icon': '⭐'})
-    if rating >= 4.9 and reviews >= 5:
-        badges.append({'name': '完美評價', 'tier': 'gold', 'icon': '💎'})
+        # 基礎徽章：所有使用者都有
+        badges.append({'name': '新會員', 'tier': 'iron', 'icon': '🔩'})
 
-    return badges
+        # 計算使用者加入天數
+        days = 0
+        if created_at:
+            days = (datetime.utcnow() - created_at).days
+
+        # 加入時間徽章
+        if days >= 7:
+            badges.append({'name': '老朋友', 'tier': 'bronze', 'icon': '📅'})
+        if days >= 30:
+            badges.append({'name': '月老會員', 'tier': 'silver', 'icon': '🗓️'})
+        if days >= 180:
+            badges.append({'name': '半年元老', 'tier': 'gold', 'icon': '👑'})
+
+        # 技能數量徽章
+        if skills >= 1:
+            badges.append({'name': '技能先鋒', 'tier': 'bronze', 'icon': '🎯'})
+        if skills >= 3:
+            badges.append({'name': '多才多藝', 'tier': 'silver', 'icon': '🎨'})
+        if skills >= 6:
+            badges.append({'name': '技能大師', 'tier': 'gold', 'icon': '🏆'})
+
+        # 評價數量徽章
+        if reviews >= 1:
+            badges.append({'name': '初獲好評', 'tier': 'bronze', 'icon': '💬'})
+        if reviews >= 5:
+            badges.append({'name': '口碑累積', 'tier': 'silver', 'icon': '📣'})
+        if reviews >= 15:
+            badges.append({'name': '眾望所歸', 'tier': 'gold', 'icon': '🌟'})
+
+        # 交換次數徽章
+        if completed >= 1:
+            badges.append({'name': '交換新手', 'tier': 'bronze', 'icon': '🤝'})
+        if completed >= 3:
+            badges.append({'name': '交換達人', 'tier': 'silver', 'icon': '🔗'})
+        if completed >= 10:
+            badges.append({'name': '交換大師', 'tier': 'gold', 'icon': '🌐'})
+
+        # 高評價特殊徽章
+        if rating >= 4.5 and reviews >= 3:
+            badges.append({'name': '高評價成員', 'tier': 'silver', 'icon': '⭐'})
+        if rating >= 4.9 and reviews >= 5:
+            badges.append({'name': '完美評價', 'tier': 'gold', 'icon': '💎'})
+
+        return badges
+    except Exception:
+        return default_badges
 
 
 # -----------------------------------------------
@@ -638,10 +677,13 @@ def unread_notifications_count(user_id):
     取得指定使用者的未讀通知數量。
     用於導覽列顯示通知提示徽章。
     """
-    return Notification.query.filter_by(
-        user_id=user_id,
-        is_read=False
-    ).count()
+    try:
+        return Notification.query.filter_by(
+            user_id=user_id,
+            is_read=False
+        ).execution_options(timeout=3).count()
+    except Exception:
+        return 0
 
 
 def add_notification(user_id, type_, content, related_id=None):
